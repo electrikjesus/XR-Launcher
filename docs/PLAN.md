@@ -522,11 +522,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 |---|------|------|
 | 2.1 | Define `Workspace`, `PanelState`, `PanelKind`, `EmbedMode` in `core/workspace`. | ☑ |
 | 2.2 | Persist workspace JSON via DataStore (default workspace + hotseat pins). | ☑ |
-| 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☐ (partial — 1.22a shell) |
-| 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☐ |
-| 2.5 | Implement move (drag) for panels — tier-appropriate API (`movable` modifier, Glimmer, or drag handles). | ☐ |
-| 2.6 | Implement resize with min/max bounds and optional fixed aspect ratio. | ☐ |
-| 2.7 | Add layout presets: Single, Dual, Triptych (apply preset → update poses). | ☐ |
+| 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☑ |
+| 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☑ (glasses; Tier 0 partial) |
+| 2.5 | Implement move (drag) for panels — tier-appropriate API (`movable` modifier, Glimmer, or drag handles). | ☑ (freeform title drag) |
+| 2.6 | Implement resize with min/max bounds and optional fixed aspect ratio. | ☑ (corner handle; min size) |
+| 2.7 | Add layout presets: Single, Dual, Triptych (apply preset → update poses). | ☑ |
 | 2.8 | Save on change; restore workspace on activity start (all tiers). | ☐ |
 | 2.9 | **Tier 0:** Spatial app-drawer panel + dock orbiter in 3D scene (not flat grid). | ☐ |
 | 2.10 | **Tier 0:** Keyboard shortcut map (focus panels, launch, close, snap preset) + help overlay. | ☐ |
