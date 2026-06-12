@@ -68,6 +68,7 @@ fun CompanionTouchpadScreen(
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
     val touchpadSensitivity by CompanionPointerBus.touchpadSensitivity.collectAsState()
+    val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
     val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
     val textEntryActive by CompanionPointerBus.textEntryActiveFlow.collectAsState()
     var precisionPointer by remember { mutableStateOf(false) }
@@ -233,6 +234,32 @@ fun CompanionTouchpadScreen(
                 )
             }
 
+            if (focusedPanelId != null && launcherForeground) {
+                Text(
+                    text = stringResource(
+                        R.string.workspace_focused_panel,
+                        focusedPanelLabel(focusedPanelId!!),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+                OutlinedButton(
+                    onClick = {
+                        CompanionPointerBus.focusNextPanel(
+                            listOf(
+                                "widget_clock",
+                                "widget_calendar",
+                                "app_drawer",
+                                "hotseat",
+                            ),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.workspace_focus_next))
+                }
+            }
+
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
@@ -379,6 +406,16 @@ fun CompanionTouchpadScreen(
             }
         }
     }
+}
+
+@Composable
+private fun focusedPanelLabel(panelId: String): String = when (panelId) {
+    "widget_clock" -> stringResource(R.string.workspace_panel_clock)
+    "widget_calendar" -> stringResource(R.string.workspace_panel_calendar)
+    "app_drawer" -> stringResource(R.string.workspace_panel_drawer)
+    "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
+    "empty_slot" -> stringResource(R.string.workspace_empty_slot)
+    else -> panelId
 }
 
 @Composable

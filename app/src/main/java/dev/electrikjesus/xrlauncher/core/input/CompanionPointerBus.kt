@@ -72,6 +72,9 @@ object CompanionPointerBus {
     private val _focusedPanelIndex = MutableStateFlow(0)
     val focusedPanelIndex: StateFlow<Int> = _focusedPanelIndex.asStateFlow()
 
+    private val _focusedPanelId = MutableStateFlow<String?>(null)
+    val focusedPanelId: StateFlow<String?> = _focusedPanelId.asStateFlow()
+
     private val _cursor = MutableStateFlow(CompanionCursorState())
     val cursor: StateFlow<CompanionCursorState> = _cursor.asStateFlow()
 
@@ -292,6 +295,20 @@ object CompanionPointerBus {
         _focusedPanelIndex.value = index.coerceAtLeast(0)
     }
 
+    fun setFocusedPanelId(panelId: String?) {
+        if (_focusedPanelId.value != panelId) {
+            _focusedPanelId.value = panelId
+        }
+    }
+
+    fun focusNextPanel(panelIds: List<String>) {
+        if (panelIds.isEmpty()) return
+        val current = _focusedPanelId.value
+        val currentIndex = panelIds.indexOf(current)
+        val nextIndex = if (currentIndex < 0) 0 else (currentIndex + 1) % panelIds.size
+        _focusedPanelId.value = panelIds[nextIndex]
+    }
+
     fun resetCursor() {
         gestureAnchorX = null
         gestureAnchorY = null
@@ -304,5 +321,7 @@ object CompanionPointerBus {
         _glassesControlMode.value = GlassesSessionState.controlMode
         _textEntryActive.value = false
         manualPrecisionPointer = false
+        _focusedPanelId.value = null
+        _focusedPanelIndex.value = 0
     }
 }

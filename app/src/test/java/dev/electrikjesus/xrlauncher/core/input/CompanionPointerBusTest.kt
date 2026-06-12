@@ -103,6 +103,18 @@ class CompanionPointerBusTest {
     }
 
     @Test
+    fun focusNextPanel_cyclesThroughIds() {
+        val ids = listOf("widget_clock", "app_drawer", "hotseat")
+        CompanionPointerBus.setFocusedPanelId("widget_clock")
+        CompanionPointerBus.focusNextPanel(ids)
+        assertEquals("app_drawer", CompanionPointerBus.focusedPanelId.value)
+        CompanionPointerBus.focusNextPanel(ids)
+        assertEquals("hotseat", CompanionPointerBus.focusedPanelId.value)
+        CompanionPointerBus.focusNextPanel(ids)
+        assertEquals("widget_clock", CompanionPointerBus.focusedPanelId.value)
+    }
+
+    @Test
     fun setTouchpadSensitivity_clampsRange() {
         CompanionPointerBus.setTouchpadSensitivity(10f)
         assertEquals(3f, CompanionPointerBus.touchpadSensitivity.value)

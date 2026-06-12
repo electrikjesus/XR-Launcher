@@ -59,8 +59,11 @@ private fun FlatGlassesWorkspaceScreen(
 ) {
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
+    val panelBounds = remember { mutableStateMapOf<String, Rect>() }
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
+    val panels = workspace?.panels ?: Workspace.defaultPanels()
+    val visiblePanelIds = remember(panels) { panels.filter { it.visible }.map { it.id } }
     val hotseatApps = remember(apps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
             apps = apps,
@@ -84,12 +87,20 @@ private fun FlatGlassesWorkspaceScreen(
             onToggleHotseatPin = onToggleHotseatPin,
         )
 
+        WorkspacePanelFocusEffects(
+            panelIds = visiblePanelIds,
+            panelBounds = panelBounds,
+            rootWidthPx = rootWidthPx,
+            rootHeightPx = rootHeightPx,
+        )
+
         GlassesSpatialWorkspaceScreen(
             apps = gridApps,
             hotseatApps = hotseatApps,
             pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
-            panels = workspace?.panels ?: Workspace.defaultPanels(),
+            panels = panels,
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+            onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
             onLaunchApp = onLaunchApp,
         )
     }
