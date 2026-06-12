@@ -4,8 +4,8 @@ import android.app.ActivityOptions
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.hardware.display.DisplayManager
 import android.view.Display
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 
 class AppLauncher(private val context: Context) {
     fun launchOnDefaultDisplay(componentName: ComponentName) {
@@ -27,10 +27,5 @@ class AppLauncher(private val context: Context) {
         context.startActivity(intent, options)
     }
 
-    fun findSecondaryDisplayId(): Int? {
-        val displayManager = context.getSystemService(DisplayManager::class.java)
-        return displayManager.displays
-            .firstOrNull { it.displayId != Display.DEFAULT_DISPLAY && it.state != Display.STATE_OFF }
-            ?.displayId
-    }
+    fun findSecondaryDisplayId(): Int? = DisplayLaunchHelper.findSecondaryDisplayId(context)
 }

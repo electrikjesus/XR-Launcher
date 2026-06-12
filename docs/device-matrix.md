@@ -32,4 +32,24 @@ Record hardware and software findings from Phase 0 testing. Update this file whe
 
 ## Tested devices
 
-*(None yet — complete Phase 0.)*
+### Device: `Pixel 8` + `RayNeo SmartGlasses (Desktop Mode)` — Android 15+
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Glasses display ID(s) | **4** (was 3 in earlier session) | `EXTERNAL`, 1920×1080, name SmartGlasses |
+| 2D mode resolution | 1920×1080 | |
+| 3D mode resolution / layout | N/A (2D desktop path) | |
+| `ProjectedContext.isProjectedDeviceConnected` | ☐ Not tested | Uses `EXTERNAL_DISPLAY` tier, not `XR_PROJECTED` |
+| Launch activity on glasses display | ☑ Yes | `ExternalDisplayActivity` via `setLaunchDisplayId` |
+| OEM multi-window / freeform | ☑ Yes | Desktop Mode; external task bounds ~1382×777 centered |
+| IMU via projected `SensorManager` | N/A | Phone gyro used for motion pointer |
+| Phone companion (touchpad + motion) | ☑ Partial | Dual launch OK; tap-click broken; motion OK; calibrate TBD |
+| Recommended tier (glasses) | **1 — EXTERNAL_DISPLAY** | Not Tier 2 `PROJECTED_GLASSES` |
+
+**Quirks:**
+
+- `GlassesLauncherActivity` aborts (requires `XR_PROJECTED`); use `ExternalDisplayActivity`.
+- Desktop Mode freeform window on external display despite fullscreen windowing mode label.
+- Wi‑Fi `adb install` locks ADB server; use file transfer for APK.
+
+**Test date:** 2026-06-11 / 2026-06-12

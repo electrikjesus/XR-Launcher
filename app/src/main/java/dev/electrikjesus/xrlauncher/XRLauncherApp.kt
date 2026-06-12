@@ -1,7 +1,5 @@
 package dev.electrikjesus.xrlauncher
 
-import android.content.Intent
-import android.hardware.display.DisplayManager
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
@@ -11,13 +9,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.window.core.layout.WindowSizeClass
-import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
 import dev.electrikjesus.xrlauncher.core.capability.CapabilityDetector
 import dev.electrikjesus.xrlauncher.core.capability.LayoutFormFactor
 import dev.electrikjesus.xrlauncher.core.capability.RuntimeTier
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
-import dev.electrikjesus.xrlauncher.glasses.GlassesLauncherActivity
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.ui.desktop.SpatialDesktopScreen
 import dev.electrikjesus.xrlauncher.ui.phone.PhoneShellScreen
 
@@ -65,26 +62,14 @@ fun XRLauncherApp(
                 onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
                 onOpenGlassesWorkspace = {
                     val displayId = capabilities.secondaryDisplayIds.firstOrNull()
-                        ?: appLauncher.findSecondaryDisplayId()
+                        ?: DisplayLaunchHelper.findSecondaryDisplayId(context)
                     if (displayId != null) {
-                        val options = android.app.ActivityOptions.makeBasic()
-                            .setLaunchDisplayId(displayId)
-                            .toBundle()
-                        context.startActivity(
-                            Intent(context, GlassesLauncherActivity::class.java).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            },
-                            options,
-                        )
-                    } else {
-                        context.startActivity(
-                            Intent(context, GlassesLauncherActivity::class.java),
-                        )
+                        DisplayLaunchHelper.openGlassesSession(context, displayId)
                     }
                     onRefreshCapabilities()
                 },
                 onOpenCompanion = {
-                    context.startActivity(Intent(context, CompanionControllerActivity::class.java))
+                    DisplayLaunchHelper.openCompanionController(context)
                 },
                 modifier = Modifier.fillMaxSize(),
             )

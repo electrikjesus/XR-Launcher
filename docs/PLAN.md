@@ -286,6 +286,120 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 ---
 
+### Phase 1.5 — SmartGlasses / Desktop Mode hardening
+
+**Goal:** Fix companion input and external-display presentation on Pixel 8 + RayNeo SmartGlasses (Desktop Mode, external `EXTERNAL` display — not `XR_PROJECTED`).
+
+**Verified on device (2026-06-11, logcat + `dumpsys`):**
+
+| Check | Result |
+|-------|--------|
+| Dual launch ("Open on glasses") | ☑ Works — `CompanionControllerActivity` on phone (1080×2400, `mWindowingMode=fullscreen`), `ExternalDisplayActivity` on display #4 |
+| Cursor sync phone → glasses | ☑ Green cursor moves on external display |
+| Tap-to-click (touchpad mode) | ☐ Broken — tap repositions cursor but does not activate item under pointer |
+| Left/Right click buttons | ☐ Unverified — confirm during 1.15 fix |
+| Motion pointer | ☑ Direction feels correct (laser-pointer invert applied); ☐ corner reach / drift needs calibration |
+| External display window | ☐ Freeform — task `mBounds=Rect(269, 113 – 1651, 890)` on 1920×1080 display despite `mode=fullscreen` label |
+
+**Exit criteria:** Tap and buttons reliably launch/highlight apps on glasses; motion mode has recenter/calibrate; external workspace fills the glasses display in Desktop Mode.
+
+| # | Task | Done |
+|---|------|------|
+| 1.15 | **Fix tap-to-click on companion touchpad.** | ☐ |
+| 1.16 | **Motion pointer calibration + recenter.** | ☐ |
+| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☐ |
+| 1.18 | **Re-test full glasses session** after 1.15–1.17; update `device-matrix.md`. | ☐ |
+
+#### Task 1.15 — Fix tap-to-click
+
+**Symptom:** In default touchpad mode, tap moves the cursor to the tap location on the touchpad but does not click (no app launch / no hover confirm on glasses).
+
+**Likely root causes (from code review):**
+
+1. **Gesture conflict (primary):** `CompanionTouchpadScreen` registers both `detectDragGestures` (with `onDragStart` → `setCursorPosition`) and `detectTapGestures` on the same surface. A tap is often consumed as a zero-distance drag — `onDragStart` repositions the cursor, but `detectTapGestures` never fires, so `CompanionPointerBus.click()` is never called.
+2. **Semantic mismatch with plan rule 18:** Touchpad should be *relative* (drag moves cursor; tap = click at *current* cursor). Current tap handler *also* jumps cursor to touchpad-normalized coordinates, which maps touchpad aspect ratio onto the 16:9 glasses screen — confusing even when click works.
+3. **Click delivery (secondary):** `CompanionPointerBus.clicks` is a `SharedFlow` with no replay. If the external display collector starts late, a click could be dropped (less likely during normal use, but worth hardening).
+
+**Planned fix:**
+
+| Step | Change | Files |
+|------|--------|-------|
+| 1 | Replace dual gesture detectors with a single `awaitEachGesture` handler: pointer down → wait for touch slop → if no slop exceeded, emit click; if slop exceeded, enter relative drag mode (delta only, **no** cursor jump on down). | `ui/companion/CompanionTouchpadScreen.kt` |
+| 2 | Add `CompanionPointerBus.clickAt(x, y, button)` that sets cursor and emits click atomically (for optional “tap-to-move-and-click” mode later). | `core/input/CompanionPointerBus.kt` |
+| 3 | Give `_clicks` replay = 1 or use a `Channel` so the glasses activity never misses the latest click during startup. | `core/input/CompanionPointerBus.kt` |
+| 4 | Add debug logging (debug build only): log click emit + hit-test result on external display. | `ExternalDisplayWorkspaceScreen.kt` |
+| 5 | Unit tests: click at normalized coords; gesture handler does not call move on tap. | `CompanionPointerBusTest.kt`, optional Compose UI test |
+
+**Acceptance test:** With motion off, drag moves cursor relatively; single tap fires left-click without moving cursor; item under glasses cursor highlights then launches; Left/Right buttons still work.
+
+---
+
+#### Task 1.16 — Motion pointer calibration + recenter
+
+**Symptom:** Motion mode direction is good, but pointer loses accuracy reaching screen corners (gyro integration drift / limited rotation range).
+
+**Likely root causes:**
+
+1. Raw gyro integration with fixed sensitivity — no zero reference; drift accumulates over time.
+2. Linear sensitivity does not account for phone pose at session start (user may not hold phone level).
+3. Cursor clamped to `[0,1]` — user runs out of “virtual room” before reaching corners.
+
+**Planned fix:**
+
+| Step | Change | Files |
+|------|--------|-------|
+| 1 | Add **Recenter** button on companion UI — resets cursor to center `(0.5, 0.5)`. | `CompanionTouchpadScreen.kt`, strings |
+| 2 | Add **Calibrate** flow: on button press, sample gyro for ~500 ms while user holds neutral pose; store as bias offset subtracted in `MotionPointerController`. | `MotionPointerController.kt`, new `MotionCalibrationState` |
+| 3 | Persist last calibration bias in `SharedPreferences` (optional, same session minimum). | `core/input/` |
+| 4 | Auto-calibrate when motion mode is toggled on (quick zero — user holds phone aimed at screen). | `CompanionControllerActivity.kt` |
+| 5 | Expose **sensitivity** slider (reuse constant from `CompanionPointerBus.MOTION_SENSITIVITY`). | companion UI + bus |
+| 6 | Unit tests for bias subtraction and recenter. | tests |
+
+**Acceptance test:** Enable motion → calibrate → reach all four corners without recenter; recenter restores center; sensitivity adjustable.
+
+---
+
+#### Task 1.17 — External display immersive fullscreen (Desktop Mode)
+
+**Symptom:** Glasses display shows workspace in a desktop freeform window (~1382×777 centered on 1920×1080) instead of edge-to-edge immersive.
+
+**Evidence (`dumpsys activity activities`, display #4):**
+
+```
+Task{… mode=fullscreen …}
+mBounds=Rect(269, 113 - 1651, 890)
+mLastNonFullscreenBounds=Rect(269, 113 - 1651, 890)
+```
+
+Desktop Mode on Pixel treats secondary-display activities as resizable freeform tasks even when windowing mode is “fullscreen”.
+
+**Planned fix (try in order; record results in `device-matrix.md`):**
+
+| Step | Approach | Files |
+|------|----------|-------|
+| 1 | At launch: `ActivityOptions.setLaunchWindowingMode(WINDOWING_MODE_FULLSCREEN)` **and** `setLaunchBounds(Rect(0, 0, displayWidth, displayHeight))` using `DisplayManager` metrics for target display ID. | `DisplayLaunchHelper.kt` |
+| 2 | Manifest: `android:resizeableActivity="false"`, glasses theme `@style/Theme.XRLauncher.Glasses` with `windowFullscreen` / no action bar. | `AndroidManifest.xml`, themes |
+| 3 | In `ExternalDisplayActivity.onCreate` / `onResume`: `WindowCompat.setDecorFitsSystemWindows(false)`; `WindowInsetsController.hide(navigationBars|statusBars)`; `window.setLayout(MATCH_PARENT, MATCH_PARENT)`; re-apply on `onWindowFocusChanged`. | `ExternalDisplayActivity.kt` |
+| 4 | If still freeform: post-create `WindowManager.LayoutParams` update — set width/height to display size, gravity top-left, flags `FLAG_LAYOUT_IN_SCREEN`. | `ExternalDisplayActivity.kt` |
+| 5 | Log resulting bounds via debug tag `XRLauncher/Display` after layout for device matrix. | activity + helper |
+| 6 | **Fallback (document only):** If Pixel Desktop Mode cannot be overridden without system permissions, document “user must maximize window” in device matrix and explore `Presentation` API as Phase 2 spike. | `device-matrix.md` |
+
+**Acceptance test:** After “Open on glasses”, external activity bounds match full display (`0,0 – 1920,1080` or current mode resolution); no visible desktop window chrome; workspace background fills glasses view.
+
+---
+
+#### Task 1.18 — Re-test & device matrix
+
+| Step | Action |
+|------|--------|
+| 1 | Manual test checklist: dual launch, relative drag, tap click, button click, motion calibrate + corners, fullscreen bounds. |
+| 2 | Fill Pixel 8 + SmartGlasses row in `docs/device-matrix.md` (display ID, freeform behavior, what worked). |
+| 3 | Mark 1.14 ☐ → ☑ when all pass. |
+
+**Deploy note:** Do not use `adb install` over Wi‑Fi (locks ADB server on this setup). Build APK locally; transfer via file-share app.
+
+---
+
 ### Phase 2 — Workspace layout
 
 **Goal:** Multiple launcher-owned panels with layout persistence.
@@ -436,7 +550,10 @@ Record major choices here as they are made.
 | 2026-06-11 | **Tier 0 large screen = 3D spatial**, not 2D tiles | Same workspace model; mouse/touch/keyboard navigation |
 | 2026-06-11 | **Phone = touchpad + motion companion** | Primary pointer for glasses; also controls large-screen workspace |
 | 2026-06-11 | Tier 0c = compact flat HOME on phone only | 3D workspace lives on Expanded display or remote glasses |
+| 2026-06-11 | **Dual launch pins display ID** | Companion → `DEFAULT_DISPLAY`; workspace → secondary ID; Desktop Mode otherwise routes both to glasses |
+| 2026-06-11 | **Phase 1.5** tracks SmartGlasses Desktop Mode bugs | Tap click, motion calibrate, freeform → fullscreen |
+| 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
 
 ---
 
-*Last updated: 2026-06-11*
+*Last updated: 2026-06-12*
