@@ -288,35 +288,59 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 ### Phase 1.5 — SmartGlasses / Desktop Mode hardening
 
-**Goal:** Fix companion input and external-display presentation on Pixel 8 + RayNeo SmartGlasses (Desktop Mode, external `EXTERNAL` display — not `XR_PROJECTED`).
+**Goal:** Reliable glasses session on Pixel 8 + RayNeo SmartGlasses (`EXTERNAL` display, Desktop Mode): one window, unified companion pointer, spatial launcher shell.
 
-**Verified on device (2026-06-11, logcat + `dumpsys`):**
+**Phase 1 exit — open items**
+
+| # | Task | Status |
+|---|------|--------|
+| 1.14 | Manual regression: tablet Tier 0 + glasses session + 5 app launches | ☐ User test |
+| 1.17 | Fullscreen on Desktop Mode freeform (launch bounds + CLEAR_TOP workaround) | ☑ Partial — code + auto relaunch; Pixel may still letterbox |
+| 1.18 | Re-test checklist + update `device-matrix.md` | ☐ User test |
+| 1.20 | Same as 1.17 — immersive edge-to-edge on secondary display | ☑ Partial (merged with 1.17) |
+| 1.22 | 3D XR desktop on glasses | ☑ Partial — see [1.22 roadmap](#task-122--3d-xr-desktop-on-glasses-not-flat-black-list) |
+
+**Phase 1 exit — done**
+
+| # | Task | Notes |
+|---|------|-------|
+| 1.15 | Tap / pointer click on companion | ☑ Unified Desktop gestures + hit-test on launcher |
+| 1.16 | Motion calibrate + recenter | ☑ |
+| 1.19 | Single glasses activity | ☑ |
+| 1.21 | System cursor + inject over all apps | ☑ Unified input + foreground routing |
+| 1.22a | Visual launcher shell (wallpaper, grid, hotseat, clock) | ☑ |
+
+**Device snapshot (Pixel 8 + RayNeo, 2026-06-12)**
 
 | Check | Result |
 |-------|--------|
-| Dual launch ("Open on glasses") | ☑ Works — `CompanionControllerActivity` on phone (1080×2400, `mWindowingMode=fullscreen`), `ExternalDisplayActivity` on display #4 |
-| Cursor sync phone → glasses | ☑ Green cursor moves on external display |
-| Tap-to-click (touchpad mode) | ☐ Broken — tap repositions cursor but does not activate item under pointer |
-| Left/Right click buttons | ☐ Unverified — confirm during 1.15 fix |
-| Motion pointer | ☑ Direction feels correct (laser-pointer invert applied); ☐ corner reach / drift needs calibration |
-| External display window | ☐ Freeform — task `mBounds=Rect(269, 113 – 1651, 890)` on 1920×1080; **two freeform windows** if overlay activity launched separately (fixed in 1.19) |
-| Display-level pointer | ☐ Partial — Desktop mode + accessibility inject; cursor not visible over other apps without overlay (see 1.21) |
-| Glasses workspace UX | ☐ Spatial shell (wallpaper, icons, hotseat, widget stub) — task 1.22a; full Subspace TBD |
+| Dual launch | ☑ Companion on phone + workspace on display #4 |
+| Cursor sync | ☑ Overlay cursor when accessibility enabled |
+| Companion input | ☑ Move / double-tap click / double-tap-drag / Left hold-drag |
+| Launcher clicks | ☑ Hit-test when `ExternalDisplayActivity` foreground |
+| Third-party apps | ☑ Gesture inject when launcher in background |
+| Motion pointer | ☑ Calibrate + recenter |
+| Single window | ☑ No separate overlay activity |
+| Freeform bounds | ☐ OEM may still center window — log `XRLauncher/Display` |
+| 3D Subspace on EXTERNAL | ☐ Flat 2.5D default; Subspace when spatial API present |
 
-**Exit criteria:** One glasses window; tap/buttons work; optional desktop pointer; path documented for fullscreen + 3D workspace.
+**Task index**
 
 | # | Task | Done |
 |---|------|------|
-| 1.15 | **Fix tap-to-click on companion touchpad.** | ☑ |
-| 1.16 | **Motion pointer calibration + recenter.** | ☑ |
-| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☐ |
-| 1.18 | **Re-test full glasses session** after 1.15–1.19; update `device-matrix.md`. | ☐ |
-| 1.19 | **Single glasses activity** — one `ExternalDisplayActivity` per display (no separate cursor overlay task). | ☑ |
-| 1.20 | **Fullscreen immersive on Desktop secondary display** — edge-to-edge, no freeform chrome; investigate `launchBounds`, `resizeableActivity=false`, WM flags, OEM limits. | ☐ |
-| 1.21 | **System-style cursor on secondary display** — pointer visible and clickable over *any* app (Settings, Play Store), not just XR Launcher UI. | ☑ (overlay + inject; Desktop move-only touchpad) |
-| 1.22 | **3D XR desktop on glasses** — replace flat black app list with spatial workspace (`Subspace` / panels / environment), aligned with Tier 0 spatial model and RayNeo optics. | ☐ (1.22a visual shell done) |
+| 1.15 | Fix companion pointer / click delivery | ☑ |
+| 1.16 | Motion pointer calibration + recenter | ☑ |
+| 1.17 | External display immersive fullscreen | ☑ Partial |
+| 1.18 | Re-test full glasses session; device matrix | ☐ |
+| 1.19 | Single glasses activity | ☑ |
+| 1.20 | Fullscreen immersive secondary display | ☑ Partial |
+| 1.21 | System-style cursor on secondary display | ☑ |
+| 1.22 | 3D XR desktop on glasses | ☐ Partial |
 
-#### Task 1.15 — Fix tap-to-click
+<details>
+<summary>Task detail archive (1.15–1.21 implementation notes)</summary>
+
+#### Task 1.15 — Fix tap-to-click (archive)
 
 **Symptom:** In default touchpad mode, tap moves the cursor to the tap location on the touchpad but does not click (no app launch / no hover confirm on glasses).
 
@@ -448,22 +472,25 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Goal:** Glasses show spatial workspace (panels, depth, optional environment) per product vision — not a 2D text app list on black.
 
-**Current state (2026-06-12):** Tier 1 `ExternalDisplayActivity` uses `GlassesSpatialWorkspaceScreen` — gradient wallpaper, clock widget stub, icon grid, hotseat. Still flat Compose (2.5D), not Jetpack XR depth. Tier 2 `GlassesWorkspaceScreen` wraps the same shell in `Subspace` + `SpatialPanel`.
+**Current state (2026-06-12):** Tier 1 default = flat `GlassesSpatialWorkspaceScreen` with **cursor parallax** (2.5D depth). When `android.software.xr.api.spatial` is present, `GlassesSessionState.preferSubspaceShell` selects `GlassesWorkspaceScreen` (`Subspace` + movable panel). Shared `LauncherWorkspacePointerEffects` handles companion hit-testing for both shells.
 
 **Phased delivery:**
 
 | Step | Deliverable | Tier | Status |
 |------|-------------|------|--------|
 | **1.22a** | Visual launcher shell — wallpaper, icons, hotseat, widget stub; companion hit-test | 1 EXTERNAL | ☑ |
-| **1.22b** | `Subspace` multi-panel layout on external display (test on SmartGlasses) | 1 / 2 | ☐ |
-| **1.22c** | Virtual environment / passthrough backdrop (Phase 5.5) | 2 / 3 | ☐ |
-| **1.22d** | Real widgets (AppWidgetHost or curated composables) | 2 | ☐ |
-| **1.22e** | User-pinned hotseat + workspace persistence (Phase 2.1–2.2) | 2 | ☐ |
-| **1.22f** | Movable/resizable spatial panels; orbit camera via companion | 0 / 3 | ☐ |
+| **1.22b** | `Subspace` shell wired on external display when spatial API present | 1 / 2 | ☑ Partial — needs device test on Tier 2 hardware |
+| **1.22b′** | 2.5D parallax wallpaper + content layer on flat Tier 1 path | 1 EXTERNAL | ☑ |
+| **1.22c** | Virtual environment / passthrough backdrop (Phase 5.5) | 2 / 3 | ☐ → Phase 5 |
+| **1.22d** | Real widgets (AppWidgetHost or curated composables) | 2 | ☐ → Phase 2.15 |
+| **1.22e** | User-pinned hotseat + workspace persistence | 2 | ☑ (Phase 2.1–2.2, 2.13) |
+| **1.22f** | Movable/resizable spatial panels; orbit camera via companion on glasses | 0 / 3 | ☐ → Phase 2.5–2.8 |
 
 **Constraints:** SmartGlasses = `EXTERNAL` display, not `XR_PROJECTED` — `Subspace` may be limited; keep 2.5D fallback. Additive optics → dark wallpaper, high-contrast icons (rule 14).
 
 **Depends on:** Phase 2 workspace layout + Phase 5 spatial polish for full vision.
+
+</details>
 
 ---
 
@@ -649,8 +676,9 @@ Record major choices here as they are made.
 | 2026-06-11 | Tier 0c = compact flat HOME on phone only | 3D workspace lives on Expanded display or remote glasses |
 | 2026-06-11 | **Dual launch pins display ID** | Companion → `DEFAULT_DISPLAY`; workspace → secondary ID; Desktop Mode otherwise routes both to glasses |
 | 2026-06-11 | **Phase 1.5** tracks SmartGlasses Desktop Mode bugs | Tap click, motion calibrate, freeform → fullscreen |
+| 2026-06-12 | **Unified glasses pointer** — one Desktop gesture set; launcher foreground hit-test | Removed mode toggle; Subspace shell when spatial API present |
 | 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
 
 ---
 
-*Last updated: 2026-06-12*
+*Last updated: 2026-06-12 (Phase 1.5 wrap-up)*

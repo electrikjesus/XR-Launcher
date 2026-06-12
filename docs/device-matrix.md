@@ -30,26 +30,46 @@ Record hardware and software findings from Phase 0 testing. Update this file whe
 
 ---
 
+## Phase 1.18 manual checklist (Pixel 8 + RayNeo)
+
+Run after each glasses-session change; mark in commit or PR notes.
+
+- [ ] Open on glasses → companion on phone, workspace on secondary display
+- [ ] Enable accessibility pointer → overlay cursor on glasses
+- [ ] Drag touchpad → cursor moves only (no accidental click)
+- [ ] Double-tap → click on launcher app / Settings item
+- [ ] Double-tap, hold, drag → selection or drag in Settings
+- [ ] Hold Left + drag → same over third-party app
+- [ ] Right button on launcher → hotseat pin toggles
+- [ ] Launch app from launcher → pointer works over launched app
+- [ ] Show launcher on glasses → returns to workspace
+- [ ] Motion calibrate → reach corners; recenter works
+- [ ] Logcat `XRLauncher/Display` → note window bounds vs 1920×1080
+
+---
+
 ## Tested devices
 
 ### Device: `Pixel 8` + `RayNeo SmartGlasses (Desktop Mode)` — Android 15+
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| Glasses display ID(s) | **4** (was 3 in earlier session) | `EXTERNAL`, 1920×1080, name SmartGlasses |
+| Glasses display ID(s) | **4** (varies on reconnect) | `EXTERNAL`, 1920×1080, name SmartGlasses |
 | 2D mode resolution | 1920×1080 | |
 | 3D mode resolution / layout | N/A (2D desktop path) | |
-| `ProjectedContext.isProjectedDeviceConnected` | ☐ Not tested | Uses `EXTERNAL_DISPLAY` tier, not `XR_PROJECTED` |
-| Launch activity on glasses display | ☑ Yes | `ExternalDisplayActivity` via `setLaunchDisplayId` |
-| OEM multi-window / freeform | ☑ Yes | Desktop Mode; external task bounds ~1382×777 centered |
-| IMU via projected `SensorManager` | N/A | Phone gyro used for motion pointer |
-| Phone companion (touchpad + motion) | ☑ Partial | Dual launch OK; tap-click broken; motion OK; calibrate TBD |
+| `ProjectedContext.isProjectedDeviceConnected` | ☐ Not tested | Tier 1 `EXTERNAL_DISPLAY`, not `XR_PROJECTED` |
+| `android.software.xr.api.spatial` | ☐ No (expected on phone) | `preferSubspaceShell=false` → flat 2.5D shell |
+| Launch activity on glasses display | ☑ Yes | `ExternalDisplayActivity` via `setLaunchDisplayId` + launch bounds |
+| OEM multi-window / freeform | ☑ Yes | Desktop Mode; CLEAR_TOP relaunch helps fullscreen |
+| IMU via projected `SensorManager` | N/A | Phone gyro for motion pointer |
+| Phone companion (touchpad + motion) | ☑ Yes | Unified Desktop gestures + launcher foreground hit-test |
+| Accessibility pointer | ☑ Yes | Overlay cursor + inject over third-party apps |
 | Recommended tier (glasses) | **1 — EXTERNAL_DISPLAY** | Not Tier 2 `PROJECTED_GLASSES` |
 
 **Quirks:**
 
-- `GlassesLauncherActivity` aborts (requires `XR_PROJECTED`); use `ExternalDisplayActivity`.
-- Desktop Mode freeform window on external display despite fullscreen windowing mode label.
-- Wi‑Fi `adb install` locks ADB server; use file transfer for APK.
+- `GlassesLauncherActivity` requires `XR_PROJECTED`; use `ExternalDisplayActivity` on SmartGlasses.
+- Desktop Mode may still report centered freeform bounds in `dumpsys` — check logcat `XRLauncher/Display`.
+- Wi‑Fi `adb install` locks ADB server; transfer APK via file-share app. `adb logcat` OK.
 
-**Test date:** 2026-06-11 / 2026-06-12
+**Test date:** 2026-06-11 / 2026-06-12 (updated for Phase 1.5 unified input)

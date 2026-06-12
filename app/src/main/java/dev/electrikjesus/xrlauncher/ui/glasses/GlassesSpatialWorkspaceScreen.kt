@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
@@ -45,12 +46,18 @@ fun GlassesSpatialWorkspaceScreen(
     val showInAppCursor = !desktopOverlayActive
 
     Box(modifier = modifier.fillMaxSize()) {
-        WorkspaceWallpaper()
+        val parallaxX = (cursor.x - 0.5f) * 2f
+        val parallaxY = (cursor.y - 0.5f) * 2f
+        WorkspaceWallpaper(parallaxX = parallaxX, parallaxY = parallaxY)
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .graphicsLayer {
+                    translationX = parallaxX * -8f
+                    translationY = parallaxY * -6f
+                },
         ) {
             Text(
                 text = stringResource(R.string.glasses_workspace),

@@ -13,7 +13,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
-import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -62,13 +61,9 @@ class ExternalDisplayActivity : ComponentActivity() {
         }
 
         window.decorView.post {
-            if (isDebugBuild()) {
-                val bounds = window.decorView.rootView.layoutParams
-                Log.d(
-                    TAG,
-                    "window layout width=${bounds?.width} height=${bounds?.height} display=$displayId",
-                )
-            }
+            val w = window.decorView.width
+            val h = window.decorView.height
+            Log.d(TAG, "window bounds ${w}x$h displayId=$displayId subspace=${GlassesSessionState.preferSubspaceShell}")
         }
     }
 

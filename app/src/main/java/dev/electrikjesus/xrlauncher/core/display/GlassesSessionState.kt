@@ -24,9 +24,13 @@ object GlassesSessionState {
             _launcherForeground.value = value
         }
 
+    /** When true, external display uses Jetpack XR `Subspace` shell (Tier 2 / spatial API). */
+    var preferSubspaceShell: Boolean = false
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
         launcherForeground = false
+        preferSubspaceShell = false
     }
 }

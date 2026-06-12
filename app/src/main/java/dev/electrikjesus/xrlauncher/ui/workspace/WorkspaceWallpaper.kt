@@ -7,13 +7,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 
-/** Dark spatial backdrop tuned for additive glasses optics. */
+/**
+ * Dark spatial backdrop tuned for additive glasses optics.
+ * [parallaxX]/[parallaxY] are normalized -1..1 from companion cursor for subtle depth.
+ */
 @Composable
-fun WorkspaceWallpaper(modifier: Modifier = Modifier) {
+fun WorkspaceWallpaper(
+    parallaxX: Float = 0f,
+    parallaxY: Float = 0f,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer {
+                translationX = parallaxX * 28f
+                translationY = parallaxY * 18f
+                scaleX = 1.04f
+                scaleY = 1.04f
+            }
             .background(
                 Brush.verticalGradient(
                     colors = listOf(

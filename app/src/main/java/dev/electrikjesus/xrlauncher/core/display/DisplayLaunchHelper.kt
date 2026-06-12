@@ -3,7 +3,9 @@ package dev.electrikjesus.xrlauncher.core.display
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
 import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
@@ -13,6 +15,7 @@ import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
     private const val TAG = "XRLauncher/Display"
+    private const val FEATURE_XR_API_SPATIAL = "android.software.xr.api.spatial"
 
     fun findSecondaryDisplayId(context: Context): Int? {
         val displayManager = context.getSystemService(DisplayManager::class.java)
@@ -47,8 +50,7 @@ object DisplayLaunchHelper {
         val intent = Intent(context, activityClass).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        val options = ActivityOptions.makeBasic()
-        options.launchDisplayId = displayId
+        val options = buildLaunchOptions(displayManager, displayId)
         return try {
             context.startActivity(intent, options.toBundle())
             true
@@ -99,7 +101,13 @@ object DisplayLaunchHelper {
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
         GlassesSessionState.secondaryDisplayId = displayId
+        GlassesSessionState.preferSubspaceShell =
+            context.packageManager.hasSystemFeature(FEATURE_XR_API_SPATIAL)
         applySessionControlMode()
+        Log.d(
+            TAG,
+            "Session displayId=$displayId subspace=${GlassesSessionState.preferSubspaceShell}",
+        )
 
         openCompanionController(context)
         launchActivityOnDisplay(
@@ -122,8 +130,8 @@ object DisplayLaunchHelper {
         val intent = Intent(context, ExternalDisplayActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
-        val options = ActivityOptions.makeBasic()
-        options.launchDisplayId = displayId
+        val displayManager = context.getSystemService(DisplayManager::class.java)
+        val options = buildLaunchOptions(displayManager, displayId)
         return try {
             context.startActivity(intent, options.toBundle())
             true
@@ -141,6 +149,18 @@ object DisplayLaunchHelper {
         }
         GlassesSessionState.controlMode = mode
         CompanionPointerBus.setGlassesControlMode(mode)
+    }
+
+    private fun buildLaunchOptions(displayManager: DisplayManager, displayId: Int): ActivityOptions {
+        val options = ActivityOptions.makeBasic()
+        options.launchDisplayId = displayId
+        val display = displayManager.getDisplay(displayId) ?: return options
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        options.setLaunchBounds(Rect(0, 0, metrics.widthPixels, metrics.heightPixels))
+        Log.d(TAG, "Launch options displayId=$displayId size=${metrics.widthPixels}x${metrics.heightPixels}")
+        return options
     }
 
     private fun Display.isValidSecondaryTarget(displayManager: DisplayManager): Boolean {
