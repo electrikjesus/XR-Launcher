@@ -4,6 +4,7 @@ import android.graphics.drawable.Drawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
+import dev.electrikjesus.xrlauncher.core.launcher.AppIconCache
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 
 @Composable
@@ -35,7 +37,7 @@ fun AppIconCell(
 ) {
     val context = LocalContext.current
     val icon: Drawable = remember(app.packageName) {
-        context.packageManager.getApplicationIcon(app.packageName)
+        AppIconCache.getIcon(context, app.packageName)
     }
     val key = app.componentName.flattenToString()
 

@@ -533,7 +533,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☐ (partial — icon hit-test) |
 | 2.12 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☑ (1.16) |
 | 2.13 | **Tier 1:** User-pinned hotseat — long-press / companion right-click to pin; persist in DataStore. | ☑ |
-| 2.14 | **Tier 1:** App drawer — search bar, alphabetical sections, icon lazy-load cache. | ☐ |
+| 2.14 | **Tier 1:** App drawer — search bar, alphabetical sections, icon lazy-load cache. | ☑ |
 | 2.15 | **Tier 1:** Widget slot v1 — composable widgets (clock ☑); add at least one more; `AppWidgetHost` spike in 2.16. | ☐ |
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☐ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☐ (partial) |
@@ -544,7 +544,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 1. **Create `core/workspace/`** — `Workspace`, `PanelState(id, kind, bounds, zOrder)`, `HotseatPin`, serialization.
 2. **DataStore** — load on `ExternalDisplayActivity` / `GlassesSpatialWorkspaceScreen` start; save on hotseat change.
 3. **Hotseat UX** — companion right-click on app → pin/unpin; render pinned row from store.
-4. **App drawer** — port phone shell search/filter to glasses grid; reuse `AppRepository.filterApps`.
+4. **App drawer** — port phone shell search/filter to glasses grid; reuse `AppRepository.filterApps`. ☑
 5. **Focus** — visual ring on focused panel; tab order for companion clicks between hotseat ↔ drawer ↔ widget.
 6. **Document** — update `device-matrix.md` after 2.1–2.13 land on Pixel 8 + SmartGlasses.
 
