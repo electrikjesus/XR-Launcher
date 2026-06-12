@@ -25,8 +25,10 @@ import androidx.xr.compose.subspace.layout.resizable
 import androidx.xr.compose.subspace.layout.width
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
+import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.external.LauncherWorkspacePointerEffects
+import dev.electrikjesus.xrlauncher.ui.external.rememberDebouncedPanelSaver
 
 /** Tier 2 / spatial-API path: movable `Subspace` panel wrapping the glasses launcher shell. */
 @Composable
@@ -41,6 +43,8 @@ fun GlassesWorkspaceScreen(
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
+    val panels = workspace?.panels ?: Workspace.defaultPanels()
+    val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
     val hotseatApps = remember(apps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
             apps = apps,
@@ -82,7 +86,9 @@ fun GlassesWorkspaceScreen(
                         apps = gridApps,
                         hotseatApps = hotseatApps,
                         pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
+                        panels = panels,
                         onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+                        onPanelsChange = { updated -> panelSaver.save(updated) },
                         onLaunchApp = onLaunchApp,
                     )
                 }

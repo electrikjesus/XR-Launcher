@@ -48,6 +48,33 @@ object WorkspaceLayoutPresets {
     fun usesFreeformLayout(panels: List<PanelState>): Boolean =
         panels.any { it.visible && it.bounds != null }
 
+    /** Match saved panels to a preset chip, or null when layout was customized. */
+    fun inferPreset(panels: List<PanelState>): LayoutPreset? {
+        if (!usesFreeformLayout(panels)) return LayoutPreset.STANDARD
+        return LayoutPreset.entries
+            .filter { it != LayoutPreset.STANDARD }
+            .firstOrNull { preset -> panelsMatchPreset(panels, preset) }
+    }
+
+    internal fun panelsMatchPreset(panels: List<PanelState>, preset: LayoutPreset): Boolean {
+        val expected = apply(Workspace.defaultPanels(), preset)
+        if (panels.size != expected.size) return false
+        return panels.zip(expected).all { (actual, exp) ->
+            actual.id == exp.id &&
+                actual.visible == exp.visible &&
+                boundsEqual(actual.bounds, exp.bounds)
+        }
+    }
+
+    private fun boundsEqual(a: PanelBounds?, b: PanelBounds?): Boolean {
+        if (a == null && b == null) return true
+        if (a == null || b == null) return false
+        return kotlin.math.abs(a.x - b.x) < 0.001f &&
+            kotlin.math.abs(a.y - b.y) < 0.001f &&
+            kotlin.math.abs(a.width - b.width) < 0.001f &&
+            kotlin.math.abs(a.height - b.height) < 0.001f
+    }
+
     private fun presetBounds(preset: LayoutPreset): Map<String, PanelBounds> = when (preset) {
         LayoutPreset.STANDARD -> emptyMap()
         LayoutPreset.SINGLE -> mapOf(

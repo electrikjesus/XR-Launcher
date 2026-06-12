@@ -21,11 +21,20 @@ class WorkspaceJsonTest {
             id = "default",
             hotseatPins = listOf("com.android.settings", "com.android.vending"),
             panels = Workspace.defaultPanels(),
+            focusedPanelIndex = 1,
         )
         val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
         assertEquals(workspace.id, decoded.id)
         assertEquals(workspace.hotseatPins, decoded.hotseatPins)
         assertEquals(workspace.panels.size, decoded.panels.size)
+        assertEquals(1, decoded.focusedPanelIndex)
+    }
+
+    @Test
+    fun encodeDecode_preservesFocusedPanelIndex() {
+        val workspace = Workspace(focusedPanelIndex = 2)
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(2, decoded.focusedPanelIndex)
     }
 }
 

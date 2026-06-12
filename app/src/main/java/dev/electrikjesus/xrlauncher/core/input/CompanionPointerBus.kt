@@ -295,6 +295,16 @@ object CompanionPointerBus {
         _focusedPanelIndex.value = index.coerceAtLeast(0)
     }
 
+    fun focusNextPanelIndex(panelCount: Int) {
+        if (panelCount <= 0) return
+        _focusedPanelIndex.value = (_focusedPanelIndex.value + 1) % panelCount
+    }
+
+    fun focusPreviousPanelIndex(panelCount: Int) {
+        if (panelCount <= 0) return
+        _focusedPanelIndex.value = (_focusedPanelIndex.value - 1 + panelCount) % panelCount
+    }
+
     fun setFocusedPanelId(panelId: String?) {
         if (_focusedPanelId.value != panelId) {
             _focusedPanelId.value = panelId

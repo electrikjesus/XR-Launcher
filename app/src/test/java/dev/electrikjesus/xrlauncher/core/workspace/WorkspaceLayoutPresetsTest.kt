@@ -25,8 +25,14 @@ class WorkspaceLayoutPresetsTest {
     }
 
     @Test
-    fun usesFreeformLayout_falseForStandard() {
-        assertFalse(WorkspaceLayoutPresets.usesFreeformLayout(Workspace.defaultPanels()))
+    fun inferPreset_returnsStandardWhenNoBounds() {
+        assertEquals(LayoutPreset.STANDARD, WorkspaceLayoutPresets.inferPreset(Workspace.defaultPanels()))
+    }
+
+    @Test
+    fun inferPreset_matchesSinglePreset() {
+        val panels = WorkspaceLayoutPresets.apply(Workspace.defaultPanels(), LayoutPreset.SINGLE)
+        assertEquals(LayoutPreset.SINGLE, WorkspaceLayoutPresets.inferPreset(panels))
     }
 }
 

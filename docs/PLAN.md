@@ -523,18 +523,18 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.1 | Define `Workspace`, `PanelState`, `PanelKind`, `EmbedMode` in `core/workspace`. | ☑ |
 | 2.2 | Persist workspace JSON via DataStore (default workspace + hotseat pins). | ☑ |
 | 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☑ |
-| 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☑ (glasses; Tier 0 partial) |
+| 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☑ |
 | 2.5 | Implement move (drag) for panels — tier-appropriate API (`movable` modifier, Glimmer, or drag handles). | ☑ (freeform title drag) |
 | 2.6 | Implement resize with min/max bounds and optional fixed aspect ratio. | ☑ (corner handle; min size) |
 | 2.7 | Add layout presets: Single, Dual, Triptych (apply preset → update poses). | ☑ |
-| 2.8 | Save on change; restore workspace on activity start (all tiers). | ☐ |
-| 2.9 | **Tier 0:** Spatial app-drawer panel + dock orbiter in 3D scene (not flat grid). | ☐ |
-| 2.10 | **Tier 0:** Keyboard shortcut map (focus panels, launch, close, snap preset) + help overlay. | ☐ |
-| 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☐ (partial — icon hit-test) |
+| 2.8 | Save on change; restore workspace on activity start (all tiers). | ☑ |
+| 2.9 | **Tier 0:** Spatial app-drawer panel + dock orbiter in 3D scene (not flat grid). | ☑ |
+| 2.10 | **Tier 0:** Keyboard shortcut map (focus panels, launch, close, snap preset) + help overlay. | ☑ |
+| 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☑ |
 | 2.12 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☑ (1.16) |
 | 2.13 | **Tier 1:** User-pinned hotseat — long-press / companion right-click to pin; persist in DataStore. | ☑ |
 | 2.14 | **Tier 1:** App drawer — search bar, alphabetical sections, icon lazy-load cache. | ☑ |
-| 2.15 | **Tier 1:** Widget slot v1 — composable widgets (clock ☑); add at least one more; `AppWidgetHost` spike in 2.16. | ☐ |
+| 2.15 | **Tier 1:** Widget slot v1 — composable widgets (clock ☑); add at least one more; `AppWidgetHost` spike in 2.16. | ☑ (calendar composable) |
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☐ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☐ (partial) |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☐ |
@@ -545,7 +545,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 2. **DataStore** — load on `ExternalDisplayActivity` / `GlassesSpatialWorkspaceScreen` start; save on hotseat change.
 3. **Hotseat UX** — companion right-click on app → pin/unpin; render pinned row from store.
 4. **App drawer** — port phone shell search/filter to glasses grid; reuse `AppRepository.filterApps`. ☑
-5. **Focus** — visual ring on focused panel; tab order for companion clicks between hotseat ↔ drawer ↔ widget.
+5. **Focus** — visual ring on focused panel; tab order for companion clicks between hotseat ↔ drawer ↔ widget. ☑
 6. **Document** — update `device-matrix.md` after 2.1–2.13 land on Pixel 8 + SmartGlasses.
 
 ---
@@ -684,4 +684,4 @@ Record major choices here as they are made.
 
 ---
 
-*Last updated: 2026-06-12 (launcher inject fix + Phase 1.18 glasses re-test)*
+*Last updated: 2026-06-12 (Phase 2.3–2.15 glasses panels)*

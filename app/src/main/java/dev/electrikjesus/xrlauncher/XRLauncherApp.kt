@@ -15,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.capability.RuntimeTier
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.desktop.SpatialDesktopScreen
 import dev.electrikjesus.xrlauncher.ui.phone.PhoneShellScreen
 
@@ -26,6 +27,7 @@ fun XRLauncherApp(
     val context = LocalContext.current
     val appRepository = remember { AppRepository(context) }
     val appLauncher = remember { AppLauncher(context) }
+    val workspaceRepository = remember { WorkspaceRepository(context.applicationContext) }
     val apps = remember { appRepository.loadLaunchableApps() }
     val capabilities by capabilityDetector.capabilities.collectAsState()
 
@@ -45,6 +47,7 @@ fun XRLauncherApp(
         -> {
             SpatialDesktopScreen(
                 apps = apps,
+                workspaceRepository = workspaceRepository,
                 onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
                 modifier = Modifier.fillMaxSize(),
             )

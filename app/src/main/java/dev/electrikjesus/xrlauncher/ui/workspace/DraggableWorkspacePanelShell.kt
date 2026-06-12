@@ -1,11 +1,11 @@
 package dev.electrikjesus.xrlauncher.ui.workspace
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,13 +59,14 @@ fun DraggableWorkspacePanelShell(
             isFocused = isFocused,
             onPanelBoundsChanged = onPanelBoundsChanged,
             titleBarModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                detectDragGestures { _, dragAmount ->
-                    val next = dragBounds.copy(
+                detectDragGestures(
+                    onDragEnd = { onBoundsChanged(dragBounds) },
+                    onDragCancel = { dragBounds = bounds },
+                ) { _, dragAmount ->
+                    dragBounds = dragBounds.copy(
                         x = dragBounds.x + dragAmount.x / containerWidthPx,
                         y = dragBounds.y + dragAmount.y / containerHeightPx,
                     ).clamp()
-                    dragBounds = next
-                    onBoundsChanged(next)
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -78,13 +79,14 @@ fun DraggableWorkspacePanelShell(
                         .size(20.dp)
                         .background(Color(0xFF03DAC5).copy(alpha = 0.7f), CircleShape)
                         .pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                            detectDragGestures { _, dragAmount ->
-                                val next = dragBounds.copy(
+                            detectDragGestures(
+                                onDragEnd = { onBoundsChanged(dragBounds) },
+                                onDragCancel = { dragBounds = bounds },
+                            ) { _, dragAmount ->
+                                dragBounds = dragBounds.copy(
                                     width = dragBounds.width + dragAmount.x / containerWidthPx,
                                     height = dragBounds.height + dragAmount.y / containerHeightPx,
                                 ).clamp()
-                                dragBounds = next
-                                onBoundsChanged(next)
                             }
                         },
                 )

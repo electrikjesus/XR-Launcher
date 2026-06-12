@@ -3,23 +3,14 @@ package dev.electrikjesus.xrlauncher.ui.glasses
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,11 +37,11 @@ import dev.electrikjesus.xrlauncher.ui.workspace.DraggableWorkspacePanelShell
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
-import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
-import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 
@@ -79,7 +70,18 @@ fun GlassesSpatialWorkspaceScreen(
     val visiblePanels = remember(panels) { panels.filter { it.visible } }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
     val useFreeform = remember(panels) { WorkspaceLayoutPresets.usesFreeformLayout(panels) }
-    var activePreset by remember { mutableStateOf<LayoutPreset?>(if (useFreeform) null else LayoutPreset.STANDARD) }
+    val inferredPreset = remember(panels) { WorkspaceLayoutPresets.inferPreset(panels) }
+    var activePreset by remember(panels) { mutableStateOf(inferredPreset) }
+
+    LaunchedEffect(panels) {
+        activePreset = inferredPreset
+    }
+
+    LaunchedEffect(panels, visiblePanels) {
+        if (CompanionPointerBus.focusedPanelId.value == null && visiblePanels.isNotEmpty()) {
+            CompanionPointerBus.setFocusedPanelId(visiblePanels.first().id)
+        }
+    }
 
     fun updatePanelBounds(panelId: String, bounds: PanelBounds) {
         onPanelsChange(
@@ -215,7 +217,7 @@ private fun GlassesPanelLayout(
                         onPanelBoundsChanged = onPanelBoundsChanged,
                         modifier = Modifier.weight(1f),
                     ) {
-                        AppDrawerPanel(
+                        WorkspaceAppDrawerPanel(
                             searchQuery = searchQuery,
                             onSearchQueryChange = onSearchQueryChange,
                             drawerItems = drawerItems,
@@ -237,7 +239,7 @@ private fun GlassesPanelLayout(
                             .fillMaxWidth()
                             .padding(top = 8.dp),
                     ) {
-                        HotseatRow(
+                        WorkspaceHotseatRow(
                             apps = hotseatApps,
                             hoveredLabel = hoveredLabel,
                             pinnedComponentKeys = pinnedComponentKeys,
@@ -326,7 +328,7 @@ private fun PanelBody(
 ) {
     when (panel.kind) {
         PanelKind.WIDGET -> WidgetPanelById(widgetId = panel.id)
-        PanelKind.APP_DRAWER -> AppDrawerPanel(
+        PanelKind.APP_DRAWER -> WorkspaceAppDrawerPanel(
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
             drawerItems = drawerItems,
@@ -335,7 +337,7 @@ private fun PanelBody(
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
         )
-        PanelKind.HOTSEAT -> HotseatRow(
+        PanelKind.HOTSEAT -> WorkspaceHotseatRow(
             apps = hotseatApps,
             hoveredLabel = hoveredLabel,
             pinnedComponentKeys = pinnedComponentKeys,
@@ -347,98 +349,6 @@ private fun PanelBody(
 }
 
 @Composable
-private fun AppDrawerPanel(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<AppDrawerItem>,
-    hoveredLabel: String?,
-    pinnedComponentKeys: Set<String>,
-    onBoundsChanged: (String, Rect) -> Unit,
-    onLaunchApp: ((LaunchableApp) -> Unit)?,
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
-            },
-            placeholder = {
-                Text(
-                    stringResource(R.string.search_apps),
-                    color = Color.White.copy(alpha = 0.5f),
-                )
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White.copy(alpha = 0.9f),
-                cursorColor = Color(0xFF03DAC5),
-                focusedBorderColor = Color(0xFF03DAC5),
-                unfocusedBorderColor = Color.White.copy(alpha = 0.35f),
-            ),
-        )
-        if (drawerItems.isEmpty()) {
-            Text(
-                text = stringResource(R.string.no_apps_found),
-                color = Color.White.copy(alpha = 0.6f),
-            )
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 96.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                items(
-                    items = drawerItems,
-                    key = { item ->
-                        when (item) {
-                            is AppDrawerItem.SectionHeader -> "header-${item.letter}"
-                            is AppDrawerItem.AppEntry -> item.app.componentName.flattenToString()
-                        }
-                    },
-                    span = { item ->
-                        when (item) {
-                            is AppDrawerItem.SectionHeader -> GridItemSpan(maxLineSpan)
-                            is AppDrawerItem.AppEntry -> GridItemSpan(1)
-                        }
-                    },
-                ) { item ->
-                    when (item) {
-                        is AppDrawerItem.SectionHeader -> {
-                            Text(
-                                text = item.letter.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White.copy(alpha = 0.55f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp, bottom = 4.dp),
-                            )
-                        }
-                        is AppDrawerItem.AppEntry -> {
-                            AppIconCell(
-                                app = item.app,
-                                isHovered = hoveredLabel == item.app.label,
-                                isPinned = item.app.componentKey() in pinnedComponentKeys,
-                                onBoundsChanged = onBoundsChanged,
-                                onLaunchApp = onLaunchApp,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun panelTitle(panel: PanelState): String = when (panel.id) {
     "widget_clock" -> stringResource(R.string.workspace_panel_clock)
     "widget_calendar" -> stringResource(R.string.workspace_panel_calendar)
@@ -446,30 +356,4 @@ private fun panelTitle(panel: PanelState): String = when (panel.id) {
     "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
     "empty_slot" -> stringResource(R.string.workspace_empty_slot)
     else -> panel.id
-}
-
-@Composable
-private fun HotseatRow(
-    apps: List<LaunchableApp>,
-    hoveredLabel: String?,
-    pinnedComponentKeys: Set<String>,
-    onBoundsChanged: (String, Rect) -> Unit,
-    onLaunchApp: ((LaunchableApp) -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        apps.forEach { app ->
-            AppIconCell(
-                app = app,
-                isHovered = hoveredLabel == app.label,
-                isPinned = app.componentKey() in pinnedComponentKeys,
-                onBoundsChanged = onBoundsChanged,
-                onLaunchApp = onLaunchApp,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
 }

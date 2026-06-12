@@ -115,6 +115,18 @@ class CompanionPointerBusTest {
     }
 
     @Test
+    fun focusNextPanelIndex_cyclesThroughIndices() {
+        CompanionPointerBus.setFocusedPanel(0)
+        CompanionPointerBus.focusNextPanelIndex(4)
+        assertEquals(1, CompanionPointerBus.focusedPanelIndex.value)
+        CompanionPointerBus.focusPreviousPanelIndex(4)
+        assertEquals(0, CompanionPointerBus.focusedPanelIndex.value)
+        CompanionPointerBus.setFocusedPanel(0)
+        CompanionPointerBus.focusPreviousPanelIndex(4)
+        assertEquals(3, CompanionPointerBus.focusedPanelIndex.value)
+    }
+
+    @Test
     fun setTouchpadSensitivity_clampsRange() {
         CompanionPointerBus.setTouchpadSensitivity(10f)
         assertEquals(3f, CompanionPointerBus.touchpadSensitivity.value)

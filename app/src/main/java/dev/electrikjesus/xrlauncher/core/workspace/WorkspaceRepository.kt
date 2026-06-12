@@ -35,6 +35,17 @@ class WorkspaceRepository(private val context: Context) {
         }
     }
 
+    suspend fun updateFocusedPanelIndex(index: Int) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(
+                current.copy(focusedPanelIndex = index.coerceAtLeast(0)),
+            )
+        }
+    }
+
     suspend fun toggleHotseatPin(componentKey: String) {
         context.workspaceDataStore.edit { prefs ->
             val current = prefs[WORKSPACE_JSON_KEY]?.let {

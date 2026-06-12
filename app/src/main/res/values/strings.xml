@@ -56,4 +56,7 @@
     <string name="workspace_panel_status">Status</string>
     <string name="external_display_detected">External display detected</string>
     <string name="glasses_workspace">Glasses workspace</string>
+    <string name="desktop_shortcuts_title">Keyboard shortcuts</string>
+    <string name="desktop_shortcuts_body">Tab / ← → — focus next panel\nEnter — launch app in focused panel\n1 / 2 / 3 — layout preset Single / Dual / Triptych\n? — show this help\nEsc — dismiss help</string>
+    <string name="desktop_shortcuts_dismiss">Press Esc or ? to dismiss</string>
 </resources>

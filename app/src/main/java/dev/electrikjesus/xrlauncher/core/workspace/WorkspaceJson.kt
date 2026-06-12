@@ -14,12 +14,17 @@ object WorkspaceJson {
     fun encode(workspace: Workspace): String {
         val pins = workspace.hotseatPins.joinToString(PIN_SEP)
         val panelPart = workspace.panels.joinToString(PANEL_SEP) { encodePanel(it) }
-        return listOf(workspace.id, pins, panelPart).joinToString(FIELD_SEP)
+        return listOf(
+            workspace.id,
+            pins,
+            panelPart,
+            workspace.focusedPanelIndex.toString(),
+        ).joinToString(FIELD_SEP)
     }
 
     fun decode(raw: String): Workspace {
         if (raw.isBlank()) return Workspace.default()
-        val parts = raw.split(FIELD_SEP, limit = 3)
+        val parts = raw.split(FIELD_SEP, limit = 4)
         val id = parts.firstOrNull()?.takeIf { it.isNotBlank() } ?: Workspace.DEFAULT_ID
         val pins = parts.getOrElse(1) { "" }
             .split(PIN_SEP)
@@ -29,7 +34,13 @@ object WorkspaceJson {
         } else {
             Workspace.defaultPanels()
         }
-        return Workspace(id = id, hotseatPins = pins, panels = mergeWithDefaults(panels))
+        val focusIndex = parts.getOrElse(3) { "0" }.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        return Workspace(
+            id = id,
+            hotseatPins = pins,
+            panels = mergeWithDefaults(panels),
+            focusedPanelIndex = focusIndex,
+        )
     }
 
     internal fun encodePanel(panel: PanelState): String {
