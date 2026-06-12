@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -34,8 +35,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import android.content.Intent
+import android.provider.Settings
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
+import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
@@ -56,6 +63,9 @@ fun CompanionTouchpadScreen(
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
+    val controlMode by CompanionPointerBus.glassesControlMode.collectAsState()
+    val context = LocalContext.current
+    val desktopPointerReady = DisplayPointerInjector.isAvailable
 
     Scaffold(
         topBar = {
@@ -69,6 +79,58 @@ fun CompanionTouchpadScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Text(
+                text = stringResource(R.string.control_mode_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = controlMode == GlassesControlMode.LAUNCHER,
+                    onClick = { CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER) },
+                    label = { Text(stringResource(R.string.control_mode_launcher)) },
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = controlMode == GlassesControlMode.DESKTOP,
+                    onClick = { CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP) },
+                    label = { Text(stringResource(R.string.control_mode_desktop)) },
+                    enabled = desktopPointerReady,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                text = if (desktopPointerReady) {
+                    if (controlMode == GlassesControlMode.DESKTOP) {
+                        stringResource(R.string.control_mode_desktop_on_hint)
+                    } else {
+                        stringResource(R.string.control_mode_launcher_on_hint)
+                    }
+                } else {
+                    stringResource(R.string.control_mode_desktop_setup_hint)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!desktopPointerReady) {
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.enable_desktop_pointer))
+                }
+            }
+            OutlinedButton(
+                onClick = { DisplayLaunchHelper.showLauncherOnGlasses(context) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.show_launcher_on_glasses))
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

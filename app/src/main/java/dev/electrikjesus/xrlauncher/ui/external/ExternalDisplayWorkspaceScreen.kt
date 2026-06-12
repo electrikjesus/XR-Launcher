@@ -2,14 +2,10 @@ package dev.electrikjesus.xrlauncher.ui.external
 
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,11 +14,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -30,13 +26,11 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
-import kotlin.math.roundToInt
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
@@ -49,6 +43,7 @@ fun ExternalDisplayWorkspaceScreen(
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
+    var lastLaunchAtMs by remember { mutableLongStateOf(0L) }
 
     fun cursorPoint(normalizedX: Float, normalizedY: Float): Offset =
         Offset(normalizedX * rootWidthPx, normalizedY * rootHeightPx)
@@ -60,10 +55,17 @@ fun ExternalDisplayWorkspaceScreen(
 
     LaunchedEffect(Unit) {
         CompanionPointerBus.clicks.collect { click ->
+            val now = System.currentTimeMillis()
+            if (now - lastLaunchAtMs < LAUNCH_DEBOUNCE_MS) return@collect
             val app = findAppAt(cursorPoint(click.x, click.y))
             Log.d(LOG_TAG, "click ${click.button} at (${click.x}, ${click.y}) hit=${app?.label}")
             when (click.button) {
-                PointerButton.LEFT -> app?.let(onLaunchApp)
+                PointerButton.LEFT -> {
+                    if (app != null) {
+                        lastLaunchAtMs = now
+                        onLaunchApp(app)
+                    }
+                }
                 PointerButton.RIGHT -> onRightClick(app)
             }
         }
@@ -73,14 +75,10 @@ fun ExternalDisplayWorkspaceScreen(
         modifier = modifier.fillMaxSize(),
         color = Color.Black,
     ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize(),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val density = LocalDensity.current
             rootWidthPx = with(density) { maxWidth.toPx() }
             rootHeightPx = with(density) { maxHeight.toPx() }
-            val cursorXPx = cursor.x * rootWidthPx
-            val cursorYPx = cursor.y * rootHeightPx
 
             LaunchedEffect(cursor.x, cursor.y, itemBounds.size, rootWidthPx, rootHeightPx) {
                 CompanionPointerBus.setHoveredLabel(
@@ -99,7 +97,7 @@ fun ExternalDisplayWorkspaceScreen(
                     color = Color.White,
                 )
                 Text(
-                    text = stringResource(R.string.external_display_control_hint),
+                    text = stringResource(R.string.control_mode_launcher_hint),
                     modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
                     color = Color.White.copy(alpha = 0.7f),
                 )
@@ -110,7 +108,7 @@ fun ExternalDisplayWorkspaceScreen(
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                 }
-                apps.take(20).forEach { app ->
+                apps.forEach { app ->
                     val key = app.componentName.flattenToString()
                     val isHovered = cursor.hoveredLabel == app.label
                     Text(
@@ -130,22 +128,10 @@ fun ExternalDisplayWorkspaceScreen(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .offset {
-                        IntOffset(
-                            (cursorXPx - with(density) { 12.dp.toPx() }).roundToInt(),
-                            (cursorYPx - with(density) { 12.dp.toPx() }).roundToInt(),
-                        )
-                    }
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (cursor.isPressed) Color(0xFFBB86FC) else Color(0xFF03DAC5),
-                    ),
-            )
+            ExternalCursorDot(modifier = Modifier.fillMaxSize())
         }
     }
 }
 
 private const val LOG_TAG = "XRLauncher/Pointer"
+private const val LAUNCH_DEBOUNCE_MS = 1_000L

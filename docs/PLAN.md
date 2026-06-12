@@ -299,16 +299,22 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | Tap-to-click (touchpad mode) | ☐ Broken — tap repositions cursor but does not activate item under pointer |
 | Left/Right click buttons | ☐ Unverified — confirm during 1.15 fix |
 | Motion pointer | ☑ Direction feels correct (laser-pointer invert applied); ☐ corner reach / drift needs calibration |
-| External display window | ☐ Freeform — task `mBounds=Rect(269, 113 – 1651, 890)` on 1920×1080 display despite `mode=fullscreen` label |
+| External display window | ☐ Freeform — task `mBounds=Rect(269, 113 – 1651, 890)` on 1920×1080; **two freeform windows** if overlay activity launched separately (fixed in 1.19) |
+| Display-level pointer | ☐ Partial — Desktop mode + accessibility inject; cursor not visible over other apps without overlay (see 1.21) |
+| Glasses workspace UX | ☐ Flat black app list only — needs 3D spatial desktop (see 1.22) |
 
-**Exit criteria:** Tap and buttons reliably launch/highlight apps on glasses; motion mode has recenter/calibrate; external workspace fills the glasses display in Desktop Mode.
+**Exit criteria:** One glasses window; tap/buttons work; optional desktop pointer; path documented for fullscreen + 3D workspace.
 
 | # | Task | Done |
 |---|------|------|
 | 1.15 | **Fix tap-to-click on companion touchpad.** | ☑ |
 | 1.16 | **Motion pointer calibration + recenter.** | ☑ |
-| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☑ |
-| 1.18 | **Re-test full glasses session** after 1.15–1.17; update `device-matrix.md`. | ☐ |
+| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☐ |
+| 1.18 | **Re-test full glasses session** after 1.15–1.19; update `device-matrix.md`. | ☐ |
+| 1.19 | **Single glasses activity** — one `ExternalDisplayActivity` per display (no separate cursor overlay task). | ☑ |
+| 1.20 | **Fullscreen immersive on Desktop secondary display** — edge-to-edge, no freeform chrome; investigate `launchBounds`, `resizeableActivity=false`, WM flags, OEM limits. | ☐ |
+| 1.21 | **System-style cursor on secondary display** — pointer visible and clickable over *any* app (Settings, Play Store), not just XR Launcher UI. Options: accessibility `dispatchGesture` + `TYPE_ACCESSIBILITY_OVERLAY` cursor sprite; avoid second freeform activity. | ☐ |
+| 1.22 | **3D XR desktop on glasses** — replace flat black app list with spatial workspace (`Subspace` / panels / environment), aligned with Tier 0 spatial model and RayNeo optics. | ☐ |
 
 #### Task 1.15 — Fix tap-to-click
 
@@ -400,6 +406,46 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 ---
 
+#### Task 1.19 — Single glasses activity (no dual freeform windows)
+
+**Symptom:** “Open on glasses” spawned **two** Desktop Mode freeform windows: transparent cursor overlay + black XR Launcher workspace.
+
+**Root cause:** `ExternalCursorOverlayActivity` launched as a second task on the same display ID. Desktop Mode treats each activity as its own resizable window.
+
+**Fix:** Draw the cursor inside `ExternalDisplayActivity` via `ExternalCursorDot` composable. Only one activity launches on the glasses display. Removed separate overlay activity.
+
+**Follow-up (1.21):** When a third-party app covers the launcher, the in-activity cursor is hidden — a *system-level* cursor overlay (not a second Activity) is required for desktop-style control.
+
+**Acceptance test:** “Open on glasses” creates exactly **one** window on SmartGlasses display.
+
+---
+
+#### Task 1.20 — Fullscreen immersive on Desktop secondary display
+
+**Goal:** Glasses activity fills 1920×1080 with no freeform window frame or letterboxing.
+
+**Approaches to try:** `ActivityOptions.setLaunchBounds(full display)`, `setLaunchWindowingMode(FULLSCREEN)` where API allows, `resizeableActivity=false`, immersive insets in activity, log bounds to device matrix. Document Pixel Desktop Mode limits if OS enforces freeform.
+
+---
+
+#### Task 1.21 — System-style cursor on secondary display
+
+**Goal:** Phone companion drives a **real** pointer on the glasses display that works over Settings, Play Store, and other apps — not only XR Launcher’s Compose UI.
+
+**Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Accessibility `dispatchGesture` with `GestureDescription.setDisplayId` is the viable path for clicks. Cursor *sprite* likely needs `AccessibilityService` overlay or single full-screen transparent **Presentation** (not Activity) — must not create a second freeform task.
+
+**Companion UX:** Launcher vs Desktop control modes; user enables accessibility service once.
+
+---
+
+#### Task 1.22 — 3D XR desktop on glasses (not flat black list)
+
+**Goal:** Glasses show spatial workspace (panels, depth, optional environment) per product vision — not a 2D text app list on black.
+
+**Depends on:** Tier 1 `EXTERNAL` vs Tier 2 `XR_PROJECTED` path; Jetpack XR `Subspace` where available; black-background glasses theme for additive optics. Tie to Phase 2 workspace layout + Phase 5 spatial polish.
+
+---
+
 ### Phase 2 — Workspace layout
 
 **Goal:** Multiple launcher-owned panels with layout persistence.
@@ -438,7 +484,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 3.5 | Dispose panel entity + activity when panel closed (no leaked activities). | ☐ |
 | 3.6 | Create internal **test harness app** module with `allowUntrustedActivityEmbedding=true` for CI/device testing. | ☐ |
 | 3.7 | Surface embed support in UI (icon or label: “Spatial window” vs “Full launch”). | ☐ |
-| 3.8 | Tier 1/2: launch app on glasses display in focused “slot” (pseudo-panel) until true embed works. | ☐ |
+| 3.8 | Tier 1/2: launch app on glasses display in focused “slot” (pseudo-panel) until true embed works. | ☐ (VirtualDisplay embed blocked on Pixel + replay loop; interim: launch on glasses display + `moveTaskToBack`) |
 | 3.9 | **Tier 0:** Embed or launch-in-panel on large-screen 3D workspace where platform allows. | ☐ |
 
 ---

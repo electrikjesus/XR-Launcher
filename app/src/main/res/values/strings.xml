@@ -21,6 +21,16 @@
     <string name="calibrate">Calibrate</string>
     <string name="calibrating">Calibrating…</string>
     <string name="motion_sensitivity">Motion sensitivity</string>
+    <string name="control_mode_title">Glasses control mode</string>
+    <string name="control_mode_launcher">Launcher</string>
+    <string name="control_mode_desktop">Desktop</string>
+    <string name="control_mode_launcher_hint">Launcher mode: pick apps from the list. The app opens on glasses — use Desktop mode on the phone to click inside it.</string>
+    <string name="control_mode_launcher_on_hint">Clicks open apps on the glasses display.</string>
+    <string name="control_mode_desktop_on_hint">Clicks go to the app in front on glasses (Settings, Play Store, etc.).</string>
+    <string name="control_mode_desktop_setup_hint">Enable Desktop pointer in Accessibility to click apps on the glasses display.</string>
+    <string name="enable_desktop_pointer">Enable desktop pointer</string>
+    <string name="show_launcher_on_glasses">Show launcher on glasses</string>
+    <string name="display_pointer_service_description">Lets the phone companion click and control apps on the glasses display.</string>
     <string name="no_apps_found">No apps found</string>
     <string name="workspace_panel_drawer">Apps</string>
     <string name="workspace_panel_status">Status</string>

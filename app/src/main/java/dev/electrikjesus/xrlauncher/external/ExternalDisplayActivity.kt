@@ -10,6 +10,9 @@ import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.ui.external.ExternalDisplayWorkspaceScreen
@@ -25,6 +28,7 @@ class ExternalDisplayActivity : ComponentActivity() {
         applyImmersiveFullscreen()
 
         val displayId = display?.displayId ?: Display.DEFAULT_DISPLAY
+        GlassesSessionState.secondaryDisplayId = displayId
         if (isDebugBuild()) {
             Log.d(TAG, "onCreate displayId=$displayId")
         }
@@ -32,13 +36,17 @@ class ExternalDisplayActivity : ComponentActivity() {
         val appRepository = AppRepository(this)
         val appLauncher = AppLauncher(this)
         val apps = appRepository.loadLaunchableApps()
+            .filter { it.packageName != packageName }
 
         setContent {
             XRLauncherTheme(forGlasses = true) {
                 ExternalDisplayWorkspaceScreen(
                     apps = apps,
                     onLaunchApp = { app ->
+                        Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
                         appLauncher.launchOnDisplay(app.componentName, displayId)
+                        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
+                        window.decorView.post { moveTaskToBack(true) }
                     },
                 )
             }

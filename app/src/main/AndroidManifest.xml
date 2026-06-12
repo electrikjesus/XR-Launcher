@@ -51,6 +51,18 @@
                 <category android:name="android.intent.category.XR_PROJECTED_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".accessibility.DisplayPointerAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/display_pointer_accessibility_service" />
+        </service>
     </application>
 
 </manifest>

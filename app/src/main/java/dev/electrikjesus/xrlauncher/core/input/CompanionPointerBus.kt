@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 
 enum class PointerAction {
     MOVE,
@@ -52,7 +54,7 @@ object CompanionPointerBus {
     private val _events = MutableSharedFlow<PointerEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<PointerEvent> = _events.asSharedFlow()
 
-    private val _clicks = MutableSharedFlow<PointerClick>(replay = 1, extraBufferCapacity = 16)
+    private val _clicks = MutableSharedFlow<PointerClick>(extraBufferCapacity = 16)
     val clicks: SharedFlow<PointerClick> = _clicks.asSharedFlow()
 
     private val _camera = MutableStateFlow(WorkspaceCameraState())
@@ -69,6 +71,9 @@ object CompanionPointerBus {
 
     private val _motionSensitivity = MutableStateFlow(1f)
     val motionSensitivity: StateFlow<Float> = _motionSensitivity.asStateFlow()
+
+    private val _glassesControlMode = MutableStateFlow(GlassesSessionState.controlMode)
+    val glassesControlMode: StateFlow<GlassesControlMode> = _glassesControlMode.asStateFlow()
 
     fun emit(event: PointerEvent) {
         if (event.action == PointerAction.MOVE) {
@@ -113,7 +118,21 @@ object CompanionPointerBus {
 
     fun click(button: PointerButton) {
         val current = _cursor.value
-        emitClick(PointerClick(button = button, x = current.x, y = current.y))
+        val injectOnGlasses =
+            GlassesSessionState.controlMode == GlassesControlMode.DESKTOP &&
+                GlassesSessionState.secondaryDisplayId != null &&
+                DisplayPointerInjector.isAvailable
+
+        if (injectOnGlasses) {
+            DisplayPointerInjector.dispatchClick(
+                GlassesSessionState.secondaryDisplayId!!,
+                current.x,
+                current.y,
+                button,
+            )
+        } else {
+            emitClick(PointerClick(button = button, x = current.x, y = current.y))
+        }
         if (button == PointerButton.LEFT) {
             _cursor.value = current.copy(isPressed = true)
             _cursor.value = _cursor.value.copy(isPressed = false)
@@ -137,6 +156,11 @@ object CompanionPointerBus {
         _motionSensitivity.value = multiplier.coerceIn(0.25f, 3f)
     }
 
+    fun setGlassesControlMode(mode: GlassesControlMode) {
+        GlassesSessionState.controlMode = mode
+        _glassesControlMode.value = mode
+    }
+
     fun orbitCamera(deltaYaw: Float, deltaPitch: Float) {
         val current = _camera.value
         _camera.value = current.copy(
@@ -152,5 +176,6 @@ object CompanionPointerBus {
     fun resetCursor() {
         _cursor.value = CompanionCursorState()
         _motionSensitivity.value = 1f
+        _glassesControlMode.value = GlassesSessionState.controlMode
     }
 }

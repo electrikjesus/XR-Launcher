@@ -97,17 +97,39 @@ object DisplayLaunchHelper {
 
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
+        GlassesSessionState.secondaryDisplayId = displayId
+        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
+        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
 
         openCompanionController(context)
-        val launched = launchActivityOnDisplay(
+        val workspaceLaunched = launchActivityOnDisplay(
             context = context,
             activityClass = ExternalDisplayActivity::class.java,
             displayId = displayId,
         )
-        if (launched) {
+        if (workspaceLaunched) {
             Log.d(TAG, "Opened glasses session on displayId=$displayId")
         }
-        return launched
+        return workspaceLaunched
+    }
+
+    fun showLauncherOnGlasses(context: Context): Boolean {
+        val displayId = resolveSecondaryDisplayId(context, GlassesSessionState.secondaryDisplayId)
+            ?: return false
+        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
+        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
+        val intent = Intent(context, ExternalDisplayActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val options = ActivityOptions.makeBasic()
+        options.launchDisplayId = displayId
+        return try {
+            context.startActivity(intent, options.toBundle())
+            true
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to show launcher on glasses", e)
+            false
+        }
     }
 
     private fun Display.isValidSecondaryTarget(displayManager: DisplayManager): Boolean {
