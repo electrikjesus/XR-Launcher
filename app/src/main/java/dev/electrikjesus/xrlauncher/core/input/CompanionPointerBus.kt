@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import kotlin.math.hypot
 
 enum class PointerAction {
@@ -51,6 +52,8 @@ data class CompanionCursorState(
 object CompanionPointerBus {
     private const val TOUCHPAD_SENSITIVITY = 0.004f
     private const val MOTION_SENSITIVITY = 0.015f
+    /** Degrees of look per normalized touchpad pixel in launcher mouse-look mode. */
+    private const val LOOK_SENSITIVITY = 0.06f
     /** Normalized distance above which pointer-up becomes drag instead of click. */
     private const val DRAG_THRESHOLD = 0.012f
 
@@ -133,6 +136,23 @@ object CompanionPointerBus {
         moveBy(deltaX * scale, deltaY * scale)
     }
 
+    /** Companion look sliders / future IMU — blended into viewport pan in [WorkspaceWraparound]. */
+    fun lookBy(deltaX: Float, deltaY: Float) {
+        val scale = LOOK_SENSITIVITY * _touchpadSensitivity.value
+        WorkspaceLookOffset.addDelta(deltaX * scale, -deltaY * scale)
+    }
+
+    fun lookByMotion(deltaX: Float, deltaY: Float) {
+        val scale = MOTION_SENSITIVITY * _motionSensitivity.value
+        WorkspaceLookOffset.addDelta(-deltaY * scale, -deltaX * scale)
+    }
+
+    /** Launcher cylinder view: cursor at screen edge pans across the wide canvas (no desktop overlay). */
+    fun usesLauncherCylinderNavigation(): Boolean =
+        GlassesSessionState.launcherForeground &&
+            GlassesSessionState.controlMode == GlassesControlMode.LAUNCHER &&
+            !DisplayPointerInjector.isAvailable
+
     fun setCursorPosition(x: Float, y: Float) {
         _cursor.value = _cursor.value.copy(
             x = x.coerceIn(0f, 1f),
@@ -142,6 +162,7 @@ object CompanionPointerBus {
 
     fun recenterCursor() {
         setCursorPosition(0.5f, 0.5f)
+        WorkspaceLookOffset.reset()
     }
 
     fun setHoveredLabel(label: String?) {
@@ -333,5 +354,6 @@ object CompanionPointerBus {
         manualPrecisionPointer = false
         _focusedPanelId.value = null
         _focusedPanelIndex.value = 0
+        WorkspaceLookOffset.reset()
     }
 }

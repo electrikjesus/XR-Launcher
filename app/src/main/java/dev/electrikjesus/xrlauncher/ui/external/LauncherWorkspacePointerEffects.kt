@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
 
 /** Hit-tests right-clicks for hotseat pin; left clicks inject via accessibility + Compose clickables. */
 @Composable
@@ -44,9 +45,14 @@ fun LauncherWorkspacePointerEffects(
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
     LaunchedEffect(cursor.x, cursor.y, itemBounds.size, rootWidthPx, rootHeightPx) {
-        CompanionPointerBus.setHoveredLabel(
-            findAppAt(cursorPoint(cursor.x, cursor.y))?.label,
-        )
+        val point = cursorPoint(cursor.x, cursor.y)
+        val hoverLabel = when {
+            findAppAt(point)?.label != null -> findAppAt(point)?.label
+            itemBounds[AllAppsLauncher.BOUNDS_KEY]?.contains(point) == true ->
+                AllAppsLauncher.HOVER_LABEL
+            else -> null
+        }
+        CompanionPointerBus.setHoveredLabel(hoverLabel)
     }
 }
 

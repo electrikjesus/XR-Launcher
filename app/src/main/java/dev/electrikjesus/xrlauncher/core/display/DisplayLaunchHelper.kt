@@ -144,6 +144,15 @@ object DisplayLaunchHelper {
         }
     }
 
+    /** Bring launcher to foreground on glasses and open the full-screen All Apps picker. */
+    fun openAllAppsOnGlasses(context: Context): Boolean {
+        val shown = showLauncherOnGlasses(context)
+        if (shown) {
+            GlassesSessionState.showAllAppsOverlay()
+        }
+        return shown
+    }
+
     private fun applySessionControlMode() {
         val mode = if (DisplayPointerInjector.isAvailable) {
             GlassesControlMode.DESKTOP

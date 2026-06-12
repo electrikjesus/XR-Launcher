@@ -46,6 +46,35 @@ class WorkspaceRepository(private val context: Context) {
         }
     }
 
+    suspend fun updateAppearance(appearance: WorkspaceAppearance) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(
+                current.copy(appearance = appearance.clamped()),
+            )
+        }
+    }
+
+    /** Reset appearance tuning and return panels to the standard stack layout. */
+    suspend fun resetLayoutDefaults() {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(
+                current.copy(
+                    appearance = WorkspaceAppearance.default(),
+                    panels = WorkspaceLayoutPresets.apply(
+                        Workspace.defaultPanels(),
+                        LayoutPreset.STANDARD,
+                    ),
+                ),
+            )
+        }
+    }
+
     suspend fun toggleHotseatPin(componentKey: String) {
         context.workspaceDataStore.edit { prefs ->
             val current = prefs[WORKSPACE_JSON_KEY]?.let {

@@ -28,6 +28,7 @@ data class Workspace(
     val panels: List<PanelState> = defaultPanels(),
     /** Tier 0 spatial desktop focused panel index (0-based). */
     val focusedPanelIndex: Int = 0,
+    val appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
 ) {
     companion object {
         const val DEFAULT_ID = "default"

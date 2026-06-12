@@ -4,15 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.MotionPointerController
+import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.companion.CompanionTouchpadScreen
+import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,8 +51,23 @@ class CompanionControllerActivity : ComponentActivity() {
         }
 
         setContent {
+            val workspaceRepository = remember { WorkspaceRepository(applicationContext) }
+            val appLauncher = remember { AppLauncher(this) }
+            val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+            val launchableApps = rememberLaunchableApps(
+                excludePackageName = packageName,
+                allAppsOverlayVisible,
+            )
             XRLauncherTheme(forCompanion = true) {
                 CompanionTouchpadScreen(
+                    workspaceRepository = workspaceRepository,
+                    apps = launchableApps,
+                    onLaunchAppOnGlasses = { app ->
+                        appLauncher.launchOnGlasses(
+                            app.componentName,
+                            GlassesSessionState.secondaryDisplayId,
+                        )
+                    },
                     motionAvailable = motionController.isAvailable,
                     isCalibrating = isCalibrating,
                     onCalibrate = { lifecycleScope.launch { runCalibration() } },

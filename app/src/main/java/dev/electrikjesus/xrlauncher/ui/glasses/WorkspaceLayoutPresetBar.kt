@@ -3,7 +3,6 @@ package dev.electrikjesus.xrlauncher.ui.glasses
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
@@ -22,9 +21,7 @@ fun WorkspaceLayoutPresetBar(
     modifier: Modifier = Modifier,
 ) {
     FlowRow(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
+        modifier = modifier.padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LayoutPreset.entries.forEach { preset ->

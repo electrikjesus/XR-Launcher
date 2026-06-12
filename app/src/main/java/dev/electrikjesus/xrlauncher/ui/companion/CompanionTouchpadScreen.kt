@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.TouchApp
@@ -43,10 +44,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
+import androidx.compose.runtime.rememberCoroutineScope
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import androidx.compose.ui.text.style.TextOverflow
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import kotlinx.coroutines.launch
 
 private enum class CompanionTab(val labelRes: Int) {
     Display(R.string.companion_tab_display),
@@ -57,11 +65,17 @@ private enum class CompanionTab(val labelRes: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompanionTouchpadScreen(
+    workspaceRepository: WorkspaceRepository,
+    apps: List<LaunchableApp> = emptyList(),
+    onLaunchAppOnGlasses: (LaunchableApp) -> Unit = {},
     motionAvailable: Boolean = true,
     isCalibrating: Boolean = false,
     onCalibrate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val workspace by workspaceRepository.workspace.collectAsState(initial = null)
+    val appearance = workspace?.appearance?.clamped() ?: WorkspaceAppearance.default()
+    val scope = rememberCoroutineScope()
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
@@ -112,12 +126,21 @@ fun CompanionTouchpadScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
-                ShowLauncherOnGlassesButton(
-                    onClick = { DisplayLaunchHelper.showLauncherOnGlasses(context) },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ShowLauncherOnGlassesButton(
+                        onClick = { DisplayLaunchHelper.showLauncherOnGlasses(context) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    AllAppsOnGlassesButton(
+                        onClick = { DisplayLaunchHelper.openAllAppsOnGlasses(context) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
@@ -181,6 +204,8 @@ fun CompanionTouchpadScreen(
                                 onOpenAccessibilitySettings = {
                                     context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                                 },
+                                apps = apps,
+                                onLaunchAppOnGlasses = onLaunchAppOnGlasses,
                             )
                             CompanionTab.Input -> InputTabContent(
                                 motionAvailable = motionAvailable,
@@ -191,6 +216,73 @@ fun CompanionTouchpadScreen(
                                 onCalibrate = onCalibrate,
                             )
                             CompanionTab.Workspace -> WorkspaceTabContent(
+                                appearance = appearance,
+                                onUiScaleChange = { scale ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(uiScale = scale),
+                                        )
+                                    }
+                                },
+                                onPanelGapChange = { gap ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(panelGapDp = gap),
+                                        )
+                                    }
+                                },
+                                onWrapCurvatureChange = { curvature ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(wrapCurvature = curvature),
+                                        )
+                                    }
+                                },
+                                onWorkspaceWidthChange = { width ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(workspaceWidth = width),
+                                        )
+                                    }
+                                },
+                                onWorkspaceHeightChange = { height ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(workspaceHeight = height),
+                                        )
+                                    }
+                                },
+                                onLookYawChange = { yaw ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(lookYawDegrees = yaw),
+                                        )
+                                    }
+                                },
+                                onLookPitchChange = { pitch ->
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(lookPitchDegrees = pitch),
+                                        )
+                                    }
+                                },
+                                onRecenterLook = {
+                                    WorkspaceLookOffset.reset()
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(
+                                                lookYawDegrees = 0f,
+                                                lookPitchDegrees = 0f,
+                                            ),
+                                        )
+                                    }
+                                },
+                                onResetAppearance = {
+                                    WorkspaceLookOffset.reset()
+                                    scope.launch {
+                                        workspaceRepository.resetLayoutDefaults()
+                                    }
+                                },
                                 cursorHoveredLabel = cursor.hoveredLabel,
                                 focusedPanelId = focusedPanelId,
                                 launcherForeground = launcherForeground,
@@ -226,6 +318,29 @@ fun CompanionTouchpadScreen(
 }
 
 @Composable
+private fun AllAppsOnGlassesButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Apps,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.all_apps_on_glasses),
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun ShowLauncherOnGlassesButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -253,6 +368,8 @@ private fun DisplayTabContent(
     precisionPointer: Boolean,
     onPrecisionPointerChange: (Boolean) -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
+    apps: List<LaunchableApp>,
+    onLaunchAppOnGlasses: (LaunchableApp) -> Unit,
 ) {
     if (!desktopPointerReady) {
         OutlinedButton(
@@ -288,6 +405,13 @@ private fun DisplayTabContent(
                 onCheckedChange = onPrecisionPointerChange,
             )
         }
+    }
+
+    if (apps.isNotEmpty()) {
+        CompanionAllAppsPicker(
+            apps = apps,
+            onLaunchApp = onLaunchAppOnGlasses,
+        )
     }
 }
 
@@ -385,10 +509,146 @@ private fun InputTabContent(
 
 @Composable
 private fun WorkspaceTabContent(
+    appearance: WorkspaceAppearance,
+    onUiScaleChange: (Float) -> Unit,
+    onPanelGapChange: (Float) -> Unit,
+    onWrapCurvatureChange: (Float) -> Unit,
+    onWorkspaceWidthChange: (Float) -> Unit,
+    onWorkspaceHeightChange: (Float) -> Unit,
+    onLookYawChange: (Float) -> Unit,
+    onLookPitchChange: (Float) -> Unit,
+    onRecenterLook: () -> Unit,
+    onResetAppearance: () -> Unit,
     cursorHoveredLabel: String?,
     focusedPanelId: String?,
     launcherForeground: Boolean,
 ) {
+    Text(
+        text = stringResource(R.string.workspace_appearance_title),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    Text(
+        text = stringResource(R.string.workspace_ui_scale_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        text = stringResource(
+            R.string.workspace_ui_scale,
+        ) + " · ${(appearance.uiScale * 100).toInt()}%",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.uiScale,
+        onValueChange = onUiScaleChange,
+        valueRange = WorkspaceAppearance.MIN_UI_SCALE..WorkspaceAppearance.MAX_UI_SCALE,
+    )
+    Text(
+        text = stringResource(R.string.workspace_panel_gap_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+    Text(
+        text = stringResource(R.string.workspace_panel_gap) +
+            " · ${appearance.panelGapDp.toInt()}dp",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.panelGapDp,
+        onValueChange = onPanelGapChange,
+        valueRange = WorkspaceAppearance.MIN_PANEL_GAP_DP..WorkspaceAppearance.MAX_PANEL_GAP_DP,
+    )
+
+    Text(
+        text = stringResource(R.string.workspace_wrap_section),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+    Text(
+        text = stringResource(R.string.workspace_wrap_curvature_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        text = stringResource(R.string.workspace_wrap_curvature) +
+            " · ${(appearance.wrapCurvature * 100).toInt()}%",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.wrapCurvature,
+        onValueChange = onWrapCurvatureChange,
+        valueRange = WorkspaceAppearance.MIN_WRAP_CURVATURE..WorkspaceAppearance.MAX_WRAP_CURVATURE,
+    )
+    Text(
+        text = stringResource(R.string.workspace_span_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        text = stringResource(R.string.workspace_span_width) +
+            " · ${(appearance.workspaceWidth * 100).toInt()}%",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.workspaceWidth,
+        onValueChange = onWorkspaceWidthChange,
+        valueRange = WorkspaceAppearance.MIN_WORKSPACE_SPAN..WorkspaceAppearance.MAX_WORKSPACE_SPAN,
+    )
+    Text(
+        text = stringResource(R.string.workspace_span_height) +
+            " · ${(appearance.workspaceHeight * 100).toInt()}%",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.workspaceHeight,
+        onValueChange = onWorkspaceHeightChange,
+        valueRange = WorkspaceAppearance.MIN_WORKSPACE_SPAN..WorkspaceAppearance.MAX_WORKSPACE_SPAN,
+    )
+
+    Text(
+        text = stringResource(R.string.workspace_look_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+    Text(
+        text = stringResource(R.string.workspace_look_yaw) +
+            " · ${appearance.lookYawDegrees.toInt()}°",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.lookYawDegrees,
+        onValueChange = onLookYawChange,
+        valueRange = WorkspaceAppearance.MIN_LOOK_YAW..WorkspaceAppearance.MAX_LOOK_YAW,
+    )
+    Text(
+        text = stringResource(R.string.workspace_look_pitch) +
+            " · ${appearance.lookPitchDegrees.toInt()}°",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Slider(
+        value = appearance.lookPitchDegrees,
+        onValueChange = onLookPitchChange,
+        valueRange = WorkspaceAppearance.MIN_LOOK_PITCH..WorkspaceAppearance.MAX_LOOK_PITCH,
+    )
+    OutlinedButton(
+        onClick = onRecenterLook,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Text(stringResource(R.string.workspace_look_recenter))
+    }
+    OutlinedButton(
+        onClick = onResetAppearance,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Text(stringResource(R.string.workspace_appearance_reset))
+    }
+
     if (cursorHoveredLabel != null) {
         Text(
             text = stringResource(R.string.cursor_over, cursorHoveredLabel),
@@ -421,6 +681,15 @@ private fun WorkspaceTabContent(
             shape = MaterialTheme.shapes.medium,
         ) {
             Text(stringResource(R.string.workspace_focus_next))
+        }
+        OutlinedButton(
+            onClick = {
+                CompanionPointerBus.setFocusedPanelId("app_drawer")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(stringResource(R.string.all_apps_focus_drawer))
         }
     } else if (cursorHoveredLabel == null) {
         Text(

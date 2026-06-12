@@ -18,13 +18,15 @@ import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
+import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
-    apps: List<LaunchableApp>,
+    launcherPackageName: String,
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
@@ -40,7 +42,7 @@ fun ExternalDisplayWorkspaceScreen(
 
     if (GlassesSessionState.preferSubspaceShell) {
         GlassesWorkspaceScreen(
-            apps = apps,
+            launcherPackageName = launcherPackageName,
             workspaceRepository = workspaceRepository,
             onLaunchApp = onLaunchApp,
             onToggleHotseatPin = onToggleHotseatPin,
@@ -50,7 +52,7 @@ fun ExternalDisplayWorkspaceScreen(
     }
 
     FlatGlassesWorkspaceScreen(
-        apps = apps,
+        launcherPackageName = launcherPackageName,
         workspaceRepository = workspaceRepository,
         onLaunchApp = onLaunchApp,
         onToggleHotseatPin = onToggleHotseatPin,
@@ -60,12 +62,17 @@ fun ExternalDisplayWorkspaceScreen(
 
 @Composable
 private fun FlatGlassesWorkspaceScreen(
-    apps: List<LaunchableApp>,
+    launcherPackageName: String,
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val launchableApps = rememberLaunchableApps(
+        excludePackageName = launcherPackageName,
+        allAppsOverlayVisible,
+    )
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
     val panelBounds = remember { mutableStateMapOf<String, Rect>() }
@@ -73,14 +80,11 @@ private fun FlatGlassesWorkspaceScreen(
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
     val panels = workspace?.panels ?: Workspace.defaultPanels()
     val visiblePanelIds = remember(panels) { panels.filter { it.visible }.map { it.id } }
-    val hotseatApps = remember(apps, workspace?.hotseatPins) {
+    val hotseatApps = remember(launchableApps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
-            apps = apps,
+            apps = launchableApps,
             pinnedKeys = workspace?.hotseatPins ?: emptyList(),
         )
-    }
-    val gridApps = remember(apps, hotseatApps) {
-        apps.filter { app -> hotseatApps.none { it.componentName == app.componentName } }
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -89,7 +93,7 @@ private fun FlatGlassesWorkspaceScreen(
         rootHeightPx = with(density) { maxHeight.toPx() }
 
         LauncherWorkspacePointerEffects(
-            apps = apps,
+            apps = launchableApps,
             itemBounds = itemBounds,
             rootWidthPx = rootWidthPx,
             rootHeightPx = rootHeightPx,
@@ -106,10 +110,11 @@ private fun FlatGlassesWorkspaceScreen(
         val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
 
         GlassesSpatialWorkspaceScreen(
-            apps = gridApps,
+            launchableApps = launchableApps,
             hotseatApps = hotseatApps,
             pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
             panels = panels,
+            appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
             onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
             onPanelsChange = { updatedPanels -> panelSaver.save(updatedPanels) },

@@ -59,6 +59,27 @@ object GlassesSessionState {
     /** Set when content inside [androidx.xr.compose.spatial.Subspace] composes. */
     var subspaceInnerComposed: Boolean = false
 
+    private val _allAppsOverlayVisible = MutableStateFlow(false)
+    val allAppsOverlayVisibleFlow: StateFlow<Boolean> = _allAppsOverlayVisible.asStateFlow()
+
+    var allAppsOverlayVisible: Boolean
+        get() = _allAppsOverlayVisible.value
+        set(value) {
+            _allAppsOverlayVisible.value = value
+        }
+
+    fun showAllAppsOverlay() {
+        allAppsOverlayVisible = true
+    }
+
+    fun hideAllAppsOverlay() {
+        allAppsOverlayVisible = false
+    }
+
+    fun toggleAllAppsOverlay() {
+        allAppsOverlayVisible = !allAppsOverlayVisible
+    }
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
@@ -72,5 +93,6 @@ object GlassesSessionState {
         )
         subspaceOuterComposed = false
         subspaceInnerComposed = false
+        allAppsOverlayVisible = false
     }
 }

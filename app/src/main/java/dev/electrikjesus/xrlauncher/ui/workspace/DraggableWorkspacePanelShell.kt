@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -35,6 +36,10 @@ fun DraggableWorkspacePanelShell(
     isFocused: Boolean,
     containerWidthPx: Float,
     containerHeightPx: Float,
+    panelGapDp: Float = 12f,
+    wrapCurvature: Float = WorkspaceAppearance.DEFAULT_WRAP_CURVATURE,
+    workspaceWidth: Float = 1f,
+    workspaceHeight: Float = 1f,
     onBoundsChanged: (PanelBounds) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit,
     modifier: Modifier = Modifier,
@@ -55,74 +60,89 @@ fun DraggableWorkspacePanelShell(
     val offsetY = (dragBounds.y * containerHeightPx).roundToInt()
     val widthPx = (dragBounds.width * containerWidthPx).coerceAtLeast(1f)
     val heightPx = (dragBounds.height * containerHeightPx).coerceAtLeast(1f)
+    val gapPx = with(density) { panelGapDp.dp.toPx() }
+    val halfGap = (gapPx / 2f).roundToInt()
     val elevation = if (isFocused) 18.dp else 10.dp
+    val centerX = dragBounds.x + dragBounds.width / 2f
+    val centerY = dragBounds.y + dragBounds.height / 2f
 
-    Box(
+    WraparoundPanelContainer(
+        centerXNorm = centerX,
+        centerYNorm = centerY,
+        wrapCurvature = wrapCurvature,
+        workspaceWidth = workspaceWidth,
+        workspaceHeight = workspaceHeight,
+        applyArcPositionShift = false,
         modifier = modifier
-            .offset { IntOffset(offsetX, offsetY) }
+            .offset { IntOffset(offsetX + halfGap, offsetY + halfGap) }
             .size(
-                width = with(density) { widthPx.toDp() },
-                height = with(density) { heightPx.toDp() },
-            )
-            .graphicsLayer {
-                val scale = if (isFocused) 1.02f else 1f
-                scaleX = scale
-                scaleY = scale
-            }
-            .shadow(elevation, MaterialGlassShape),
+                width = with(density) { (widthPx - gapPx).coerceAtLeast(1f).toDp() },
+                height = with(density) { (heightPx - gapPx).coerceAtLeast(1f).toDp() },
+            ),
     ) {
-        WorkspacePanelShell(
-            panelId = panel.id,
-            title = title,
-            isFocused = isFocused,
-            onPanelBoundsChanged = onPanelBoundsChanged,
-            titleBarModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                detectDragGestures(
-                    onDragStart = { isDragging.set(true) },
-                    onDragEnd = {
-                        isDragging.set(false)
-                        onBoundsChanged(dragBounds)
-                    },
-                    onDragCancel = {
-                        isDragging.set(false)
-                        dragBounds = bounds
-                    },
-                ) { _, dragAmount ->
-                    dragBounds = dragBounds.copy(
-                        x = dragBounds.x + dragAmount.x / containerWidthPx,
-                        y = dragBounds.y + dragAmount.y / containerHeightPx,
-                    ).clamp()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val scale = if (isFocused) 1.02f else 1f
+                    scaleX = scale
+                    scaleY = scale
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
+                .shadow(elevation, MaterialGlassShape),
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                content()
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(22.dp)
-                        .shadow(4.dp, CircleShape)
-                        .background(Color(0xFF03DAC5).copy(alpha = 0.85f), CircleShape)
-                        .pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                            detectDragGestures(
-                                onDragStart = { isDragging.set(true) },
-                                onDragEnd = {
-                                    isDragging.set(false)
-                                    onBoundsChanged(dragBounds)
-                                },
-                                onDragCancel = {
-                                    isDragging.set(false)
-                                    dragBounds = bounds
-                                },
-                            ) { _, dragAmount ->
-                                dragBounds = dragBounds.copy(
-                                    width = dragBounds.width + dragAmount.x / containerWidthPx,
-                                    height = dragBounds.height + dragAmount.y / containerHeightPx,
-                                ).clamp()
-                            }
+            WorkspacePanelShell(
+                panelId = panel.id,
+                title = title,
+                isFocused = isFocused,
+                onPanelBoundsChanged = onPanelBoundsChanged,
+                titleBarModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
+                    detectDragGestures(
+                        onDragStart = { isDragging.set(true) },
+                        onDragEnd = {
+                            isDragging.set(false)
+                            onBoundsChanged(dragBounds)
                         },
-                )
+                        onDragCancel = {
+                            isDragging.set(false)
+                            dragBounds = bounds
+                        },
+                    ) { _, dragAmount ->
+                        dragBounds = dragBounds.copy(
+                            x = dragBounds.x + dragAmount.x / containerWidthPx,
+                            y = dragBounds.y + dragAmount.y / containerHeightPx,
+                        ).clamp()
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    content()
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(22.dp)
+                            .shadow(4.dp, CircleShape)
+                            .background(Color(0xFF03DAC5).copy(alpha = 0.85f), CircleShape)
+                            .pointerInput(panel.id, containerWidthPx, containerHeightPx) {
+                                detectDragGestures(
+                                    onDragStart = { isDragging.set(true) },
+                                    onDragEnd = {
+                                        isDragging.set(false)
+                                        onBoundsChanged(dragBounds)
+                                    },
+                                    onDragCancel = {
+                                        isDragging.set(false)
+                                        dragBounds = bounds
+                                    },
+                                ) { _, dragAmount ->
+                                    dragBounds = dragBounds.copy(
+                                        width = dragBounds.width + dragAmount.x / containerWidthPx,
+                                        height = dragBounds.height + dragAmount.y / containerHeightPx,
+                                    ).clamp()
+                                }
+                            },
+                    )
+                }
             }
         }
     }

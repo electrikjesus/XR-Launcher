@@ -21,12 +21,13 @@ object WorkspaceJson {
             pins,
             panelPart,
             workspace.focusedPanelIndex.toString(),
+            encodeAppearance(workspace.appearance),
         ).joinToString(FIELD_SEP)
     }
 
     fun decode(raw: String): Workspace {
         if (raw.isBlank()) return Workspace.default()
-        val parts = raw.split(FIELD_SEP, limit = 4)
+        val parts = raw.split(FIELD_SEP, limit = 5)
         val id = parts.firstOrNull()?.takeIf { it.isNotBlank() } ?: Workspace.DEFAULT_ID
         val pins = parts.getOrElse(1) { "" }
             .split(PIN_SEP)
@@ -37,12 +38,43 @@ object WorkspaceJson {
             Workspace.defaultPanels()
         }
         val focusIndex = parts.getOrElse(3) { "0" }.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val appearance = decodeAppearance(parts.getOrElse(4) { "" })
         return Workspace(
             id = id,
             hotseatPins = pins,
             panels = mergeWithDefaults(panels),
             focusedPanelIndex = focusIndex,
+            appearance = appearance,
         )
+    }
+
+    internal fun encodeAppearance(appearance: WorkspaceAppearance): String {
+        val clamped = appearance.clamped()
+        return listOf(
+            clamped.uiScale.toCompactString(),
+            clamped.panelGapDp.toCompactString(),
+            clamped.wrapCurvature.toCompactString(),
+            clamped.workspaceWidth.toCompactString(),
+            clamped.workspaceHeight.toCompactString(),
+            clamped.lookYawDegrees.toCompactString(),
+            clamped.lookPitchDegrees.toCompactString(),
+        ).joinToString(PANEL_FIELD_SEP)
+    }
+
+    internal fun decodeAppearance(raw: String): WorkspaceAppearance {
+        if (raw.isBlank()) return WorkspaceAppearance.default()
+        val fields = raw.split(PANEL_FIELD_SEP)
+        return WorkspaceAppearance(
+            uiScale = fields.getOrNull(0)?.toFloatOrNull() ?: WorkspaceAppearance.DEFAULT_UI_SCALE,
+            panelGapDp = fields.getOrNull(1)?.toFloatOrNull() ?: 12f,
+            wrapCurvature = fields.getOrNull(2)?.toFloatOrNull()
+                ?: WorkspaceAppearance.DEFAULT_WRAP_CURVATURE,
+            workspaceWidth = fields.getOrNull(3)?.toFloatOrNull() ?: 1f,
+            workspaceHeight = fields.getOrNull(4)?.toFloatOrNull()
+                ?: WorkspaceAppearance.DEFAULT_WORKSPACE_HEIGHT,
+            lookYawDegrees = fields.getOrNull(5)?.toFloatOrNull() ?: 0f,
+            lookPitchDegrees = fields.getOrNull(6)?.toFloatOrNull() ?: 0f,
+        ).clamped()
     }
 
     internal fun encodePanel(panel: PanelState): String {

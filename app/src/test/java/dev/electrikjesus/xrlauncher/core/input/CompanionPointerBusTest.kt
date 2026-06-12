@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.input
 
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -132,6 +133,22 @@ class CompanionPointerBusTest {
         assertEquals(3f, CompanionPointerBus.touchpadSensitivity.value)
         CompanionPointerBus.setTouchpadSensitivity(0f)
         assertEquals(0.25f, CompanionPointerBus.touchpadSensitivity.value)
+    }
+
+    @Test
+    fun lookBy_updatesRuntimeOffset() {
+        WorkspaceLookOffset.reset()
+        CompanionPointerBus.lookBy(deltaX = 100f, deltaY = 0f)
+        assertTrue(WorkspaceLookOffset.yawDegrees > 0f)
+        CompanionPointerBus.recenterCursor()
+        assertEquals(0f, WorkspaceLookOffset.yawDegrees, 0.001f)
+    }
+
+    @Test
+    fun emitMove_updatesCursorPosition() {
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
     }
 
     @Test

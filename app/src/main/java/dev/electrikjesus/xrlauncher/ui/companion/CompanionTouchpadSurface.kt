@@ -149,6 +149,8 @@ fun CompanionTouchpadSurface(
                     text = when {
                         motionEnabled -> stringResource(R.string.companion_motion_hint)
                         desktopPointerReady -> stringResource(R.string.companion_desktop_hint)
+                        CompanionPointerBus.usesLauncherCylinderNavigation() ->
+                            stringResource(R.string.companion_mouselook_hint)
                         else -> stringResource(R.string.companion_hint)
                     },
                     style = MaterialTheme.typography.titleMedium,

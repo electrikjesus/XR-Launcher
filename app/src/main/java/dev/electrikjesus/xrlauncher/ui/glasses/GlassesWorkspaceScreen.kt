@@ -23,36 +23,41 @@ import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.resizable
 import androidx.xr.compose.subspace.layout.width
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.external.LauncherWorkspacePointerEffects
 import dev.electrikjesus.xrlauncher.ui.external.rememberDebouncedPanelSaver
+import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 
 /** Tier 2 / spatial-API path: movable `Subspace` panel wrapping the glasses launcher shell. */
 @Composable
 fun GlassesWorkspaceScreen(
-    apps: List<LaunchableApp>,
+    launcherPackageName: String,
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val launchableApps = rememberLaunchableApps(
+        excludePackageName = launcherPackageName,
+        allAppsOverlayVisible,
+    )
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
     val panels = workspace?.panels ?: Workspace.defaultPanels()
     val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
-    val hotseatApps = remember(apps, workspace?.hotseatPins) {
+    val hotseatApps = remember(launchableApps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
-            apps = apps,
+            apps = launchableApps,
             pinnedKeys = workspace?.hotseatPins ?: emptyList(),
         )
-    }
-    val gridApps = remember(apps, hotseatApps) {
-        apps.filter { app -> hotseatApps.none { it.componentName == app.componentName } }
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -61,7 +66,7 @@ fun GlassesWorkspaceScreen(
         rootHeightPx = with(density) { maxHeight.toPx() }
 
         LauncherWorkspacePointerEffects(
-            apps = apps,
+            apps = launchableApps,
             itemBounds = itemBounds,
             rootWidthPx = rootWidthPx,
             rootHeightPx = rootHeightPx,
@@ -86,10 +91,11 @@ fun GlassesWorkspaceScreen(
                     ) {
                         SubspaceInnerSpikeMarker(stage = "spatial_panel")
                         GlassesSpatialWorkspaceScreen(
-                            apps = gridApps,
+                            launchableApps = launchableApps,
                             hotseatApps = hotseatApps,
                             pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
                             panels = panels,
+                            appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
                             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                             onPanelsChange = { updated -> panelSaver.save(updated) },
                             onLaunchApp = onLaunchApp,

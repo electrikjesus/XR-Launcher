@@ -18,7 +18,6 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
-import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
@@ -49,18 +48,15 @@ class ExternalDisplayActivity : ComponentActivity() {
             )
         }
 
-        val appRepository = AppRepository(this)
         val appLauncher = AppLauncher(this)
         val workspaceRepository = WorkspaceRepository(applicationContext)
-        val apps = appRepository.loadLaunchableApps()
-            .filter { it.packageName != packageName }
 
         setContent {
             val scope = rememberCoroutineScope()
             val repo = remember { workspaceRepository }
             XRLauncherTheme(forGlasses = true) {
                 ExternalDisplayWorkspaceScreen(
-                    apps = apps,
+                    launcherPackageName = packageName,
                     workspaceRepository = repo,
                     onLaunchApp = { app -> launchApp(appLauncher, app) },
                     onToggleHotseatPin = { app ->

@@ -15,6 +15,8 @@ fun WorkspaceHotseatRow(
     pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onOpenAllApps: (() -> Unit)? = null,
+    allAppsHovered: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -28,6 +30,14 @@ fun WorkspaceHotseatRow(
                 isPinned = app.componentKey() in pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = onLaunchApp,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (onOpenAllApps != null) {
+            AllAppsLauncherCell(
+                isHovered = allAppsHovered,
+                onBoundsChanged = onBoundsChanged,
+                onOpenAllApps = onOpenAllApps,
                 modifier = Modifier.weight(1f),
             )
         }

@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.remember
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
-import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
@@ -20,17 +19,14 @@ class GlassesLauncherActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val appRepository = AppRepository(this)
         val appLauncher = AppLauncher(this)
         val workspaceRepository = WorkspaceRepository(applicationContext)
-        val apps = appRepository.loadLaunchableApps()
-            .filter { it.packageName != packageName }
 
         setContent {
             val repo = remember { workspaceRepository }
             XRLauncherTheme(forGlasses = true) {
                 GlassesWorkspaceScreen(
-                    apps = apps,
+                    launcherPackageName = packageName,
                     workspaceRepository = repo,
                     onLaunchApp = { app ->
                         appLauncher.launchOnDefaultDisplay(app.componentName)

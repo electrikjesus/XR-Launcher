@@ -17,7 +17,7 @@ class AppRepository(private val context: Context) {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val resolveInfos: List<ResolveInfo> = context.packageManager.queryIntentActivities(
             launcherIntent,
-            PackageManager.MATCH_DEFAULT_ONLY,
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
         )
         return resolveInfos
             .mapNotNull { info ->

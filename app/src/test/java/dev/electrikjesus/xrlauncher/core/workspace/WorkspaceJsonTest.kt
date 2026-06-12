@@ -8,6 +8,16 @@ import org.junit.Test
 
 class WorkspaceJsonTest {
     @Test
+    fun defaultAppearance_usesReadableUiScale() {
+        assertEquals(1.5f, WorkspaceAppearance.default().uiScale, 0.001f)
+    }
+
+    @Test
+    fun defaultAppearance_usesSeventyPercentWorkspaceHeight() {
+        assertEquals(0.7f, WorkspaceAppearance.default().workspaceHeight, 0.001f)
+    }
+
+    @Test
     fun defaultPanels_includesDrawerWidgetsHotseatAndEmptySlot() {
         val panels = Workspace.defaultPanels()
         assertEquals(5, panels.size)
@@ -31,10 +41,34 @@ class WorkspaceJsonTest {
     }
 
     @Test
-    fun encodeDecode_preservesFocusedPanelIndex() {
-        val workspace = Workspace(focusedPanelIndex = 2)
+    fun encodeDecode_preservesAppearance() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(
+                uiScale = 1.25f,
+                panelGapDp = 16f,
+                wrapCurvature = 0.5f,
+                workspaceWidth = 1.1f,
+                workspaceHeight = 0.9f,
+                lookYawDegrees = 12f,
+                lookPitchDegrees = -4f,
+            ),
+        )
         val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
-        assertEquals(2, decoded.focusedPanelIndex)
+        assertEquals(1.25f, decoded.appearance.uiScale, 0.001f)
+        assertEquals(16f, decoded.appearance.panelGapDp, 0.001f)
+        assertEquals(0.5f, decoded.appearance.wrapCurvature, 0.001f)
+        assertEquals(1.1f, decoded.appearance.workspaceWidth, 0.001f)
+        assertEquals(0.9f, decoded.appearance.workspaceHeight, 0.001f)
+        assertEquals(12f, decoded.appearance.lookYawDegrees, 0.001f)
+        assertEquals(-4f, decoded.appearance.lookPitchDegrees, 0.001f)
+    }
+
+    @Test
+    fun decodeAppearance_backwardCompatibleWithLegacyTwoFieldFormat() {
+        val appearance = WorkspaceJson.decode("default||widget_clock~WIDGET~true~0~0~0.5~0.25,widget_calendar~WIDGET~true~0.5~0~0.5~0.25,app_drawer~APP_DRAWER~true~0~0.25~1~0.55,hotseat~HOTSEAT~true~0~0.8~1~0.2,empty_slot~EMPTY_SLOT~false~0~0~0~0|0|1.2~8")
+        assertEquals(1.2f, appearance.appearance.uiScale, 0.001f)
+        assertEquals(8f, appearance.appearance.panelGapDp, 0.001f)
+        assertEquals(WorkspaceAppearance.DEFAULT_WRAP_CURVATURE, appearance.appearance.wrapCurvature, 0.001f)
     }
 }
 

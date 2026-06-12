@@ -11,7 +11,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 
 /**
  * Immersive twilight environment inspired by Android XR home/recents —
@@ -21,14 +23,22 @@ import androidx.compose.ui.graphics.graphicsLayer
 fun WorkspaceWallpaper(
     parallaxX: Float = 0f,
     parallaxY: Float = 0f,
+    lookYawDegrees: Float = 0f,
+    lookPitchDegrees: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
+    val backdropYaw = lookYawDegrees * WorkspaceWraparound.BACKDROP_LOOK_RATIO
+    val backdropPitch = lookPitchDegrees * WorkspaceWraparound.BACKDROP_LOOK_RATIO
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .graphicsLayer {
+                rotationY = -backdropYaw
+                rotationX = -backdropPitch
                 scaleX = 1.08f
                 scaleY = 1.08f
+                transformOrigin = TransformOrigin(0.5f, 0.45f)
             },
     ) {
         // Sky — moves slowest for depth.
