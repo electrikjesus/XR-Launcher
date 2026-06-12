@@ -41,6 +41,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
+import dev.electrikjesus.xrlauncher.ui.workspace.CalendarWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 
@@ -91,6 +92,7 @@ fun GlassesSpatialWorkspaceScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ClockWidgetPanel(modifier = Modifier.weight(1f))
+                CalendarWidgetPanel(modifier = Modifier.weight(1f))
             }
 
             if (cursor.hoveredLabel != null) {
