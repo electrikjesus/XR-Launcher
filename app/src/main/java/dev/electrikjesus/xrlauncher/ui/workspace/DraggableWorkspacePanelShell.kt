@@ -8,20 +8,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 @Composable
@@ -38,12 +42,20 @@ fun DraggableWorkspacePanelShell(
 ) {
     val bounds = panel.bounds ?: return
     val density = LocalDensity.current
-    var dragBounds by remember(panel.id, bounds) { mutableStateOf(bounds) }
+    var dragBounds by remember(panel.id) { mutableStateOf(bounds) }
+    val isDragging = remember(panel.id) { AtomicBoolean(false) }
+
+    LaunchedEffect(bounds) {
+        if (!isDragging.get()) {
+            dragBounds = bounds
+        }
+    }
 
     val offsetX = (dragBounds.x * containerWidthPx).roundToInt()
     val offsetY = (dragBounds.y * containerHeightPx).roundToInt()
     val widthPx = (dragBounds.width * containerWidthPx).coerceAtLeast(1f)
     val heightPx = (dragBounds.height * containerHeightPx).coerceAtLeast(1f)
+    val elevation = if (isFocused) 18.dp else 10.dp
 
     Box(
         modifier = modifier
@@ -51,7 +63,13 @@ fun DraggableWorkspacePanelShell(
             .size(
                 width = with(density) { widthPx.toDp() },
                 height = with(density) { heightPx.toDp() },
-            ),
+            )
+            .graphicsLayer {
+                val scale = if (isFocused) 1.02f else 1f
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(elevation, MaterialGlassShape),
     ) {
         WorkspacePanelShell(
             panelId = panel.id,
@@ -60,8 +78,15 @@ fun DraggableWorkspacePanelShell(
             onPanelBoundsChanged = onPanelBoundsChanged,
             titleBarModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
                 detectDragGestures(
-                    onDragEnd = { onBoundsChanged(dragBounds) },
-                    onDragCancel = { dragBounds = bounds },
+                    onDragStart = { isDragging.set(true) },
+                    onDragEnd = {
+                        isDragging.set(false)
+                        onBoundsChanged(dragBounds)
+                    },
+                    onDragCancel = {
+                        isDragging.set(false)
+                        dragBounds = bounds
+                    },
                 ) { _, dragAmount ->
                     dragBounds = dragBounds.copy(
                         x = dragBounds.x + dragAmount.x / containerWidthPx,
@@ -76,12 +101,20 @@ fun DraggableWorkspacePanelShell(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(20.dp)
-                        .background(Color(0xFF03DAC5).copy(alpha = 0.7f), CircleShape)
+                        .size(22.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(Color(0xFF03DAC5).copy(alpha = 0.85f), CircleShape)
                         .pointerInput(panel.id, containerWidthPx, containerHeightPx) {
                             detectDragGestures(
-                                onDragEnd = { onBoundsChanged(dragBounds) },
-                                onDragCancel = { dragBounds = bounds },
+                                onDragStart = { isDragging.set(true) },
+                                onDragEnd = {
+                                    isDragging.set(false)
+                                    onBoundsChanged(dragBounds)
+                                },
+                                onDragCancel = {
+                                    isDragging.set(false)
+                                    dragBounds = bounds
+                                },
                             ) { _, dragAmount ->
                                 dragBounds = dragBounds.copy(
                                     width = dragBounds.width + dragAmount.x / containerWidthPx,
@@ -94,3 +127,5 @@ fun DraggableWorkspacePanelShell(
         }
     }
 }
+
+private val MaterialGlassShape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)

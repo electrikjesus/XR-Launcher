@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerItem
 import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerLayout
@@ -69,6 +70,7 @@ fun GlassesSpatialWorkspaceScreen(
     }
     val visiblePanels = remember(panels) { panels.filter { it.visible } }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
+    val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
     val useFreeform = remember(panels) { WorkspaceLayoutPresets.usesFreeformLayout(panels) }
     val inferredPreset = remember(panels) { WorkspaceLayoutPresets.inferPreset(panels) }
     var activePreset by remember(panels) { mutableStateOf(inferredPreset) }
@@ -94,56 +96,43 @@ fun GlassesSpatialWorkspaceScreen(
     Box(modifier = modifier.fillMaxSize()) {
         val parallaxX = (cursor.x - 0.5f) * 2f
         val parallaxY = (cursor.y - 0.5f) * 2f
-        WorkspaceWallpaper(parallaxX = parallaxX, parallaxY = parallaxY)
+        WorkspaceWallpaper(
+            parallaxX = parallaxX,
+            parallaxY = parallaxY,
+            modifier = Modifier.fillMaxSize(),
+        )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .graphicsLayer {
-                    translationX = parallaxX * -8f
-                    translationY = parallaxY * -6f
-                },
-        ) {
-            Text(
-                text = stringResource(R.string.glasses_workspace),
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White.copy(alpha = 0.85f),
+        if (useFreeform) {
+            FreeformGlassesPanelLayout(
+                panels = visiblePanels,
+                focusedPanelId = focusedPanelId,
+                hotseatApps = hotseatApps,
+                pinnedComponentKeys = pinnedComponentKeys,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                drawerItems = drawerItems,
+                hoveredLabel = cursor.hoveredLabel,
+                onBoundsChanged = onBoundsChanged,
+                onPanelBoundsChanged = onPanelBoundsChanged,
+                onPanelFrameChanged = ::updatePanelBounds,
+                onLaunchApp = onLaunchApp,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationX = parallaxX * -14f
+                        translationY = parallaxY * -10f
+                    },
             )
-
-            if (cursor.hoveredLabel != null) {
-                Text(
-                    text = stringResource(R.string.cursor_over, cursor.hoveredLabel!!),
-                    color = Color(0xFF03DAC5),
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                )
-            }
-
-            WorkspaceLayoutPresetBar(
-                activePreset = activePreset,
-                onPresetSelected = { preset ->
-                    activePreset = preset
-                    onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
-                },
-            )
-
-            if (useFreeform) {
-                FreeformGlassesPanelLayout(
-                    panels = visiblePanels,
-                    focusedPanelId = focusedPanelId,
-                    hotseatApps = hotseatApps,
-                    pinnedComponentKeys = pinnedComponentKeys,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    drawerItems = drawerItems,
-                    hoveredLabel = cursor.hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onPanelBoundsChanged = onPanelBoundsChanged,
-                    onPanelFrameChanged = ::updatePanelBounds,
-                    onLaunchApp = onLaunchApp,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .graphicsLayer {
+                        translationX = parallaxX * -10f
+                        translationY = parallaxY * -8f
+                    },
+            ) {
                 GlassesPanelLayout(
                     panels = visiblePanels,
                     focusedPanelId = focusedPanelId,
@@ -157,6 +146,44 @@ fun GlassesSpatialWorkspaceScreen(
                     onPanelBoundsChanged = onPanelBoundsChanged,
                     onLaunchApp = onLaunchApp,
                     modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // Floating HUD — does not cover the environment backdrop.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .graphicsLayer {
+                    translationX = parallaxX * -6f
+                    translationY = parallaxY * -4f
+                },
+        ) {
+            WorkspaceLayoutPresetBar(
+                activePreset = activePreset,
+                onPresetSelected = { preset ->
+                    activePreset = preset
+                    onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
+                },
+            )
+            if (cursor.hoveredLabel != null) {
+                Text(
+                    text = stringResource(R.string.cursor_over, cursor.hoveredLabel!!),
+                    color = Color(0xFF03DAC5),
+                    modifier = Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            if (focusedPanelId != null && launcherForeground) {
+                Text(
+                    text = stringResource(
+                        R.string.workspace_focused_panel,
+                        panelTitleLabel(focusedPanelId!!),
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -349,11 +376,14 @@ private fun PanelBody(
 }
 
 @Composable
-private fun panelTitle(panel: PanelState): String = when (panel.id) {
+private fun panelTitleLabel(panelId: String): String = when (panelId) {
     "widget_clock" -> stringResource(R.string.workspace_panel_clock)
     "widget_calendar" -> stringResource(R.string.workspace_panel_calendar)
     "app_drawer" -> stringResource(R.string.workspace_panel_drawer)
     "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
     "empty_slot" -> stringResource(R.string.workspace_empty_slot)
-    else -> panel.id
+    else -> panelId
 }
+
+@Composable
+private fun panelTitle(panel: PanelState): String = panelTitleLabel(panel.id)

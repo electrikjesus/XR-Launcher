@@ -1,5 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import java.util.Locale
+
 /**
  * Compact workspace persistence (Phase 2.8 partial).
  * Format: `{id}|{pin1};{pin2}|{panel1},{panel2},…`
@@ -51,10 +53,10 @@ object WorkspaceJson {
                 panel.id,
                 panel.kind.name,
                 visibleFlag,
-                bounds.x.toString(),
-                bounds.y.toString(),
-                bounds.width.toString(),
-                bounds.height.toString(),
+                bounds.x.toCompactString(),
+                bounds.y.toCompactString(),
+                bounds.width.toCompactString(),
+                bounds.height.toCompactString(),
             ).joinToString(PANEL_FIELD_SEP)
         } else {
             listOf(panel.id, panel.kind.name, visibleFlag).joinToString(PANEL_FIELD_SEP)
@@ -86,4 +88,6 @@ object WorkspaceJson {
             decodedById[default.id] ?: default
         }
     }
+
+    private fun Float.toCompactString(): String = String.format(Locale.US, "%.4f", this)
 }

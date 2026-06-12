@@ -11,9 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.electrikjesus.xrlauncher.R
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
@@ -31,7 +29,7 @@ fun ClockWidgetPanel(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier
-            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(12.dp))
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Text(
@@ -44,12 +42,6 @@ fun ClockWidgetPanel(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleMedium,
             color = Color.White.copy(alpha = 0.75f),
             modifier = Modifier.padding(top = 4.dp),
-        )
-        Text(
-            text = stringResource(R.string.workspace_widget_hint),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color(0xFF03DAC5).copy(alpha = 0.8f),
-            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
