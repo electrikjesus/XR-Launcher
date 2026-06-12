@@ -1,9 +1,9 @@
 package dev.electrikjesus.xrlauncher.ui.external
 
-import android.util.Log
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
@@ -29,6 +30,14 @@ fun ExternalDisplayWorkspaceScreen(
     onToggleHotseatPin: (LaunchableApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(GlassesSessionState.preferSubspaceShell, GlassesSessionState.subspaceDecision) {
+        SubspaceSpike.logCompositionStage(
+            stage = if (GlassesSessionState.preferSubspaceShell) "route_subspace" else "route_flat",
+            displayId = GlassesSessionState.secondaryDisplayId,
+            decision = GlassesSessionState.subspaceDecision,
+        )
+    }
+
     if (GlassesSessionState.preferSubspaceShell) {
         GlassesWorkspaceScreen(
             apps = apps,

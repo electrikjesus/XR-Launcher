@@ -46,11 +46,31 @@ object GlassesSessionState {
     /** When true, external display uses Jetpack XR `Subspace` shell (Tier 2 / spatial API). */
     var preferSubspaceShell: Boolean = false
 
+    /** Last Subspace spike decision — for debug logging on EXTERNAL display. */
+    var subspaceDecision: SubspaceSpike.Decision = SubspaceSpike.Decision(
+        hasSpatialApi = false,
+        forcedForSpike = false,
+        preferSubspaceShell = false,
+    )
+
+    /** Set by [SubspaceSpikeProbe] when the 2D wrapper composes. */
+    var subspaceOuterComposed: Boolean = false
+
+    /** Set when content inside [androidx.xr.compose.spatial.Subspace] composes. */
+    var subspaceInnerComposed: Boolean = false
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
         launcherForeground = false
         launcherInjectFrame = LauncherInjectFrame()
         preferSubspaceShell = false
+        subspaceDecision = SubspaceSpike.Decision(
+            hasSpatialApi = false,
+            forcedForSpike = false,
+            preferSubspaceShell = false,
+        )
+        subspaceOuterComposed = false
+        subspaceInnerComposed = false
     }
 }

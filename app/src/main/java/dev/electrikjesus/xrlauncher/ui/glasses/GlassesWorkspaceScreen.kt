@@ -74,23 +74,27 @@ fun GlassesWorkspaceScreen(
                 .background(Color.Black),
             color = Color.Black,
         ) {
-            Subspace {
-                SpatialPanel(
-                    modifier = SubspaceModifier
-                        .width(960.dp)
-                        .height(540.dp)
-                        .movable()
-                        .resizable(),
-                ) {
-                    GlassesSpatialWorkspaceScreen(
-                        apps = gridApps,
-                        hotseatApps = hotseatApps,
-                        pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
-                        panels = panels,
-                        onBoundsChanged = { key, rect -> itemBounds[key] = rect },
-                        onPanelsChange = { updated -> panelSaver.save(updated) },
-                        onLaunchApp = onLaunchApp,
-                    )
+            SubspaceSpikeProbe {
+                Subspace {
+                    SubspaceInnerSpikeMarker(stage = "subspace_root")
+                    SpatialPanel(
+                        modifier = SubspaceModifier
+                            .width(960.dp)
+                            .height(540.dp)
+                            .movable()
+                            .resizable(),
+                    ) {
+                        SubspaceInnerSpikeMarker(stage = "spatial_panel")
+                        GlassesSpatialWorkspaceScreen(
+                            apps = gridApps,
+                            hotseatApps = hotseatApps,
+                            pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
+                            panels = panels,
+                            onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+                            onPanelsChange = { updated -> panelSaver.save(updated) },
+                            onLaunchApp = onLaunchApp,
+                        )
+                    }
                 }
             }
         }

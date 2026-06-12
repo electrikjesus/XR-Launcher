@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
+import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -34,8 +35,18 @@ class ExternalDisplayActivity : ComponentActivity() {
         syncSessionDisplayId()
 
         val displayId = display?.displayId ?: Display.DEFAULT_DISPLAY
+        val subspaceDecision = SubspaceSpike.resolvePreferSubspace(this)
+        GlassesSessionState.subspaceDecision = subspaceDecision
+        if (!GlassesSessionState.preferSubspaceShell && subspaceDecision.preferSubspaceShell) {
+            GlassesSessionState.preferSubspaceShell = true
+        }
         if (isDebugBuild()) {
-            Log.d(TAG, "onCreate displayId=$displayId saved=${savedInstanceState != null}")
+            Log.d(
+                TAG,
+                "onCreate displayId=$displayId saved=${savedInstanceState != null} " +
+                    "subspace=${GlassesSessionState.preferSubspaceShell} " +
+                    "spatialApi=${subspaceDecision.hasSpatialApi} forced=${subspaceDecision.forcedForSpike}",
+            )
         }
 
         val appRepository = AppRepository(this)
@@ -81,6 +92,15 @@ class ExternalDisplayActivity : ComponentActivity() {
         GlassesSessionState.launcherForeground = true
         syncSessionDisplayId()
         window.decorView.post { updateInjectFrame() }
+        if (isDebugBuild()) {
+            Log.i(
+                SubspaceSpike.TAG,
+                "onResume subspace=${GlassesSessionState.preferSubspaceShell} " +
+                    "outerComposed=${GlassesSessionState.subspaceOuterComposed} " +
+                    "innerComposed=${GlassesSessionState.subspaceInnerComposed} " +
+                    "displayId=${display?.displayId}",
+            )
+        }
     }
 
     override fun onPause() {

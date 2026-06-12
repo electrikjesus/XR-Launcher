@@ -323,7 +323,7 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | Motion pointer | ☑ Calibrate + recenter |
 | Single window | ☑ No separate overlay activity |
 | Freeform bounds | ☐ OEM may still center window — log `XRLauncher/Display` |
-| 3D Subspace on EXTERNAL | ☐ Flat 2.5D default; Subspace when spatial API present |
+| 3D Subspace on EXTERNAL | ☐ Spike: debug force + log compose stages (see `SubspaceSpike`) |
 
 **Task index**
 

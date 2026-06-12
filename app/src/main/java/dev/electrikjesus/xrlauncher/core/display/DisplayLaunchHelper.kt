@@ -15,7 +15,6 @@ import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
     private const val TAG = "XRLauncher/Display"
-    private const val FEATURE_XR_API_SPATIAL = "android.software.xr.api.spatial"
 
     fun findSecondaryDisplayId(context: Context): Int? {
         val displayManager = context.getSystemService(DisplayManager::class.java)
@@ -101,12 +100,16 @@ object DisplayLaunchHelper {
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
         GlassesSessionState.secondaryDisplayId = displayId
-        GlassesSessionState.preferSubspaceShell =
-            context.packageManager.hasSystemFeature(FEATURE_XR_API_SPATIAL)
+        val subspaceDecision = SubspaceSpike.resolvePreferSubspace(context)
+        GlassesSessionState.subspaceDecision = subspaceDecision
+        GlassesSessionState.preferSubspaceShell = subspaceDecision.preferSubspaceShell
+        GlassesSessionState.subspaceOuterComposed = false
+        GlassesSessionState.subspaceInnerComposed = false
         applySessionControlMode()
         Log.d(
             TAG,
-            "Session displayId=$displayId subspace=${GlassesSessionState.preferSubspaceShell}",
+            "Session displayId=$displayId subspace=${GlassesSessionState.preferSubspaceShell} " +
+                "spatialApi=${subspaceDecision.hasSpatialApi} forced=${subspaceDecision.forcedForSpike}",
         )
 
         openCompanionController(context)
