@@ -69,6 +69,8 @@ dependencies {
     implementation(libs.androidx.material3.adaptive)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.xr.compose)
+    implementation(libs.androidx.xr.runtime)
+    implementation(libs.androidx.xr.scenecore)
 
     testImplementation(libs.junit)
 

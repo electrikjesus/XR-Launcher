@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
 import android.content.Context
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -97,6 +98,9 @@ class WorkspaceRepository(private val context: Context) {
             } ?: Workspace.default()
             val updated = current.panels.map { panel ->
                 if (panel.id == panelId) {
+                    if (!visible) {
+                        GlassesSessionState.panelEmbedRegistry?.dispose(panelId)
+                    }
                     panel.copy(visible = visible, minimized = if (!visible) false else panel.minimized)
                 } else {
                     panel

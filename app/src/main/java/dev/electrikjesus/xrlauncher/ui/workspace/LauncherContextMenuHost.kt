@@ -27,12 +27,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
+import dev.electrikjesus.xrlauncher.core.capability.SpatialEmbedCapability
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
+import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import kotlin.math.roundToInt
 
 fun openAppContextMenuFromBounds(
@@ -129,8 +131,10 @@ private fun AppContextMenuItems(
     context: android.content.Context,
 ) {
     ContextMenuHeader(app.label)
+    val launchPanel = launchPanelForContextMenu()
+    val launchMode = SpatialEmbedCapability.launchLabel(context, launchPanel)
     ContextMenuItem(
-        label = stringResource(R.string.context_menu_open_app),
+        label = stringResource(R.string.context_menu_open_app_with_mode, launchMode),
         onClick = {
             onDismiss()
             onLaunchApp(app)
@@ -229,8 +233,16 @@ private fun panelTitle(panelId: String, kind: PanelKind): String = when (panelId
     "app_drawer" -> stringResource(R.string.workspace_panel_drawer)
     "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
     "empty_slot" -> stringResource(R.string.workspace_empty_slot)
-    else -> when (kind) {
+        else -> when (kind) {
         PanelKind.WIDGET -> stringResource(R.string.context_menu_widget, panelId)
         else -> panelId
+    }
+}
+
+private fun launchPanelForContextMenu(): PanelState {
+    val focusedId = CompanionPointerBus.focusedPanelId.value
+    return when (focusedId) {
+        "empty_slot" -> PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT, visible = true)
+        else -> PanelState(id = "full_window", kind = PanelKind.EMPTY_SLOT)
     }
 }

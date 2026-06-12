@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher.core.display
 
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,6 +61,9 @@ object GlassesSessionState {
 
     /** Set when content inside [androidx.xr.compose.spatial.Subspace] composes. */
     var subspaceInnerComposed: Boolean = false
+
+    /** Live XR session panel embedder when [PanelEmbedRegistry.fromActivity] succeeds (Tier 3). */
+    var panelEmbedRegistry: PanelEmbedRegistry? = null
 
     private val _allAppsOverlayVisible = MutableStateFlow(false)
     val allAppsOverlayVisibleFlow: StateFlow<Boolean> = _allAppsOverlayVisible.asStateFlow()

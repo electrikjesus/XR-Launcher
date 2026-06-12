@@ -15,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 class PanelAppLauncher(
     private val context: Context,
     private val appLauncher: AppLauncher,
+    private val embedRegistry: PanelEmbedRegistry? = null,
 ) {
     fun launchInPanel(
         panel: PanelState,
@@ -26,11 +27,18 @@ class PanelAppLauncher(
         Log.d(TAG, "launchInPanel panel=${panel.id} embedMode=$embedMode displayId=$displayId")
         return when (embedMode) {
             EmbedMode.EMBEDDED -> {
-                Log.i(TAG, "ActivityPanelEntity embed not wired yet — falling back to full window")
-                launchFullWindow(componentName, displayId, moveLauncherToBack)
-                PanelLaunchResult.FullWindowFallback(
-                    reason = "ActivityPanelEntity embed pending Tier 3 wiring",
-                )
+                val registry = embedRegistry
+                if (registry != null && registry.canEmbed() &&
+                    registry.embedLaunch(panel, componentName)
+                ) {
+                    PanelLaunchResult.Embedded
+                } else {
+                    Log.i(TAG, "Spatial embed unavailable — falling back to full window")
+                    launchFullWindow(componentName, displayId, moveLauncherToBack)
+                    PanelLaunchResult.FullWindowFallback(
+                        reason = "Spatial embed unavailable on this device",
+                    )
+                }
             }
             EmbedMode.FULL_WINDOW -> {
                 launchFullWindow(componentName, displayId, moveLauncherToBack)

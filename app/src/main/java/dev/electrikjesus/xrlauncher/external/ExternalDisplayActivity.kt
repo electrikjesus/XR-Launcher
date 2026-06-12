@@ -23,6 +23,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.PanelAppLauncher
+import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -33,9 +34,12 @@ import kotlinx.coroutines.launch
 
 class ExternalDisplayActivity : ComponentActivity() {
     private var lastLaunchAtMs = 0L
+    private var panelEmbedRegistry: PanelEmbedRegistry? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        panelEmbedRegistry = PanelEmbedRegistry.fromActivity(this)
+        GlassesSessionState.panelEmbedRegistry = panelEmbedRegistry
         applyImmersiveFullscreen()
         syncSessionDisplayId()
         AllAppsGridConfigStore.init(this)
@@ -140,7 +144,7 @@ class ExternalDisplayActivity : ComponentActivity() {
             }
         }
         Log.d(TAG, "Launching ${app.label} on displayId=$displayId panel=${launchPanel.id}")
-        PanelAppLauncher(this, appLauncher).launchInPanel(
+        PanelAppLauncher(this, appLauncher, panelEmbedRegistry).launchInPanel(
             panel = launchPanel,
             componentName = app.componentName,
             displayId = displayId,
@@ -176,6 +180,12 @@ class ExternalDisplayActivity : ComponentActivity() {
                     "size=${frame.widthPx.toInt()}x${frame.heightPx.toInt()} foreground=${GlassesSessionState.launcherForeground}",
             )
         }
+    }
+
+    override fun onDestroy() {
+        panelEmbedRegistry?.disposeAll()
+        GlassesSessionState.panelEmbedRegistry = null
+        super.onDestroy()
     }
 
     private fun applyImmersiveFullscreen() {

@@ -39,6 +39,7 @@
     <string name="launch_mode_full_window">Full launch</string>
     <string name="launch_mode_spatial_window">Spatial window</string>
     <string name="context_menu_open_app">Open</string>
+    <string name="context_menu_open_app_with_mode">Open · %1$s</string>
     <string name="context_menu_add_to_hotseat">Add to hotseat</string>
     <string name="context_menu_remove_from_hotseat">Remove from hotseat</string>
     <string name="context_menu_app_info">App info</string>
