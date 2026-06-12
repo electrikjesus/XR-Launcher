@@ -8,6 +8,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
@@ -58,14 +59,14 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         normalizedX: Float,
         normalizedY: Float,
         button: PointerButton,
+        mapViaLauncherFrame: Boolean = false,
     ): Boolean {
         val displayManager = getSystemService(DisplayManager::class.java)
         val display = displayManager.getDisplay(displayId) ?: return false
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
         display.getRealMetrics(metrics)
-        val x = (normalizedX * metrics.widthPixels).coerceIn(0f, metrics.widthPixels.toFloat())
-        val y = (normalizedY * metrics.heightPixels).coerceIn(0f, metrics.heightPixels.toFloat())
+        val (x, y) = normalizedToDisplayPixels(normalizedX, normalizedY, metrics, mapViaLauncherFrame)
 
         val path = Path().apply { moveTo(x, y) }
         val stroke = GestureDescription.StrokeDescription(path, 0, TAP_DURATION_MS)
@@ -84,18 +85,15 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         fromNormalizedY: Float,
         toNormalizedX: Float,
         toNormalizedY: Float,
+        mapViaLauncherFrame: Boolean = false,
     ): Boolean {
         val displayManager = getSystemService(DisplayManager::class.java)
         val display = displayManager.getDisplay(displayId) ?: return false
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
         display.getRealMetrics(metrics)
-        val w = metrics.widthPixels.toFloat()
-        val h = metrics.heightPixels.toFloat()
-        val x1 = (fromNormalizedX * w).coerceIn(0f, w)
-        val y1 = (fromNormalizedY * h).coerceIn(0f, h)
-        val x2 = (toNormalizedX * w).coerceIn(0f, w)
-        val y2 = (toNormalizedY * h).coerceIn(0f, h)
+        val (x1, y1) = normalizedToDisplayPixels(fromNormalizedX, fromNormalizedY, metrics, mapViaLauncherFrame)
+        val (x2, y2) = normalizedToDisplayPixels(toNormalizedX, toNormalizedY, metrics, mapViaLauncherFrame)
 
         val path = Path().apply {
             moveTo(x1, y1)
@@ -109,6 +107,26 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
 
         Log.d(TAG, "dispatchDrag display=$displayId ($x1,$y1)->($x2,$y2)")
         return dispatchGesture(gesture, null, null)
+    }
+
+    private fun normalizedToDisplayPixels(
+        normalizedX: Float,
+        normalizedY: Float,
+        metrics: DisplayMetrics,
+        mapViaLauncherFrame: Boolean,
+    ): Pair<Float, Float> {
+        if (mapViaLauncherFrame && GlassesSessionState.launcherForeground) {
+            val frame: LauncherInjectFrame = GlassesSessionState.launcherInjectFrame
+            if (frame.isValid()) {
+                return frame.toDisplayPixels(normalizedX, normalizedY)
+            }
+        }
+        val w = metrics.widthPixels.toFloat()
+        val h = metrics.heightPixels.toFloat()
+        return Pair(
+            (normalizedX * w).coerceIn(0f, w),
+            (normalizedY * h).coerceIn(0f, h),
+        )
     }
 
     private fun syncOverlay(

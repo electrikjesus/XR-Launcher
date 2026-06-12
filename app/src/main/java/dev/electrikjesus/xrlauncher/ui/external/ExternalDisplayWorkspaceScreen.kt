@@ -80,7 +80,6 @@ private fun FlatGlassesWorkspaceScreen(
             itemBounds = itemBounds,
             rootWidthPx = rootWidthPx,
             rootHeightPx = rootHeightPx,
-            onLaunchApp = onLaunchApp,
             onToggleHotseatPin = onToggleHotseatPin,
         )
 
@@ -89,6 +88,7 @@ private fun FlatGlassesWorkspaceScreen(
             hotseatApps = hotseatApps,
             pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+            onLaunchApp = onLaunchApp,
         )
     }
 }

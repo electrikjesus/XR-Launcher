@@ -5,27 +5,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 
-/** Hit-tests companion pointer clicks against launcher item bounds (glasses foreground). */
+/** Hit-tests right-clicks for hotseat pin; left clicks inject via accessibility + Compose clickables. */
 @Composable
 fun LauncherWorkspacePointerEffects(
     apps: List<LaunchableApp>,
     itemBounds: Map<String, Rect>,
     rootWidthPx: Float,
     rootHeightPx: Float,
-    onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
 ) {
-    var lastLaunchAtMs by remember { mutableLongStateOf(0L) }
-
     fun cursorPoint(normalizedX: Float, normalizedY: Float): Offset =
         Offset(normalizedX * rootWidthPx, normalizedY * rootHeightPx)
 
@@ -36,22 +30,14 @@ fun LauncherWorkspacePointerEffects(
 
     LaunchedEffect(Unit) {
         CompanionPointerBus.clicks.collect { click ->
-            val now = System.currentTimeMillis()
-            if (now - lastLaunchAtMs < LAUNCH_DEBOUNCE_MS) return@collect
+            if (click.button != PointerButton.RIGHT) return@collect
             val app = findAppAt(cursorPoint(click.x, click.y))
-            Log.d(LOG_TAG, "click ${click.button} at (${click.x}, ${click.y}) hit=${app?.label}")
-            when (click.button) {
-                PointerButton.LEFT -> {
-                    if (app != null) {
-                        lastLaunchAtMs = now
-                        onLaunchApp(app)
-                    }
-                }
-                PointerButton.RIGHT -> {
-                    if (app != null) {
-                        onToggleHotseatPin(app)
-                    }
-                }
+            Log.d(
+                LOG_TAG,
+                "right-click at (${click.x}, ${click.y}) bounds=${itemBounds.size} hit=${app?.label}",
+            )
+            if (app != null) {
+                onToggleHotseatPin(app)
             }
         }
     }
@@ -65,4 +51,3 @@ fun LauncherWorkspacePointerEffects(
 }
 
 private const val LOG_TAG = "XRLauncher/Pointer"
-private const val LAUNCH_DEBOUNCE_MS = 1_000L

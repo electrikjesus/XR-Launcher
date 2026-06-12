@@ -294,9 +294,9 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 | # | Task | Status |
 |---|------|--------|
-| 1.14 | Manual regression: tablet Tier 0 + glasses session + 5 app launches | ☐ User test |
+| 1.14 | Manual regression: tablet Tier 0 + glasses session + 5 app launches | ☐ User test (glasses ☑ 2026-06-12; tablet pending) |
 | 1.17 | Fullscreen on Desktop Mode freeform (launch bounds + CLEAR_TOP workaround) | ☑ Partial — code + auto relaunch; Pixel may still letterbox |
-| 1.18 | Re-test checklist + update `device-matrix.md` | ☐ User test |
+| 1.18 | Re-test checklist + update `device-matrix.md` | ☑ Glasses session (2026-06-12); tablet Tier 0 pending |
 | 1.20 | Same as 1.17 — immersive edge-to-edge on secondary display | ☑ Partial (merged with 1.17) |
 | 1.22 | 3D XR desktop on glasses | ☑ Partial — see [1.22 roadmap](#task-122--3d-xr-desktop-on-glasses-not-flat-black-list) |
 
@@ -307,18 +307,19 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | 1.15 | Tap / pointer click on companion | ☑ Unified Desktop gestures + hit-test on launcher |
 | 1.16 | Motion calibrate + recenter | ☑ |
 | 1.19 | Single glasses activity | ☑ |
-| 1.21 | System cursor + inject over all apps | ☑ Unified input + foreground routing |
+| 1.21 | System cursor + inject over all apps | ☑ Inject-always + launcher window frame mapping |
 | 1.22a | Visual launcher shell (wallpaper, grid, hotseat, clock) | ☑ |
 
 **Device snapshot (Pixel 8 + RayNeo, 2026-06-12)**
 
 | Check | Result |
 |-------|--------|
-| Dual launch | ☑ Companion on phone + workspace on display #4 |
+| Dual launch | ☑ Companion on phone + workspace on secondary display |
 | Cursor sync | ☑ Overlay cursor when accessibility enabled |
 | Companion input | ☑ Move / double-tap click / double-tap-drag / Left hold-drag |
-| Launcher clicks | ☑ Hit-test when `ExternalDisplayActivity` foreground |
+| Launcher clicks | ☑ Inject + Compose clickables; `LauncherInjectFrame` for freeform/fullscreen |
 | Third-party apps | ☑ Gesture inject when launcher in background |
+| Show launcher return | ☑ `singleTask` + `onNewIntent`; clicks work after return from apps |
 | Motion pointer | ☑ Calibrate + recenter |
 | Single window | ☑ No separate overlay activity |
 | Freeform bounds | ☐ OEM may still center window — log `XRLauncher/Display` |
@@ -331,7 +332,7 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | 1.15 | Fix companion pointer / click delivery | ☑ |
 | 1.16 | Motion pointer calibration + recenter | ☑ |
 | 1.17 | External display immersive fullscreen | ☑ Partial |
-| 1.18 | Re-test full glasses session; device matrix | ☐ |
+| 1.18 | Re-test full glasses session; device matrix | ☑ Glasses (2026-06-12) |
 | 1.19 | Single glasses activity | ☑ |
 | 1.20 | Fullscreen immersive secondary display | ☑ Partial |
 | 1.21 | System-style cursor on secondary display | ☑ |
@@ -460,9 +461,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Implementation (2026-06-12):** `DisplayPointerAccessibilityService` draws a `TYPE_ACCESSIBILITY_OVERLAY` cursor on the glasses display and injects clicks via `dispatchGesture` + `setDisplayId`. In-app `ExternalCursorDot` is hidden when the overlay is active.
 
-**Unified input (2026-06-12):** One touchpad gesture set when accessibility is enabled (move-only drag, double-tap click, double-tap-hold-drag, holdable Left). `ExternalDisplayActivity` reports **launcher foreground** via `GlassesSessionState.launcherForeground`; clicks route to Compose hit-testing on the launcher and to gesture injection over other apps. Launcher/Desktop mode toggle removed from companion UI. Fallback: tap-to-click when accessibility is off.
+**Unified input (2026-06-12):** One touchpad gesture set when accessibility is enabled (move-only drag, double-tap click, double-tap-hold-drag, holdable Left). Launcher/Desktop mode toggle removed from companion UI. Fallback: tap-to-click when accessibility is off.
 
-**Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Freeform app windows may offset click coordinates — fullscreen launcher workaround (1.17) helps.
+**Launcher inject fix (2026-06-12):** Left clicks always inject when accessibility is on; Compose `clickable` on icon cells handles launch. `LauncherInjectFrame` maps normalized cursor to launcher window pixels (fixes freeform offset). `ExternalDisplayActivity` uses `singleTask` + `onNewIntent` so “Show launcher on glasses” reuses the instance. Right-click still hit-tests for hotseat pin.
+
+**Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Freeform app windows may offset click coordinates — `LauncherInjectFrame` + fullscreen relaunch mitigate.
 
 **Companion UX:** Enable accessibility service once; same gestures on launcher and third-party apps.
 
@@ -498,7 +501,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Goal:** Multiple launcher-owned panels with layout persistence — turn the glasses shell into a **real launcher** (wallpaper, dock/hotseat, app drawer, widgets, panel chrome).
 
-**Entry (2026-06-12):** Tier 1 external display navigation works — Desktop overlay cursor + gesture inject; Launcher tap-to-click; fullscreen relaunch on session open. Phase 1.22a visual shell is the starting layout.
+**Entry (2026-06-12):** Tier 1 external display navigation works — Desktop overlay cursor + gesture inject on launcher and third-party apps; fullscreen relaunch on session open. Phase 1.22a visual shell is the starting layout.
 
 **Exit criteria:** User can arrange 3+ panels, resize/move them, save and restore one workspace; hotseat pins persist; at least one live widget on glasses.
 
@@ -681,4 +684,4 @@ Record major choices here as they are made.
 
 ---
 
-*Last updated: 2026-06-12 (Phase 1.5 wrap-up)*
+*Last updated: 2026-06-12 (launcher inject fix + Phase 1.18 glasses re-test)*

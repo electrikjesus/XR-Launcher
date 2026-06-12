@@ -192,6 +192,7 @@ object CompanionPointerBus {
                     startY,
                     end.x,
                     end.y,
+                    mapViaLauncherFrame = GlassesSessionState.launcherForeground,
                 )
             !moved && primaryGesture -> deliverLeftClick(end.x, end.y)
         }
@@ -201,9 +202,8 @@ object CompanionPointerBus {
         GlassesSessionState.secondaryDisplayId != null &&
             DisplayPointerInjector.isAvailable
 
-    /** Inject OS gestures when another app is foreground; launcher handles clicks via hit-testing. */
-    private fun shouldInjectPointerOnGlasses(): Boolean =
-        pointerInjectionAvailable() && !GlassesSessionState.launcherForeground
+    /** Inject OS gestures when accessibility service is active. */
+    private fun shouldInjectPointerOnGlasses(): Boolean = pointerInjectionAvailable()
 
     private fun deliverLeftClick(x: Float, y: Float) {
         if (shouldInjectPointerOnGlasses()) {
@@ -223,7 +223,7 @@ object CompanionPointerBus {
 
     private fun injectClickAt(x: Float, y: Float, button: PointerButton) {
         val displayId = GlassesSessionState.secondaryDisplayId ?: return
-        DisplayPointerInjector.dispatchClick(displayId, x, y, button)
+        DisplayPointerInjector.dispatchClick(displayId, x, y, button, GlassesSessionState.launcherForeground)
     }
 
     private fun flashPressed() {

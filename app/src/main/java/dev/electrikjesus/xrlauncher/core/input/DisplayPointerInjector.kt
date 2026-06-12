@@ -19,8 +19,20 @@ object DisplayPointerInjector {
 
     val isAvailable: Boolean get() = service != null
 
-    fun dispatchClick(displayId: Int, normalizedX: Float, normalizedY: Float, button: PointerButton): Boolean {
-        return service?.dispatchClick(displayId, normalizedX, normalizedY, button) ?: false
+    fun dispatchClick(
+        displayId: Int,
+        normalizedX: Float,
+        normalizedY: Float,
+        button: PointerButton,
+        mapViaLauncherFrame: Boolean = false,
+    ): Boolean {
+        return service?.dispatchClick(
+            displayId,
+            normalizedX,
+            normalizedY,
+            button,
+            mapViaLauncherFrame,
+        ) ?: false
     }
 
     fun dispatchDrag(
@@ -29,6 +41,7 @@ object DisplayPointerInjector {
         fromNormalizedY: Float,
         toNormalizedX: Float,
         toNormalizedY: Float,
+        mapViaLauncherFrame: Boolean = false,
     ): Boolean {
         return service?.dispatchDrag(
             displayId,
@@ -36,6 +49,7 @@ object DisplayPointerInjector {
             fromNormalizedY,
             toNormalizedX,
             toNormalizedY,
+            mapViaLauncherFrame,
         ) ?: false
     }
 }
