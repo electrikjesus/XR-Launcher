@@ -96,7 +96,43 @@ class WorkspaceRepository(private val context: Context) {
                 runCatching { WorkspaceJson.decode(it) }.getOrNull()
             } ?: Workspace.default()
             val updated = current.panels.map { panel ->
-                if (panel.id == panelId) panel.copy(visible = visible) else panel
+                if (panel.id == panelId) {
+                    panel.copy(visible = visible, minimized = if (!visible) false else panel.minimized)
+                } else {
+                    panel
+                }
+            }
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(current.copy(panels = updated))
+        }
+    }
+
+    suspend fun setPanelMinimized(panelId: String, minimized: Boolean) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            val updated = current.panels.map { panel ->
+                if (panel.id == panelId) panel.copy(minimized = minimized, visible = true) else panel
+            }
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(current.copy(panels = updated))
+        }
+    }
+
+    suspend fun assignPanelHost(panelId: String, componentKey: String?) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            val updated = current.panels.map { panel ->
+                if (panel.id == panelId) {
+                    panel.copy(
+                        hostedComponentKey = componentKey,
+                        visible = componentKey != null || panel.visible,
+                        minimized = false,
+                    )
+                } else {
+                    panel
+                }
             }
             prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(current.copy(panels = updated))
         }

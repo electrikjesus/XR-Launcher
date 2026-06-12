@@ -38,6 +38,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
@@ -46,6 +47,7 @@ import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAllAppsOverlay
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
+import dev.electrikjesus.xrlauncher.ui.workspace.PanelChromeHeader
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWraparoundLayer
@@ -63,6 +65,9 @@ fun GlassesSpatialWorkspaceScreen(
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
     onOpenSettings: () -> Unit = {},
     onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
+    onPanelMinimize: (String) -> Unit = {},
+    onPanelClose: (String) -> Unit = {},
+    onPanelRestore: (String) -> Unit = {},
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
     modifier: Modifier = Modifier,
 ) {
@@ -168,6 +173,9 @@ fun GlassesSpatialWorkspaceScreen(
                                 onLaunchApp = onLaunchApp,
                                 onOpenAllApps = openAllApps,
                                 onAppContextMenu = onAppContextMenu,
+                                onPanelMinimize = onPanelMinimize,
+                                onPanelClose = onPanelClose,
+                                onPanelRestore = onPanelRestore,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -190,6 +198,9 @@ fun GlassesSpatialWorkspaceScreen(
                                 onLaunchApp = onLaunchApp,
                                 onOpenAllApps = openAllApps,
                                 onAppContextMenu = onAppContextMenu,
+                                onPanelMinimize = onPanelMinimize,
+                                onPanelClose = onPanelClose,
+                                onPanelRestore = onPanelRestore,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -271,6 +282,43 @@ private fun WorkspaceLauncherStatusHints(
 }
 
 @Composable
+private fun StackPanelShell(
+    panel: PanelState,
+    title: String,
+    isFocused: Boolean,
+    onPanelBoundsChanged: (String, Rect) -> Unit,
+    onPanelMinimize: (String) -> Unit,
+    onPanelClose: (String) -> Unit,
+    onPanelRestore: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    WorkspacePanelShell(
+        panelId = panel.id,
+        isFocused = isFocused,
+        onPanelBoundsChanged = onPanelBoundsChanged,
+        modifier = modifier,
+        header = {
+            PanelChromeHeader(
+                panelId = panel.id,
+                title = title,
+                isFocused = isFocused,
+                minimized = panel.minimized,
+                showWindowControls = panel.kind.supportsWindowControls(),
+                onPanelBoundsChanged = onPanelBoundsChanged,
+                onMinimize = { onPanelMinimize(panel.id) },
+                onClose = { onPanelClose(panel.id) },
+                onRestore = { onPanelRestore(panel.id) },
+            )
+        },
+    ) {
+        if (!panel.minimized) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun GlassesPanelLayout(
     panels: List<PanelState>,
     focusedPanelId: String?,
@@ -285,6 +333,9 @@ private fun GlassesPanelLayout(
     onLaunchApp: ((LaunchableApp) -> Unit)?,
     onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
+    onPanelMinimize: (String) -> Unit = {},
+    onPanelClose: (String) -> Unit = {},
+    onPanelRestore: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
     wrapCurvature: Float,
@@ -320,11 +371,14 @@ private fun GlassesPanelLayout(
                                 workspaceHeight = workspaceHeight,
                                 modifier = Modifier.weight(1f),
                             ) {
-                                WorkspacePanelShell(
-                                    panelId = widgetPanel.id,
+                                StackPanelShell(
+                                    panel = widgetPanel,
                                     title = panelTitle(widgetPanel),
                                     isFocused = focusedPanelId == widgetPanel.id,
                                     onPanelBoundsChanged = onPanelBoundsChanged,
+                                    onPanelMinimize = onPanelMinimize,
+                                    onPanelClose = onPanelClose,
+                                    onPanelRestore = onPanelRestore,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     WidgetPanelById(widgetId = widgetPanel.id)
@@ -345,11 +399,14 @@ private fun GlassesPanelLayout(
                         workspaceHeight = workspaceHeight,
                         modifier = Modifier.weight(1f),
                     ) {
-                        WorkspacePanelShell(
-                            panelId = panel.id,
+                        StackPanelShell(
+                            panel = panel,
                             title = panelTitle(panel),
                             isFocused = focusedPanelId == panel.id,
                             onPanelBoundsChanged = onPanelBoundsChanged,
+                            onPanelMinimize = onPanelMinimize,
+                            onPanelClose = onPanelClose,
+                            onPanelRestore = onPanelRestore,
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             WorkspaceAppDrawerPanel(
@@ -377,11 +434,14 @@ private fun GlassesPanelLayout(
                         workspaceHeight = workspaceHeight,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        WorkspacePanelShell(
-                            panelId = panel.id,
+                        StackPanelShell(
+                            panel = panel,
                             title = panelTitle(panel),
                             isFocused = focusedPanelId == panel.id,
                             onPanelBoundsChanged = onPanelBoundsChanged,
+                            onPanelMinimize = onPanelMinimize,
+                            onPanelClose = onPanelClose,
+                            onPanelRestore = onPanelRestore,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             WorkspaceHotseatRow(
@@ -409,11 +469,14 @@ private fun GlassesPanelLayout(
                         workspaceHeight = workspaceHeight,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        WorkspacePanelShell(
-                            panelId = panel.id,
+                        StackPanelShell(
+                            panel = panel,
                             title = panelTitle(panel),
                             isFocused = focusedPanelId == panel.id,
                             onPanelBoundsChanged = onPanelBoundsChanged,
+                            onPanelMinimize = onPanelMinimize,
+                            onPanelClose = onPanelClose,
+                            onPanelRestore = onPanelRestore,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             EmptySlotPanel()
@@ -442,6 +505,9 @@ private fun FreeformGlassesPanelLayout(
     onLaunchApp: ((LaunchableApp) -> Unit)?,
     onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
+    onPanelMinimize: (String) -> Unit = {},
+    onPanelClose: (String) -> Unit = {},
+    onPanelRestore: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
     wrapCurvature: Float,
@@ -466,6 +532,9 @@ private fun FreeformGlassesPanelLayout(
                 workspaceHeight = workspaceHeight,
                 onBoundsChanged = { bounds -> onPanelFrameChanged(panel.id, bounds) },
                 onPanelBoundsChanged = onPanelBoundsChanged,
+                onMinimizePanel = { onPanelMinimize(panel.id) },
+                onClosePanel = { onPanelClose(panel.id) },
+                onRestorePanel = { onPanelRestore(panel.id) },
             ) {
                 PanelBody(
                     panel = panel,
@@ -499,6 +568,9 @@ private fun PanelBody(
     onLaunchApp: ((LaunchableApp) -> Unit)?,
     onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
+    onPanelMinimize: (String) -> Unit = {},
+    onPanelClose: (String) -> Unit = {},
+    onPanelRestore: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
 ) {
     when (panel.kind) {

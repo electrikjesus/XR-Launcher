@@ -16,6 +16,8 @@ data class WorkspaceAppearance(
     val lookYawDegrees: Float = 0f,
     /** Manual look pitch (degrees). */
     val lookPitchDegrees: Float = 0f,
+    /** Backdrop preset for the GLES cylinder and Compose wallpaper layer. */
+    val wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
         uiScale = uiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE),
@@ -25,6 +27,7 @@ data class WorkspaceAppearance(
         workspaceHeight = workspaceHeight.coerceIn(MIN_WORKSPACE_SPAN, MAX_WORKSPACE_SPAN),
         lookYawDegrees = lookYawDegrees.coerceIn(MIN_LOOK_YAW, MAX_LOOK_YAW),
         lookPitchDegrees = lookPitchDegrees.coerceIn(MIN_LOOK_PITCH, MAX_LOOK_PITCH),
+        wallpaperChoice = wallpaperChoice,
     )
 
     companion object {

@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -28,6 +29,7 @@ import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 import dev.electrikjesus.xrlauncher.ui.workspace.openAppContextMenuFromBounds
+import kotlinx.coroutines.launch
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
@@ -109,6 +111,7 @@ private fun FlatGlassesWorkspaceScreen(
 
         val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
         val context = LocalContext.current
+        val scope = rememberCoroutineScope()
 
         Box(modifier = Modifier.fillMaxSize()) {
             GlassesSpatialWorkspaceScreen(
@@ -123,6 +126,15 @@ private fun FlatGlassesWorkspaceScreen(
                 onLaunchApp = onLaunchApp,
                 onOpenSettings = { DisplayLaunchHelper.openSettings(context) },
                 onAppContextMenu = onAppContextMenu,
+                onPanelMinimize = { panelId ->
+                    scope.launch { workspaceRepository.setPanelMinimized(panelId, minimized = true) }
+                },
+                onPanelClose = { panelId ->
+                    scope.launch { workspaceRepository.setPanelVisible(panelId, visible = false) }
+                },
+                onPanelRestore = { panelId ->
+                    scope.launch { workspaceRepository.setPanelMinimized(panelId, minimized = false) }
+                },
             )
 
             LauncherWorkspaceInteractionLayer(

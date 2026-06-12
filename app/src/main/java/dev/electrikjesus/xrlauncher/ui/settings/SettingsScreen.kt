@@ -149,6 +149,29 @@ fun SettingsScreen(
                 )
             }
             item {
+                SettingsSectionTitle(stringResource(R.string.settings_wallpaper_section))
+                WorkspaceWallpaperSettingsSection(
+                    wallpaperChoice = appearance.wallpaperChoice,
+                    onWallpaperChoiceChange = { choice ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(appearance.copy(wallpaperChoice = choice))
+                        }
+                    },
+                )
+            }
+            item {
+                val hiddenPanels = workspace?.panels?.filter { !it.visible }.orEmpty()
+                if (hiddenPanels.isNotEmpty()) {
+                    SettingsSectionTitle(stringResource(R.string.settings_hidden_panels_section))
+                    HiddenPanelsSettingsSection(
+                        hiddenPanelIds = hiddenPanels.map { it.id },
+                        onRestorePanel = { panelId ->
+                            scope.launch { workspaceRepository.setPanelVisible(panelId, visible = true) }
+                        },
+                    )
+                }
+            }
+            item {
                 SettingsSectionTitle(stringResource(R.string.settings_pointer_section))
                 PointerSensitivitySettingsSection(
                     motionSensitivity = motionSensitivity,

@@ -62,6 +62,7 @@ fun WorkspaceWraparoundLayer(
             curvature = tuned.wrapCurvature,
             workspaceWidth = spanX,
             workspaceHeight = spanY,
+            wallpaperChoice = tuned.wallpaperChoice,
             panelGuideCenters = panelGuideCenters,
             modifier = Modifier.fillMaxSize(),
         )

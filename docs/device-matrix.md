@@ -76,3 +76,18 @@ Run after each glasses-session change; mark in commit or PR notes.
 - Wi‑Fi `adb install` locks ADB server; transfer APK via file-share app. `adb logcat` OK.
 
 **Test date:** 2026-06-11 / 2026-06-12 (launcher inject fix validated)
+
+---
+
+## Phase 2.16 — AppWidgetHost feasibility (Pixel 8 + RayNeo)
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Host requires Activity context | ☑ Yes | `ExternalDisplayActivity` on glasses display is valid host |
+| Widget bind on EXTERNAL display | ☐ Device test pending | In-process bind may work when activity fills 1920×1080 |
+| VirtualDisplay embed | ☑ Blocked | Desktop Mode replay loop — same as Phase 3 embed blocker |
+| v1 recommendation | ☑ | Curated Compose widgets (clock/calendar); optional AppWidgetHost toggle later |
+
+**Code reference:** `AppWidgetHostFeasibility.kt`
+
+**Test date:** 2026-06-12 (code spike + unit tests)

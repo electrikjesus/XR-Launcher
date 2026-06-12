@@ -57,6 +57,22 @@ fun LauncherWorkspaceInteractionLayer(
         onPanelBoundsChanged = onPanelBoundsChanged,
     )
 
+    PanelChromePointerEffects(
+        panels = panels,
+        panelBounds = panelBounds,
+        rootWidthPx = rootWidthPx,
+        rootHeightPx = rootHeightPx,
+        onMinimizePanel = { panelId ->
+            scope.launch { workspaceRepository.setPanelMinimized(panelId, minimized = true) }
+        },
+        onClosePanel = { panelId ->
+            scope.launch { workspaceRepository.setPanelVisible(panelId, visible = false) }
+        },
+        onRestorePanel = { panelId ->
+            scope.launch { workspaceRepository.setPanelMinimized(panelId, minimized = false) }
+        },
+    )
+
     Box(modifier = modifier.fillMaxSize()) {
         LauncherContextMenuHost(
             rootWidthPx = rootWidthPx,

@@ -17,7 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import dev.electrikjesus.xrlauncher.core.launcher.SystemWallpaperLoader
+import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
@@ -36,6 +37,7 @@ fun WorkspaceGlesBackdrop(
     curvature: Float,
     workspaceWidth: Float,
     workspaceHeight: Float,
+    wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
     panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
     modifier: Modifier = Modifier,
     enabled: Boolean = curvature > 0.01f && (
@@ -50,7 +52,11 @@ fun WorkspaceGlesBackdrop(
     var wallpaperBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var wallpaperGeneration by remember { mutableIntStateOf(0) }
 
-    DisposableEffect(context) {
+    DisposableEffect(context, wallpaperChoice) {
+        if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
+            onDispose { }
+            return@DisposableEffect onDispose { }
+        }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 if (intent.action == Intent.ACTION_WALLPAPER_CHANGED) {
@@ -66,9 +72,9 @@ fun WorkspaceGlesBackdrop(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    androidx.compose.runtime.LaunchedEffect(context, wallpaperGeneration) {
+    androidx.compose.runtime.LaunchedEffect(context, wallpaperGeneration, wallpaperChoice) {
         wallpaperBitmap = withContext(Dispatchers.IO) {
-            SystemWallpaperLoader.loadBitmap(context)
+            WorkspaceWallpaperResolver.resolveBitmap(context, wallpaperChoice)
         }
     }
 

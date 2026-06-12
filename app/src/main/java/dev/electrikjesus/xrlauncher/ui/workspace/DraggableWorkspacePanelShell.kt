@@ -26,6 +26,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
+import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -42,6 +43,9 @@ fun DraggableWorkspacePanelShell(
     workspaceHeight: Float = 1f,
     onBoundsChanged: (PanelBounds) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit,
+    onMinimizePanel: (() -> Unit)? = null,
+    onClosePanel: (() -> Unit)? = null,
+    onRestorePanel: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -139,19 +143,27 @@ fun DraggableWorkspacePanelShell(
                     onPanelBoundsChanged = onPanelBoundsChanged,
                     modifier = Modifier.fillMaxSize(),
                     header = {
-                        PanelDragHandleBar(
+                        PanelChromeHeader(
                             panelId = panel.id,
                             title = title,
                             isFocused = isFocused,
+                            minimized = panel.minimized,
+                            showWindowControls = panel.kind.supportsWindowControls(),
                             onPanelBoundsChanged = onPanelBoundsChanged,
-                            modifier = moveDragModifier,
+                            onMinimize = onMinimizePanel,
+                            onClose = onClosePanel,
+                            onRestore = onRestorePanel,
+                            dragModifier = moveDragModifier,
                         )
                     },
                 ) {
-                    content()
+                    if (!panel.minimized) {
+                        content()
+                    }
                 }
             }
-            PanelResizeHandle(
+            if (!panel.minimized) {
+                PanelResizeHandle(
                 panelId = panel.id,
                 isFocused = isFocused,
                 onPanelBoundsChanged = onPanelBoundsChanged,
@@ -161,6 +173,7 @@ fun DraggableWorkspacePanelShell(
                     .offset(x = 4.dp, y = 4.dp)
                     .then(resizeDragModifier),
             )
+            }
         }
     }
 }

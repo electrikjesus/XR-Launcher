@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 
 @Composable
 fun WorkspaceAppearanceSettingsSection(
@@ -250,5 +251,73 @@ fun PointerSensitivitySettingsSection(
             onValueChange = onMotionSensitivityChange,
             valueRange = 0.25f..3f,
         )
+    }
+}
+
+@Composable
+fun WorkspaceWallpaperSettingsSection(
+    wallpaperChoice: WorkspaceWallpaperChoice,
+    onWallpaperChoiceChange: (WorkspaceWallpaperChoice) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_wallpaper_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        WorkspaceWallpaperChoice.entries.forEach { choice ->
+            val label = when (choice) {
+                WorkspaceWallpaperChoice.SYSTEM -> stringResource(R.string.settings_wallpaper_system)
+                WorkspaceWallpaperChoice.GRADIENT_TWILIGHT -> stringResource(R.string.settings_wallpaper_twilight)
+                WorkspaceWallpaperChoice.GRADIENT_AURORA -> stringResource(R.string.settings_wallpaper_aurora)
+                WorkspaceWallpaperChoice.GRADIENT_EMISSIVE -> stringResource(R.string.settings_wallpaper_emissive)
+            }
+            OutlinedButton(
+                onClick = { onWallpaperChoiceChange(choice) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                enabled = wallpaperChoice != choice,
+            ) {
+                Text(
+                    text = if (wallpaperChoice == choice) {
+                        stringResource(R.string.settings_wallpaper_selected, label)
+                    } else {
+                        label
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HiddenPanelsSettingsSection(
+    hiddenPanelIds: List<String>,
+    onRestorePanel: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (hiddenPanelIds.isEmpty()) return
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_hidden_panels_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        hiddenPanelIds.forEach { panelId ->
+            OutlinedButton(
+                onClick = { onRestorePanel(panelId) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Text(stringResource(R.string.settings_restore_panel, panelId))
+            }
+        }
     }
 }

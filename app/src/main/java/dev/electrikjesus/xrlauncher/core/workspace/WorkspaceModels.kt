@@ -19,7 +19,10 @@ data class PanelState(
     val id: String,
     val kind: PanelKind,
     val visible: Boolean = true,
+    val minimized: Boolean = false,
     val bounds: PanelBounds? = null,
+    /** Component key (`package/class`) when an app occupies this slot (Phase 3). */
+    val hostedComponentKey: String? = null,
 )
 
 data class Workspace(

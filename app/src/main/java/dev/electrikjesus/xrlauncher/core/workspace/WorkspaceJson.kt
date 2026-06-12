@@ -58,6 +58,7 @@ object WorkspaceJson {
             clamped.workspaceHeight.toCompactString(),
             clamped.lookYawDegrees.toCompactString(),
             clamped.lookPitchDegrees.toCompactString(),
+            clamped.wallpaperChoice.name,
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -74,24 +75,35 @@ object WorkspaceJson {
                 ?: WorkspaceAppearance.DEFAULT_WORKSPACE_HEIGHT,
             lookYawDegrees = fields.getOrNull(5)?.toFloatOrNull() ?: 0f,
             lookPitchDegrees = fields.getOrNull(6)?.toFloatOrNull() ?: 0f,
+            wallpaperChoice = WorkspaceWallpaperChoice.fromPersisted(fields.getOrNull(7)),
         ).clamped()
     }
 
     internal fun encodePanel(panel: PanelState): String {
         val visibleFlag = if (panel.visible) "1" else "0"
+        val minimizedFlag = if (panel.minimized) "1" else "0"
+        val hosted = panel.hostedComponentKey.orEmpty()
         val bounds = panel.bounds
         return if (bounds != null) {
             listOf(
                 panel.id,
                 panel.kind.name,
                 visibleFlag,
+                minimizedFlag,
                 bounds.x.toCompactString(),
                 bounds.y.toCompactString(),
                 bounds.width.toCompactString(),
                 bounds.height.toCompactString(),
+                hosted,
             ).joinToString(PANEL_FIELD_SEP)
         } else {
-            listOf(panel.id, panel.kind.name, visibleFlag).joinToString(PANEL_FIELD_SEP)
+            listOf(
+                panel.id,
+                panel.kind.name,
+                visibleFlag,
+                minimizedFlag,
+                hosted,
+            ).joinToString(PANEL_FIELD_SEP)
         }
     }
 
@@ -100,17 +112,49 @@ object WorkspaceJson {
         if (fields.size < 3) return null
         val kind = runCatching { PanelKind.valueOf(fields[1]) }.getOrNull() ?: return null
         val visible = fields[2] != "0"
-        val bounds = if (fields.size >= 7) {
-            PanelBounds(
-                x = fields[3].toFloatOrNull() ?: return null,
-                y = fields[4].toFloatOrNull() ?: return null,
-                width = fields[5].toFloatOrNull() ?: return null,
-                height = fields[6].toFloatOrNull() ?: return null,
-            ).clamp()
-        } else {
-            null
+
+        // Legacy freeform: id~KIND~vis~x~y~w~h (exactly 7 fields)
+        if (fields.size == 7 && fields[3].toFloatOrNull() != null) {
+            return PanelState(
+                id = fields[0],
+                kind = kind,
+                visible = visible,
+                bounds = PanelBounds(
+                    x = fields[3].toFloatOrNull() ?: return null,
+                    y = fields[4].toFloatOrNull() ?: return null,
+                    width = fields[5].toFloatOrNull() ?: return null,
+                    height = fields[6].toFloatOrNull() ?: return null,
+                ).clamp(),
+            )
         }
-        return PanelState(id = fields[0], kind = kind, visible = visible, bounds = bounds)
+
+        val minimized = fields.getOrNull(3) == "1"
+
+        // New freeform: id~KIND~vis~min~x~y~w~h~hosted
+        if (fields.size >= 8 && fields[4].toFloatOrNull() != null) {
+            return PanelState(
+                id = fields[0],
+                kind = kind,
+                visible = visible,
+                minimized = minimized,
+                bounds = PanelBounds(
+                    x = fields[4].toFloatOrNull() ?: return null,
+                    y = fields[5].toFloatOrNull() ?: return null,
+                    width = fields[6].toFloatOrNull() ?: return null,
+                    height = fields[7].toFloatOrNull() ?: return null,
+                ).clamp(),
+                hostedComponentKey = fields.getOrNull(8)?.takeIf { it.isNotBlank() },
+            )
+        }
+
+        val hosted = fields.getOrNull(4)?.takeIf { it.isNotBlank() && it.toFloatOrNull() == null }
+        return PanelState(
+            id = fields[0],
+            kind = kind,
+            visible = visible,
+            minimized = minimized,
+            hostedComponentKey = hosted,
+        )
     }
 
     private fun mergeWithDefaults(decoded: List<PanelState>): List<PanelState> {
