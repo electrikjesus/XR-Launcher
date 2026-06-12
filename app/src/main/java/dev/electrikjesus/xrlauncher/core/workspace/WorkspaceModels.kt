@@ -36,8 +36,10 @@ data class Workspace(
 
         fun defaultPanels(): List<PanelState> = listOf(
             PanelState(id = "widget_clock", kind = PanelKind.WIDGET),
+            PanelState(id = "widget_calendar", kind = PanelKind.WIDGET),
             PanelState(id = "app_drawer", kind = PanelKind.APP_DRAWER),
             PanelState(id = "hotseat", kind = PanelKind.HOTSEAT),
+            PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT, visible = false),
         )
     }
 }

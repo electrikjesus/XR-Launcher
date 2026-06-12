@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
+import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
@@ -87,6 +88,7 @@ private fun FlatGlassesWorkspaceScreen(
             apps = gridApps,
             hotseatApps = hotseatApps,
             pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
+            panels = workspace?.panels ?: Workspace.defaultPanels(),
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
             onLaunchApp = onLaunchApp,
         )

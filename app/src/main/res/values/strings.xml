@@ -42,6 +42,7 @@
     <string name="calendar_widget_title">%1$s %2$d</string>
     <string name="display_pointer_service_description">Shows a cursor on the glasses display and lets the phone companion click apps there.</string>
     <string name="no_apps_found">No apps found</string>
+    <string name="workspace_empty_slot">Empty panel slot</string>
     <string name="workspace_panel_drawer">Apps</string>
     <string name="workspace_panel_status">Status</string>
     <string name="external_display_detected">External display detected</string>
