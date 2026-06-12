@@ -488,8 +488,8 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 | # | Task | Done |
 |---|------|------|
-| 2.1 | Define `Workspace`, `PanelState`, `PanelKind`, `EmbedMode` in `core/workspace`. | ☐ |
-| 2.2 | Persist workspace JSON via DataStore (default workspace + hotseat pins). | ☐ |
+| 2.1 | Define `Workspace`, `PanelState`, `PanelKind`, `EmbedMode` in `core/workspace`. | ☑ |
+| 2.2 | Persist workspace JSON via DataStore (default workspace + hotseat pins). | ☑ |
 | 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☐ (partial — 1.22a shell) |
 | 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☐ |
 | 2.5 | Implement move (drag) for panels — tier-appropriate API (`movable` modifier, Glimmer, or drag handles). | ☐ |
@@ -500,7 +500,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.10 | **Tier 0:** Keyboard shortcut map (focus panels, launch, close, snap preset) + help overlay. | ☐ |
 | 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☐ (partial — icon hit-test) |
 | 2.12 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☑ (1.16) |
-| 2.13 | **Tier 1:** User-pinned hotseat — long-press / companion right-click to pin; persist in DataStore. | ☐ |
+| 2.13 | **Tier 1:** User-pinned hotseat — long-press / companion right-click to pin; persist in DataStore. | ☑ |
 | 2.14 | **Tier 1:** App drawer — search bar, alphabetical sections, icon lazy-load cache. | ☐ |
 | 2.15 | **Tier 1:** Widget slot v1 — composable widgets (clock ☑); add at least one more; `AppWidgetHost` spike in 2.16. | ☐ |
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☐ |

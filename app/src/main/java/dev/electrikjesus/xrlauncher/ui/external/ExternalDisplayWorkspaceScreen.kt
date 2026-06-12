@@ -19,22 +19,30 @@ import androidx.compose.ui.platform.LocalDensity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
-import dev.electrikjesus.xrlauncher.ui.glasses.resolveHotseatApps
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
     apps: List<LaunchableApp>,
+    workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
-    onRightClick: (LaunchableApp?) -> Unit = {},
+    onToggleHotseatPin: (LaunchableApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
+    val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val itemBounds = remember { mutableStateMapOf<String, Rect>() }
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
     var lastLaunchAtMs by remember { mutableLongStateOf(0L) }
-    val hotseatApps = remember(apps) { resolveHotseatApps(apps) }
+    val hotseatApps = remember(apps, workspace?.hotseatPins) {
+        HotseatResolver.resolveHotseatApps(
+            apps = apps,
+            pinnedKeys = workspace?.hotseatPins ?: emptyList(),
+        )
+    }
     val gridApps = remember(apps, hotseatApps) {
         apps.filter { app -> hotseatApps.none { it.componentName == app.componentName } }
     }
@@ -60,7 +68,11 @@ fun ExternalDisplayWorkspaceScreen(
                         onLaunchApp(app)
                     }
                 }
-                PointerButton.RIGHT -> onRightClick(app)
+                PointerButton.RIGHT -> {
+                    if (app != null) {
+                        onToggleHotseatPin(app)
+                    }
+                }
             }
         }
     }
@@ -79,6 +91,7 @@ fun ExternalDisplayWorkspaceScreen(
         GlassesSpatialWorkspaceScreen(
             apps = gridApps,
             hotseatApps = hotseatApps,
+            pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
         )
     }

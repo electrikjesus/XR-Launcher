@@ -29,6 +29,7 @@ fun AppIconCell(
     app: LaunchableApp,
     isHovered: Boolean,
     onBoundsChanged: (String, androidx.compose.ui.geometry.Rect) -> Unit,
+    isPinned: Boolean = false,
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -51,7 +52,11 @@ fun AppIconCell(
                 onBoundsChanged(key, coordinates.boundsInRoot())
             }
             .background(
-                if (isHovered) Color.White.copy(alpha = 0.12f) else Color.Transparent,
+                when {
+                    isHovered -> Color.White.copy(alpha = 0.12f)
+                    isPinned -> Color(0xFF03DAC5).copy(alpha = 0.12f)
+                    else -> Color.Transparent
+                },
                 RoundedCornerShape(12.dp),
             )
             .padding(8.dp),

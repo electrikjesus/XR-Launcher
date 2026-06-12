@@ -7,6 +7,8 @@ import android.view.Display
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -15,13 +17,12 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.ExternalDisplayWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
+import kotlinx.coroutines.launch
 
-/**
- * Workspace for wired external displays (e.g. SmartGlasses in Desktop Mode).
- * Does not require [android.hardware.display.category.XR_PROJECTED].
- */
 class ExternalDisplayActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,18 +36,28 @@ class ExternalDisplayActivity : ComponentActivity() {
 
         val appRepository = AppRepository(this)
         val appLauncher = AppLauncher(this)
+        val workspaceRepository = WorkspaceRepository(applicationContext)
         val apps = appRepository.loadLaunchableApps()
             .filter { it.packageName != packageName }
 
         setContent {
+            val scope = rememberCoroutineScope()
+            val repo = remember { workspaceRepository }
             XRLauncherTheme(forGlasses = true) {
                 ExternalDisplayWorkspaceScreen(
                     apps = apps,
+                    workspaceRepository = repo,
                     onLaunchApp = { app ->
                         Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
                         appLauncher.launchOnDisplay(app.componentName, displayId)
                         CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
                         window.decorView.post { moveTaskToBack(true) }
+                    },
+                    onToggleHotseatPin = { app ->
+                        scope.launch {
+                            repo.toggleHotseatPin(app.componentKey())
+                            Log.d(TAG, "Toggled hotseat pin for ${app.label}")
+                        }
                     },
                 )
             }

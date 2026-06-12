@@ -16,8 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -28,22 +26,17 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 
-/**
- * Glasses launcher shell: wallpaper, widget panel, app grid, and hotseat.
- * Companion pointer hit-tests icon bounds registered via [onBoundsChanged].
- *
- * Full [androidx.xr.compose.spatial.Subspace] depth is task 1.22b — this is the
- * companion-compatible 2.5D layout used on Tier 1 EXTERNAL displays today.
- */
 @Composable
 fun GlassesSpatialWorkspaceScreen(
     apps: List<LaunchableApp>,
     hotseatApps: List<LaunchableApp>,
+    pinnedComponentKeys: Set<String> = emptySet(),
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -95,6 +88,7 @@ fun GlassesSpatialWorkspaceScreen(
                     AppIconCell(
                         app = app,
                         isHovered = cursor.hoveredLabel == app.label,
+                        isPinned = app.componentKey() in pinnedComponentKeys,
                         onBoundsChanged = onBoundsChanged,
                         onLaunchApp = onLaunchApp,
                     )
@@ -104,6 +98,7 @@ fun GlassesSpatialWorkspaceScreen(
             HotseatRow(
                 apps = hotseatApps,
                 hoveredLabel = cursor.hoveredLabel,
+                pinnedComponentKeys = pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = onLaunchApp,
                 modifier = Modifier
@@ -122,6 +117,7 @@ fun GlassesSpatialWorkspaceScreen(
 private fun HotseatRow(
     apps: List<LaunchableApp>,
     hoveredLabel: String?,
+    pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
     modifier: Modifier = Modifier,
@@ -134,6 +130,7 @@ private fun HotseatRow(
             AppIconCell(
                 app = app,
                 isHovered = hoveredLabel == app.label,
+                isPinned = app.componentKey() in pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = onLaunchApp,
                 modifier = Modifier.weight(1f),
@@ -141,23 +138,3 @@ private fun HotseatRow(
         }
     }
 }
-
-/** First [count] apps plus any pinned package names found in [apps]. */
-fun resolveHotseatApps(
-    apps: List<LaunchableApp>,
-    pinnedPackageNames: List<String> = HOTSEAT_PINNED_PACKAGES,
-    count: Int = 5,
-): List<LaunchableApp> {
-    val pinned = pinnedPackageNames.mapNotNull { pkg ->
-        apps.find { it.packageName == pkg }
-    }
-    val filler = apps.filter { app -> pinned.none { it.packageName == app.packageName } }
-    return (pinned + filler).take(count)
-}
-
-private val HOTSEAT_PINNED_PACKAGES = listOf(
-    "com.android.settings",
-    "com.android.vending",
-    "com.google.android.apps.photos",
-    "com.android.chrome",
-)

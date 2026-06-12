@@ -25,7 +25,7 @@
     <string name="control_mode_title">Glasses control mode</string>
     <string name="control_mode_launcher">Launcher</string>
     <string name="control_mode_desktop">Desktop</string>
-    <string name="control_mode_launcher_hint">Launcher mode: pick apps from the list. The app opens on glasses — use Desktop mode on the phone to click inside it.</string>
+    <string name="control_mode_launcher_hint">Launcher mode: pick apps from the list. Right-click or Right button pins to hotseat.</string>
     <string name="control_mode_launcher_on_hint">Clicks open apps on the glasses display.</string>
     <string name="control_mode_desktop_on_hint">Desktop mode: cursor and clicks go to the glasses display — works over Settings, Play Store, etc.</string>
     <string name="control_mode_desktop_setup_hint">Enable Desktop pointer in Accessibility. Required to see the cursor and click apps on glasses.</string>
