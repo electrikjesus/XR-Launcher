@@ -26,6 +26,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -64,7 +67,11 @@ fun CompanionTouchpadScreen(
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
+    val touchpadSensitivity by CompanionPointerBus.touchpadSensitivity.collectAsState()
     val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
+    val textEntryActive by CompanionPointerBus.textEntryActiveFlow.collectAsState()
+    var precisionPointer by remember { mutableStateOf(false) }
+    val touchpadClickSuppressed = textEntryActive || precisionPointer
     val context = LocalContext.current
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val cursorStyle = CursorStyles.forPointerReady(desktopPointerReady)
@@ -84,12 +91,44 @@ fun CompanionTouchpadScreen(
             Text(
                 text = when {
                     !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
+                    textEntryActive -> stringResource(R.string.companion_text_entry_hint)
+                    touchpadClickSuppressed -> stringResource(R.string.precision_pointer_on_hint)
                     launcherForeground -> stringResource(R.string.companion_launcher_foreground_hint)
                     else -> stringResource(R.string.companion_pointer_active_hint)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (desktopPointerReady) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.precision_pointer),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            text = if (precisionPointer) {
+                                stringResource(R.string.precision_pointer_on_hint)
+                            } else {
+                                stringResource(R.string.precision_pointer_off_hint)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = precisionPointer,
+                        onCheckedChange = {
+                            precisionPointer = it
+                            CompanionPointerBus.setManualPrecisionPointer(it)
+                        },
+                    )
+                }
+            }
             if (!desktopPointerReady) {
                 OutlinedButton(
                     onClick = {
@@ -168,6 +207,22 @@ fun CompanionTouchpadScreen(
                         )
                     }
                 }
+            } else {
+                Text(
+                    text = stringResource(R.string.touchpad_sensitivity),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Slider(
+                    value = touchpadSensitivity,
+                    onValueChange = { CompanionPointerBus.setTouchpadSensitivity(it) },
+                    valueRange = 0.25f..3f,
+                )
+                OutlinedButton(
+                    onClick = { CompanionPointerBus.recenterCursor() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.recenter))
+                }
             }
 
             if (cursor.hoveredLabel != null) {
@@ -184,7 +239,7 @@ fun CompanionTouchpadScreen(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(motionEnabled, desktopPointerReady) {
+                    .pointerInput(motionEnabled, desktopPointerReady, touchpadClickSuppressed) {
                         val useDesktopGestures = desktopPointerReady
                         var lastTapTime = 0L
                         var lastTapPos = Offset.Zero
@@ -199,19 +254,6 @@ fun CompanionTouchpadScreen(
                             var dragging = false
                             val pointerId = down.id
                             val tapToClick = !useDesktopGestures
-                            var clickDragActive = false
-
-                            if (useDesktopGestures) {
-                                val now = System.currentTimeMillis()
-                                val isDoubleTap = lastTapTime > 0L &&
-                                    now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
-                                    (down.position - lastTapPos).getDistance() <= doubleTapSlop
-                                if (isDoubleTap) {
-                                    lastTapTime = 0L
-                                    CompanionPointerBus.beginTouchpadDragGesture()
-                                    clickDragActive = true
-                                }
-                            }
 
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Main)
@@ -219,11 +261,20 @@ fun CompanionTouchpadScreen(
                                 if (!change.pressed) {
                                     when {
                                         useDesktopGestures -> {
-                                            if (clickDragActive) {
-                                                CompanionPointerBus.endTouchpadDragGesture()
-                                            } else if (!dragging) {
-                                                lastTapTime = System.currentTimeMillis()
-                                                lastTapPos = down.position
+                                            if (!dragging && !touchpadClickSuppressed) {
+                                                val now = System.currentTimeMillis()
+                                                val isSecondTap = lastTapTime > 0L &&
+                                                    now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
+                                                    (down.position - lastTapPos).getDistance() <= doubleTapSlop
+                                                if (isSecondTap) {
+                                                    lastTapTime = 0L
+                                                    CompanionPointerBus.click(PointerButton.LEFT)
+                                                } else {
+                                                    lastTapTime = now
+                                                    lastTapPos = down.position
+                                                }
+                                            } else if (dragging) {
+                                                lastTapTime = 0L
                                             }
                                         }
                                         tapToClick && !dragging -> CompanionPointerBus.click(PointerButton.LEFT)
@@ -235,6 +286,7 @@ fun CompanionTouchpadScreen(
                                     accumulated += delta
                                     if (accumulated.getDistance() > touchSlop) {
                                         dragging = true
+                                        lastTapTime = 0L
                                     }
                                 }
                                 if (dragging && !motionEnabled) {

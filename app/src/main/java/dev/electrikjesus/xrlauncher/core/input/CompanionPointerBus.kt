@@ -81,12 +81,34 @@ object CompanionPointerBus {
     private val _motionSensitivity = MutableStateFlow(1f)
     val motionSensitivity: StateFlow<Float> = _motionSensitivity.asStateFlow()
 
+    private val _touchpadSensitivity = MutableStateFlow(1f)
+    val touchpadSensitivity: StateFlow<Float> = _touchpadSensitivity.asStateFlow()
+
     private val _glassesControlMode = MutableStateFlow(GlassesSessionState.controlMode)
     val glassesControlMode: StateFlow<GlassesControlMode> = _glassesControlMode.asStateFlow()
 
+    private val _textEntryActive = MutableStateFlow(false)
+    val textEntryActiveFlow: StateFlow<Boolean> = _textEntryActive.asStateFlow()
+
+    private var manualPrecisionPointer = false
+
+    /** When true, touchpad double-tap click is disabled — use Left button for keys and menus. */
+    fun isTouchpadClickSuppressed(): Boolean = manualPrecisionPointer || _textEntryActive.value
+
+    fun setManualPrecisionPointer(enabled: Boolean) {
+        manualPrecisionPointer = enabled
+    }
+
+    fun setTextEntryActive(active: Boolean) {
+        if (_textEntryActive.value != active) {
+            _textEntryActive.value = active
+        }
+    }
+
     fun emit(event: PointerEvent) {
         if (event.action == PointerAction.MOVE) {
-            moveBy(event.deltaX * TOUCHPAD_SENSITIVITY, event.deltaY * TOUCHPAD_SENSITIVITY)
+            val scale = TOUCHPAD_SENSITIVITY * _touchpadSensitivity.value
+            moveBy(event.deltaX * scale, event.deltaY * scale)
         } else if (event.action == PointerAction.DOWN) {
             _cursor.value = _cursor.value.copy(isPressed = true)
         } else if (event.action == PointerAction.UP) {
@@ -249,6 +271,10 @@ object CompanionPointerBus {
         _motionSensitivity.value = multiplier.coerceIn(0.25f, 3f)
     }
 
+    fun setTouchpadSensitivity(multiplier: Float) {
+        _touchpadSensitivity.value = multiplier.coerceIn(0.25f, 3f)
+    }
+
     fun setGlassesControlMode(mode: GlassesControlMode) {
         GlassesSessionState.controlMode = mode
         _glassesControlMode.value = mode
@@ -274,6 +300,9 @@ object CompanionPointerBus {
         touchpadInGesture = false
         _cursor.value = CompanionCursorState()
         _motionSensitivity.value = 1f
+        _touchpadSensitivity.value = 1f
         _glassesControlMode.value = GlassesSessionState.controlMode
+        _textEntryActive.value = false
+        manualPrecisionPointer = false
     }
 }

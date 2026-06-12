@@ -34,6 +34,7 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
             GlassesSessionState.controlMode = GlassesControlMode.DESKTOP
             CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
         }
+        syncTextEntryActive()
         serviceScope.launch {
             CompanionPointerBus.cursor.collect { cursor ->
                 syncOverlay(cursor.x, cursor.y, cursor.isPressed)
@@ -50,7 +51,14 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) = Unit
+    override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
+        if (event == null) return
+        when (event.eventType) {
+            android.view.accessibility.AccessibilityEvent.TYPE_WINDOWS_CHANGED,
+            android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+            -> syncTextEntryActive()
+        }
+    }
 
     override fun onInterrupt() = Unit
 
@@ -142,6 +150,23 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         }
         manager.attach(displayId)
         manager.update(normalizedX, normalizedY, pressed)
+    }
+
+    private fun syncTextEntryActive() {
+        val imeVisible = windows?.any { window ->
+            window.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        } == true
+        val displayId = GlassesSessionState.secondaryDisplayId
+        val popupLikelyOpen = if (displayId != null) {
+            val appWindowsOnDisplay = windows?.count { window ->
+                window.displayId == displayId &&
+                    window.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION
+            } ?: 0
+            appWindowsOnDisplay > 1
+        } else {
+            false
+        }
+        CompanionPointerBus.setTextEntryActive(imeVisible || popupLikelyOpen)
     }
 
     companion object {

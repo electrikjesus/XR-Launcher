@@ -8,7 +8,11 @@
     <string name="connect_glasses">Connect glasses</string>
     <string name="companion_touchpad">Companion touchpad</string>
     <string name="companion_hint">Drag to move pointer · Tap to click</string>
-    <string name="companion_desktop_hint">Drag to move · Double-tap to click · Double-tap, hold, and drag to select</string>
+    <string name="companion_desktop_hint">Drag to move · Double-tap to click · Hold Left and drag to select</string>
+    <string name="companion_text_entry_hint">Keyboard open — drag to move, use Left button to tap keys and menus</string>
+    <string name="precision_pointer">Precision pointer</string>
+    <string name="precision_pointer_on_hint">Touchpad moves only — Left button clicks (for keyboard and dropdowns)</string>
+    <string name="precision_pointer_off_hint">Double-tap touchpad to click; enable when typing or using menus</string>
     <string name="companion_launcher_foreground_hint">On launcher — double-tap opens apps · Right button pins hotseat</string>
     <string name="companion_pointer_active_hint">Pointer active on glasses — works over all apps</string>
     <string name="companion_motion_hint">Tilt phone to move pointer · Use buttons to click in Desktop mode</string>
@@ -24,6 +28,7 @@
     <string name="calibrate">Calibrate</string>
     <string name="calibrating">Calibrating…</string>
     <string name="motion_sensitivity">Motion sensitivity</string>
+    <string name="touchpad_sensitivity">Touchpad sensitivity</string>
     <string name="control_mode_title">Glasses control mode</string>
     <string name="control_mode_launcher">Launcher</string>
     <string name="control_mode_desktop">Desktop</string>

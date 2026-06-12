@@ -85,4 +85,41 @@ class CompanionPointerBusTest {
         CompanionPointerBus.setMotionSensitivity(0f)
         assertEquals(0.25f, CompanionPointerBus.motionSensitivity.value)
     }
+
+    @Test
+    fun setTextEntryActive_suppressesTouchpadClick() {
+        CompanionPointerBus.setTextEntryActive(true)
+        assertTrue(CompanionPointerBus.isTouchpadClickSuppressed())
+        CompanionPointerBus.setTextEntryActive(false)
+        assertEquals(false, CompanionPointerBus.isTouchpadClickSuppressed())
+    }
+
+    @Test
+    fun setManualPrecisionPointer_suppressesTouchpadClick() {
+        CompanionPointerBus.setManualPrecisionPointer(true)
+        assertTrue(CompanionPointerBus.isTouchpadClickSuppressed())
+        CompanionPointerBus.setManualPrecisionPointer(false)
+        assertEquals(false, CompanionPointerBus.isTouchpadClickSuppressed())
+    }
+
+    @Test
+    fun setTouchpadSensitivity_clampsRange() {
+        CompanionPointerBus.setTouchpadSensitivity(10f)
+        assertEquals(3f, CompanionPointerBus.touchpadSensitivity.value)
+        CompanionPointerBus.setTouchpadSensitivity(0f)
+        assertEquals(0.25f, CompanionPointerBus.touchpadSensitivity.value)
+    }
+
+    @Test
+    fun touchpadSensitivity_scalesMoveEvents() {
+        CompanionPointerBus.setCursorPosition(0f, 0f)
+        CompanionPointerBus.setTouchpadSensitivity(2f)
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        val scaledX = CompanionPointerBus.cursor.value.x
+        CompanionPointerBus.setTouchpadSensitivity(1f)
+        CompanionPointerBus.setCursorPosition(0f, 0f)
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        val baseX = CompanionPointerBus.cursor.value.x
+        assertTrue(scaledX > baseX)
+    }
 }
