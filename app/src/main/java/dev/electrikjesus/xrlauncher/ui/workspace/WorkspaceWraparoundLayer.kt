@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 import dev.electrikjesus.xrlauncher.ui.spatial.WorkspaceGlesBackdrop
 
@@ -50,6 +51,7 @@ fun WorkspaceWraparoundLayer(
         val panPxX = camera.panNormX * viewportWidthPx
         val panPxY = camera.panNormY * viewportHeightPx
         val focalPx = viewportWidthPx * WorkspaceCylinderGeometry.FOCAL_LENGTH_VIEWPORT_FRACTION
+        val glesPresentation = WorkspaceGlesConfig.texturedPanelsEnabled && tuned.wrapCurvature > 0.01f
 
         WorkspaceGlesBackdrop(
             camera = camera,
@@ -59,21 +61,7 @@ fun WorkspaceWraparoundLayer(
             modifier = Modifier.fillMaxSize(),
         )
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    rotationY = camera.yawDegrees
-                    rotationX = camera.pitchDegrees
-                    translationX = panPxX
-                    translationY = panPxY
-                    scaleX = spanX
-                    scaleY = spanY
-                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    cameraDistance = focalPx
-                },
-            contentAlignment = Alignment.Center,
-        ) {
+        val viewportProvider = @Composable {
             CompositionLocalProvider(
                 LocalWorkspaceViewportPx provides IntSize(
                     viewportWidthPx.toInt(),
@@ -83,6 +71,29 @@ fun WorkspaceWraparoundLayer(
                 Box(modifier = Modifier.fillMaxSize()) {
                     content()
                 }
+            }
+        }
+
+        if (glesPresentation) {
+            // Flat layout for capture + hit targets; camera lives in GLES only.
+            viewportProvider()
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        rotationY = camera.yawDegrees
+                        rotationX = camera.pitchDegrees
+                        translationX = panPxX
+                        translationY = panPxY
+                        scaleX = spanX
+                        scaleY = spanY
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        cameraDistance = focalPx
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                viewportProvider()
             }
         }
     }
@@ -95,17 +106,21 @@ fun WraparoundPanelContainer(
     wrapCurvature: Float,
     workspaceWidth: Float = 1f,
     workspaceHeight: Float = 1f,
+    panelId: String? = null,
     /** When false, only rotate/foreshorten — freeform panels keep their saved bounds. */
     applyArcPositionShift: Boolean = true,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val density = LocalDensity.current
     val widthCompensation = if (workspaceWidth > 1f) 1f / workspaceWidth else 1f
     val heightCompensation = if (workspaceHeight > 1f) 1f / workspaceHeight else 1f
     val workspaceViewport = LocalWorkspaceViewportPx.current
     val viewportW = workspaceViewport.width.toFloat()
     val viewportH = workspaceViewport.height.toFloat()
+    val glesPresentation = WorkspaceGlesConfig.texturedPanelsEnabled &&
+        wrapCurvature > 0.01f &&
+        panelId != null
+    val hideComposePanel = glesPresentation && WorkspaceGlesConfig.hideComposePanelsWhenGles
 
     val placement = if (viewportW > 0f && viewportH > 0f) {
         WorkspaceCylinderGeometry.panelPlacement(
@@ -123,22 +138,45 @@ fun WraparoundPanelContainer(
 
     val focalPx = viewportW * WorkspaceCylinderGeometry.FOCAL_LENGTH_VIEWPORT_FRACTION
 
-    Box(modifier = modifier) {
+    val panelContent = @Composable {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    translationX = if (applyArcPositionShift) placement.arcShiftXPx else 0f
-                    translationY = if (applyArcPositionShift) placement.arcShiftYPx else 0f
-                    rotationY = placement.rotationYDeg
-                    rotationX = placement.rotationXDeg
-                    scaleX = placement.scale * widthCompensation
-                    scaleY = placement.scale * heightCompensation
-                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    cameraDistance = focalPx.coerceAtLeast(1f)
-                },
+                .then(
+                    if (glesPresentation) {
+                        Modifier
+                    } else {
+                        Modifier.graphicsLayer {
+                            translationX = if (applyArcPositionShift) placement.arcShiftXPx else 0f
+                            translationY = if (applyArcPositionShift) placement.arcShiftYPx else 0f
+                            rotationY = placement.rotationYDeg
+                            rotationX = placement.rotationXDeg
+                            scaleX = placement.scale * widthCompensation
+                            scaleY = placement.scale * heightCompensation
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                            cameraDistance = focalPx.coerceAtLeast(1f)
+                        }
+                    },
+                ),
         ) {
             content()
+        }
+    }
+
+    Box(modifier = modifier) {
+        if (glesPresentation) {
+            PanelTextureCapture(
+                panelId = panelId!!,
+                centerXNorm = centerXNorm,
+                centerYNorm = centerYNorm,
+                enabled = true,
+                drawToScreen = !hideComposePanel,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                panelContent()
+            }
+        } else {
+            panelContent()
         }
     }
 }

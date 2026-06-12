@@ -8,10 +8,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspacePanelTextureBus
 import dev.electrikjesus.xrlauncher.ui.spatial.gles.CylinderGlRenderer
+import java.util.concurrent.atomic.AtomicReference
 
 /**
- * GLES inner-cylinder guide mesh behind Compose panels — same camera as [WorkspaceWraparoundLayer].
+ * GLES inner-cylinder scene behind Compose — wireframe guides and textured panel quads.
  */
 @Composable
 fun WorkspaceGlesBackdrop(
@@ -20,18 +23,34 @@ fun WorkspaceGlesBackdrop(
     workspaceWidth: Float,
     workspaceHeight: Float,
     modifier: Modifier = Modifier,
-    enabled: Boolean = curvature > 0.01f,
+    enabled: Boolean = curvature > 0.01f &&
+        (WorkspaceGlesConfig.texturedPanelsEnabled || WorkspaceGlesConfig.showGuideWireframe),
 ) {
     if (!enabled) return
 
     val renderer = remember { CylinderGlRenderer() }
+    val surfaceViewRef = remember { AtomicReference<GLSurfaceView?>(null) }
+    val renderCallback = remember {
+        {
+            surfaceViewRef.get()?.requestRender()
+            Unit
+        }
+    }
 
     DisposableEffect(curvature, workspaceWidth, workspaceHeight) {
         renderer.curvature = curvature
         renderer.workspaceWidth = workspaceWidth
         renderer.workspaceHeight = workspaceHeight
         renderer.rebuildCylinderMesh()
-        onDispose { }
+        onDispose {
+            WorkspacePanelTextureBus.unregisterRenderCallback(renderCallback)
+            WorkspacePanelTextureBus.clear()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        WorkspacePanelTextureBus.registerRenderCallback(renderCallback)
+        onDispose { WorkspacePanelTextureBus.unregisterRenderCallback(renderCallback) }
     }
 
     AndroidView(
@@ -45,13 +64,16 @@ fun WorkspaceGlesBackdrop(
                 setEGLContextClientVersion(2)
                 setRenderer(renderer)
                 renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
+                surfaceViewRef.set(this)
             }
         },
         update = { view ->
+            surfaceViewRef.set(view)
             renderer.camera = camera
             renderer.curvature = curvature
             renderer.workspaceWidth = workspaceWidth
             renderer.workspaceHeight = workspaceHeight
+            renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },
     )

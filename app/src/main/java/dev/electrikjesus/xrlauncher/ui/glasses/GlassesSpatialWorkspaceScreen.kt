@@ -321,6 +321,7 @@ private fun GlassesPanelLayout(
                         widgetPanels.forEach { widgetPanel ->
                             val slot = rowSlots[slotIndex++]
                             WraparoundPanelContainer(
+                                panelId = widgetPanel.id,
                                 centerXNorm = slot.centerX,
                                 centerYNorm = slot.centerY,
                                 wrapCurvature = wrapCurvature,
@@ -345,6 +346,7 @@ private fun GlassesPanelLayout(
                 PanelKind.APP_DRAWER -> {
                     val slot = rowSlots[slotIndex++]
                     WraparoundPanelContainer(
+                        panelId = panel.id,
                         centerXNorm = slot.centerX,
                         centerYNorm = slot.centerY,
                         wrapCurvature = wrapCurvature,
@@ -375,6 +377,7 @@ private fun GlassesPanelLayout(
                 PanelKind.HOTSEAT -> {
                     val slot = rowSlots[slotIndex++]
                     WraparoundPanelContainer(
+                        panelId = panel.id,
                         centerXNorm = slot.centerX,
                         centerYNorm = slot.centerY,
                         wrapCurvature = wrapCurvature,
@@ -405,6 +408,7 @@ private fun GlassesPanelLayout(
                 PanelKind.EMPTY_SLOT -> {
                     val slot = rowSlots[slotIndex++]
                     WraparoundPanelContainer(
+                        panelId = panel.id,
                         centerXNorm = slot.centerX,
                         centerYNorm = slot.centerY,
                         wrapCurvature = wrapCurvature,

@@ -67,6 +67,7 @@ fun DraggableWorkspacePanelShell(
     val centerY = dragBounds.y + dragBounds.height / 2f
 
     WraparoundPanelContainer(
+        panelId = panel.id,
         centerXNorm = centerX,
         centerYNorm = centerY,
         wrapCurvature = wrapCurvature,
