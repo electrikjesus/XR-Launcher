@@ -1,9 +1,13 @@
 package dev.electrikjesus.xrlauncher.core.display
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 enum class GlassesControlMode {
-    /** Clicks hit-test the XR Launcher app list on the glasses workspace. */
+    /** Fallback when accessibility pointer is unavailable — tap-to-click via hit-testing. */
     LAUNCHER,
-    /** Clicks are injected on the glasses display (requires accessibility service). */
+    /** Unified pointer: overlay cursor + inject gestures; launcher uses hit-testing when foreground. */
     DESKTOP,
 }
 
@@ -11,8 +15,18 @@ object GlassesSessionState {
     var secondaryDisplayId: Int? = null
     var controlMode: GlassesControlMode = GlassesControlMode.LAUNCHER
 
+    private val _launcherForeground = MutableStateFlow(false)
+    val launcherForegroundFlow: StateFlow<Boolean> = _launcherForeground.asStateFlow()
+
+    var launcherForeground: Boolean
+        get() = _launcherForeground.value
+        set(value) {
+            _launcherForeground.value = value
+        }
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
+        launcherForeground = false
     }
 }

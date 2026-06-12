@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
-import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -42,9 +41,8 @@ fun GlassesSpatialWorkspaceScreen(
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
-    val controlMode by CompanionPointerBus.glassesControlMode.collectAsState()
     val desktopOverlayActive by DisplayPointerInjector.isAvailableFlow.collectAsState()
-    val showInAppCursor = !(desktopOverlayActive && controlMode == GlassesControlMode.DESKTOP)
+    val showInAppCursor = !desktopOverlayActive
 
     Box(modifier = modifier.fillMaxSize()) {
         WorkspaceWallpaper()

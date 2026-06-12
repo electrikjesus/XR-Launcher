@@ -12,7 +12,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
@@ -50,7 +49,6 @@ class ExternalDisplayActivity : ComponentActivity() {
                     onLaunchApp = { app ->
                         Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
                         appLauncher.launchOnDisplay(app.componentName, displayId)
-                        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
                         window.decorView.post { moveTaskToBack(true) }
                     },
                     onToggleHotseatPin = { app ->
@@ -72,6 +70,16 @@ class ExternalDisplayActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        GlassesSessionState.launcherForeground = true
+    }
+
+    override fun onPause() {
+        GlassesSessionState.launcherForeground = false
+        super.onPause()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

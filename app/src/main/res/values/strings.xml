@@ -9,6 +9,8 @@
     <string name="companion_touchpad">Companion touchpad</string>
     <string name="companion_hint">Drag to move pointer · Tap to click</string>
     <string name="companion_desktop_hint">Drag to move · Double-tap to click · Double-tap, hold, and drag to select</string>
+    <string name="companion_launcher_foreground_hint">On launcher — double-tap opens apps · Right button pins hotseat</string>
+    <string name="companion_pointer_active_hint">Pointer active on glasses — works over all apps</string>
     <string name="companion_motion_hint">Tilt phone to move pointer · Use buttons to click in Desktop mode</string>
     <string name="motion_control">Motion control</string>
     <string name="motion_control_on_hint">Tilt phone to move the glasses cursor</string>

@@ -127,14 +127,12 @@ object CompanionPointerBus {
 
     fun click(button: PointerButton) {
         val current = _cursor.value
-        if (button == PointerButton.LEFT && shouldInjectOnGlasses()) {
-            injectClickAt(current.x, current.y, button)
-            flashPressed()
-            return
-        }
-        emitClick(PointerClick(button = button, x = current.x, y = current.y))
-        if (button == PointerButton.LEFT) {
-            flashPressed()
+        when (button) {
+            PointerButton.LEFT -> {
+                deliverLeftClick(current.x, current.y)
+                flashPressed()
+            }
+            PointerButton.RIGHT -> deliverRightClick(current.x, current.y)
         }
     }
 
@@ -184,25 +182,44 @@ object CompanionPointerBus {
         val end = _cursor.value.copy(isPressed = false)
         _cursor.value = end
         if (startX == null || startY == null) return
-        if (!shouldInjectOnGlasses()) return
         val moved = hypot(end.x - startX, end.y - startY) > DRAG_THRESHOLD
+        val primaryGesture = hadLeftButton || hadTouchpadDrag
         when {
-            moved && (hadLeftButton || hadTouchpadDrag) -> DisplayPointerInjector.dispatchDrag(
-                GlassesSessionState.secondaryDisplayId!!,
-                startX,
-                startY,
-                end.x,
-                end.y,
-            )
-            !moved && (hadLeftButton || hadTouchpadDrag) ->
-                injectClickAt(end.x, end.y, PointerButton.LEFT)
+            moved && primaryGesture && shouldInjectPointerOnGlasses() ->
+                DisplayPointerInjector.dispatchDrag(
+                    GlassesSessionState.secondaryDisplayId!!,
+                    startX,
+                    startY,
+                    end.x,
+                    end.y,
+                )
+            !moved && primaryGesture -> deliverLeftClick(end.x, end.y)
         }
     }
 
-    private fun shouldInjectOnGlasses(): Boolean =
-        GlassesSessionState.controlMode == GlassesControlMode.DESKTOP &&
-            GlassesSessionState.secondaryDisplayId != null &&
+    private fun pointerInjectionAvailable(): Boolean =
+        GlassesSessionState.secondaryDisplayId != null &&
             DisplayPointerInjector.isAvailable
+
+    /** Inject OS gestures when another app is foreground; launcher handles clicks via hit-testing. */
+    private fun shouldInjectPointerOnGlasses(): Boolean =
+        pointerInjectionAvailable() && !GlassesSessionState.launcherForeground
+
+    private fun deliverLeftClick(x: Float, y: Float) {
+        if (shouldInjectPointerOnGlasses()) {
+            injectClickAt(x, y, PointerButton.LEFT)
+        } else {
+            emitClick(PointerClick(button = PointerButton.LEFT, x = x, y = y))
+        }
+    }
+
+    private fun deliverRightClick(x: Float, y: Float) {
+        if (GlassesSessionState.launcherForeground || !pointerInjectionAvailable()) {
+            emitClick(PointerClick(button = PointerButton.RIGHT, x = x, y = y))
+        } else {
+            injectClickAt(x, y, PointerButton.RIGHT)
+        }
+    }
 
     private fun injectClickAt(x: Float, y: Float, button: PointerButton) {
         val displayId = GlassesSessionState.secondaryDisplayId ?: return

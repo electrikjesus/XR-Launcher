@@ -18,7 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -41,8 +40,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.provider.Settings
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
-import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -65,10 +64,10 @@ fun CompanionTouchpadScreen(
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
-    val controlMode by CompanionPointerBus.glassesControlMode.collectAsState()
+    val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
     val context = LocalContext.current
     val desktopPointerReady = DisplayPointerInjector.isAvailable
-    val cursorStyle = CursorStyles.forControlMode(controlMode)
+    val cursorStyle = CursorStyles.forPointerReady(desktopPointerReady)
 
     Scaffold(
         topBar = {
@@ -83,36 +82,10 @@ fun CompanionTouchpadScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(R.string.control_mode_title),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = controlMode == GlassesControlMode.LAUNCHER,
-                    onClick = { CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER) },
-                    label = { Text(stringResource(R.string.control_mode_launcher)) },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = controlMode == GlassesControlMode.DESKTOP,
-                    onClick = { CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP) },
-                    label = { Text(stringResource(R.string.control_mode_desktop)) },
-                    enabled = desktopPointerReady,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Text(
-                text = if (desktopPointerReady) {
-                    if (controlMode == GlassesControlMode.DESKTOP) {
-                        stringResource(R.string.control_mode_desktop_on_hint)
-                    } else {
-                        stringResource(R.string.control_mode_launcher_on_hint)
-                    }
-                } else {
-                    stringResource(R.string.control_mode_desktop_setup_hint)
+                text = when {
+                    !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
+                    launcherForeground -> stringResource(R.string.companion_launcher_foreground_hint)
+                    else -> stringResource(R.string.companion_pointer_active_hint)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -211,8 +184,8 @@ fun CompanionTouchpadScreen(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(motionEnabled, controlMode) {
-                        val desktopDrag = controlMode == GlassesControlMode.DESKTOP
+                    .pointerInput(motionEnabled, desktopPointerReady) {
+                        val useDesktopGestures = desktopPointerReady
                         var lastTapTime = 0L
                         var lastTapPos = Offset.Zero
                         val doubleTapTimeoutMs = 300L
@@ -225,10 +198,10 @@ fun CompanionTouchpadScreen(
                             val touchSlop = viewConfiguration.touchSlop
                             var dragging = false
                             val pointerId = down.id
-                            val tapToClick = controlMode == GlassesControlMode.LAUNCHER
+                            val tapToClick = !useDesktopGestures
                             var clickDragActive = false
 
-                            if (desktopDrag) {
+                            if (useDesktopGestures) {
                                 val now = System.currentTimeMillis()
                                 val isDoubleTap = lastTapTime > 0L &&
                                     now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
@@ -245,7 +218,7 @@ fun CompanionTouchpadScreen(
                                 val change = event.changes.firstOrNull { it.id == pointerId } ?: break
                                 if (!change.pressed) {
                                     when {
-                                        desktopDrag -> {
+                                        useDesktopGestures -> {
                                             if (clickDragActive) {
                                                 CompanionPointerBus.endTouchpadDragGesture()
                                             } else if (!dragging) {
@@ -292,8 +265,7 @@ fun CompanionTouchpadScreen(
                     Text(
                         text = when {
                             motionEnabled -> stringResource(R.string.companion_motion_hint)
-                            controlMode == GlassesControlMode.DESKTOP ->
-                                stringResource(R.string.companion_desktop_hint)
+                            desktopPointerReady -> stringResource(R.string.companion_desktop_hint)
                             else -> stringResource(R.string.companion_hint)
                         },
                         style = MaterialTheme.typography.titleMedium,
@@ -330,7 +302,7 @@ fun CompanionTouchpadScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val useHoldLeft = desktopPointerReady && controlMode == GlassesControlMode.DESKTOP
+                val useHoldLeft = desktopPointerReady
                 if (useHoldLeft) {
                     HoldablePointerButton(
                         label = stringResource(R.string.left_click),

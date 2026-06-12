@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.Display
 import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
@@ -98,8 +99,7 @@ object DisplayLaunchHelper {
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
         GlassesSessionState.secondaryDisplayId = displayId
-        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
-        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
+        applySessionControlMode()
 
         openCompanionController(context)
         launchActivityOnDisplay(
@@ -118,8 +118,7 @@ object DisplayLaunchHelper {
     fun showLauncherOnGlasses(context: Context): Boolean {
         val displayId = resolveSecondaryDisplayId(context, GlassesSessionState.secondaryDisplayId)
             ?: return false
-        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
-        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
+        applySessionControlMode()
         val intent = Intent(context, ExternalDisplayActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
@@ -132,6 +131,16 @@ object DisplayLaunchHelper {
             Log.e(TAG, "Failed to show launcher on glasses", e)
             false
         }
+    }
+
+    private fun applySessionControlMode() {
+        val mode = if (DisplayPointerInjector.isAvailable) {
+            GlassesControlMode.DESKTOP
+        } else {
+            GlassesControlMode.LAUNCHER
+        }
+        GlassesSessionState.controlMode = mode
+        CompanionPointerBus.setGlassesControlMode(mode)
     }
 
     private fun Display.isValidSecondaryTarget(displayManager: DisplayManager): Boolean {

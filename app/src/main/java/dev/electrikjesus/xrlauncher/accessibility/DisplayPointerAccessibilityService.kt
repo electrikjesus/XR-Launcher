@@ -15,7 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -30,14 +29,14 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         DisplayPointerInjector.service = this
         overlayManager = DisplayCursorOverlayManager(this)
+        if (GlassesSessionState.secondaryDisplayId != null) {
+            GlassesSessionState.controlMode = GlassesControlMode.DESKTOP
+            CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
+        }
         serviceScope.launch {
-            combine(
-                CompanionPointerBus.cursor,
-                CompanionPointerBus.glassesControlMode,
-            ) { cursor, mode -> cursor to mode }
-                .collect { (cursor, mode) ->
-                    syncOverlay(cursor.x, cursor.y, cursor.isPressed, mode)
-                }
+            CompanionPointerBus.cursor.collect { cursor ->
+                syncOverlay(cursor.x, cursor.y, cursor.isPressed)
+            }
         }
         Log.d(TAG, "Display pointer service connected")
     }
@@ -116,16 +115,10 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         normalizedX: Float,
         normalizedY: Float,
         pressed: Boolean,
-        mode: GlassesControlMode,
     ) {
         val manager = overlayManager ?: return
         val displayId = GlassesSessionState.secondaryDisplayId
         if (displayId == null) {
-            manager.detach()
-            return
-        }
-        // Overlay cursor in Desktop mode (controlling other apps). Launcher uses in-activity dot.
-        if (mode != GlassesControlMode.DESKTOP) {
             manager.detach()
             return
         }

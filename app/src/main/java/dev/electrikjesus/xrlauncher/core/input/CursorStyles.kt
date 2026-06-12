@@ -19,6 +19,9 @@ object CursorStyles {
     /** Larger pointer for launcher hit-testing on glasses (Launcher mode). */
     val launcher = CursorVisualStyle(dotSize = 26.dp, dotAlpha = 0.85f)
 
+    fun forPointerReady(desktopPointerReady: Boolean): CursorVisualStyle =
+        if (desktopPointerReady) desktop else launcher
+
     fun forControlMode(mode: GlassesControlMode): CursorVisualStyle =
         when (mode) {
             GlassesControlMode.DESKTOP -> desktop

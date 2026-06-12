@@ -434,11 +434,13 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Goal:** Phone companion drives a **real** pointer on the glasses display that works over Settings, Play Store, and other apps — not only XR Launcher’s Compose UI.
 
-**Implementation (2026-06-12):** `DisplayPointerAccessibilityService` draws a `TYPE_ACCESSIBILITY_OVERLAY` cursor on the glasses display in **Desktop** mode and injects clicks via `dispatchGesture` + `setDisplayId`. In-app `ExternalCursorDot` is hidden when the overlay is active.
+**Implementation (2026-06-12):** `DisplayPointerAccessibilityService` draws a `TYPE_ACCESSIBILITY_OVERLAY` cursor on the glasses display and injects clicks via `dispatchGesture` + `setDisplayId`. In-app `ExternalCursorDot` is hidden when the overlay is active.
+
+**Unified input (2026-06-12):** One touchpad gesture set when accessibility is enabled (move-only drag, double-tap click, double-tap-hold-drag, holdable Left). `ExternalDisplayActivity` reports **launcher foreground** via `GlassesSessionState.launcherForeground`; clicks route to Compose hit-testing on the launcher and to gesture injection over other apps. Launcher/Desktop mode toggle removed from companion UI. Fallback: tap-to-click when accessibility is off.
 
 **Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Freeform app windows may offset click coordinates — fullscreen launcher workaround (1.17) helps.
 
-**Companion UX:** Switch to **Desktop** after launching an app; enable accessibility service once.
+**Companion UX:** Enable accessibility service once; same gestures on launcher and third-party apps.
 
 ---
 
