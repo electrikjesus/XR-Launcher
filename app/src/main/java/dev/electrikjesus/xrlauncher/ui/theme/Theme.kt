@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -19,10 +20,17 @@ private val GlassesColors = darkColorScheme(
 @Composable
 fun XRLauncherTheme(
     forGlasses: Boolean = false,
+    forCompanion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val colorScheme = when {
+        forGlasses -> GlassesColors
+        forCompanion -> CompanionColorScheme
+        else -> LightColors
+    }
     MaterialTheme(
-        colorScheme = if (forGlasses) GlassesColors else LightColors,
+        colorScheme = colorScheme,
+        shapes = if (forCompanion) ExpressiveShapes else Shapes(),
         content = content,
     )
 }

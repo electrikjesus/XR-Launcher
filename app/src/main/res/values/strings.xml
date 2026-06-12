@@ -7,6 +7,11 @@
     <string name="use_as_controller">Use as controller</string>
     <string name="connect_glasses">Connect glasses</string>
     <string name="companion_touchpad">Companion touchpad</string>
+    <string name="companion_tab_display">Display</string>
+    <string name="companion_tab_input">Input</string>
+    <string name="companion_tab_workspace">Workspace</string>
+    <string name="companion_status_title">Glasses pointer</string>
+    <string name="companion_touchpad_zone">Touchpad</string>
     <string name="companion_hint">Drag to move pointer · Tap to click</string>
     <string name="companion_desktop_hint">Drag to move · Double-tap to click · Hold Left and drag to select</string>
     <string name="companion_text_entry_hint">Keyboard open — drag to move, use Left button to tap keys and menus</string>

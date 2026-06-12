@@ -1,60 +1,58 @@
 package dev.electrikjesus.xrlauncher.ui.companion
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.SettingsInputComponent
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import android.content.Intent
-import android.provider.Settings
-import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
-import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
-import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
-import dev.electrikjesus.xrlauncher.core.input.CursorStyles
-import dev.electrikjesus.xrlauncher.core.input.PointerAction
-import dev.electrikjesus.xrlauncher.core.input.PointerButton
-import dev.electrikjesus.xrlauncher.core.input.PointerEvent
-import kotlin.math.roundToInt
+import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+
+private enum class CompanionTab(val labelRes: Int) {
+    Display(R.string.companion_tab_display),
+    Input(R.string.companion_tab_input),
+    Workspace(R.string.companion_tab_workspace),
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,336 +73,361 @@ fun CompanionTouchpadScreen(
     val touchpadClickSuppressed = textEntryActive || precisionPointer
     val context = LocalContext.current
     val desktopPointerReady = DisplayPointerInjector.isAvailable
-    val cursorStyle = CursorStyles.forPointerReady(desktopPointerReady)
+    var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
+
+    val statusHint = when {
+        !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
+        textEntryActive -> stringResource(R.string.companion_text_entry_hint)
+        touchpadClickSuppressed -> stringResource(R.string.precision_pointer_on_hint)
+        launcherForeground -> stringResource(R.string.companion_launcher_foreground_hint)
+        else -> stringResource(R.string.companion_pointer_active_hint)
+    }
 
     Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.companion_touchpad)) })
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.companion_touchpad),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
         },
     ) { padding ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .fillMaxSize(),
         ) {
+            // Top half — controls (tabs); height fixed at 50% so touchpad never shrinks.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                ShowLauncherOnGlassesButton(
+                    onClick = { DisplayLaunchHelper.showLauncherOnGlasses(context) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+
+                PrimaryTabRow(
+                    selectedTabIndex = selectedTab,
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ) {
+                    CompanionTab.entries.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(stringResource(tab.labelRes)) },
+                            icon = {
+                                Icon(
+                                    imageVector = when (tab) {
+                                        CompanionTab.Display -> Icons.Default.TouchApp
+                                        CompanionTab.Input -> Icons.Default.SettingsInputComponent
+                                        CompanionTab.Workspace -> Icons.Default.Dashboard
+                                    },
+                                    contentDescription = null,
+                                )
+                            },
+                        )
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.companion_status_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = statusHint,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        when (CompanionTab.entries[selectedTab]) {
+                            CompanionTab.Display -> DisplayTabContent(
+                                desktopPointerReady = desktopPointerReady,
+                                precisionPointer = precisionPointer,
+                                onPrecisionPointerChange = {
+                                    precisionPointer = it
+                                    CompanionPointerBus.setManualPrecisionPointer(it)
+                                },
+                                onOpenAccessibilitySettings = {
+                                    context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                },
+                            )
+                            CompanionTab.Input -> InputTabContent(
+                                motionAvailable = motionAvailable,
+                                motionEnabled = motionEnabled,
+                                motionSensitivity = motionSensitivity,
+                                touchpadSensitivity = touchpadSensitivity,
+                                isCalibrating = isCalibrating,
+                                onCalibrate = onCalibrate,
+                            )
+                            CompanionTab.Workspace -> WorkspaceTabContent(
+                                cursorHoveredLabel = cursor.hoveredLabel,
+                                focusedPanelId = focusedPanelId,
+                                launcherForeground = launcherForeground,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Bottom half — touchpad + click buttons (always 50% of content area).
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CompanionTouchpadSurface(
+                    motionEnabled = motionEnabled,
+                    desktopPointerReady = desktopPointerReady,
+                    touchpadClickSuppressed = touchpadClickSuppressed,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                )
+                CompanionPointerButtonsRow(
+                    desktopPointerReady = desktopPointerReady,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShowLauncherOnGlassesButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Home,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.show_launcher_on_glasses),
+            style = MaterialTheme.typography.titleSmall,
+        )
+    }
+}
+
+@Composable
+private fun DisplayTabContent(
+    desktopPointerReady: Boolean,
+    precisionPointer: Boolean,
+    onPrecisionPointerChange: (Boolean) -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+) {
+    if (!desktopPointerReady) {
+        OutlinedButton(
+            onClick = onOpenAccessibilitySettings,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+        ) {
+            Text(stringResource(R.string.enable_desktop_pointer))
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.precision_pointer),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = if (precisionPointer) {
+                        stringResource(R.string.precision_pointer_on_hint)
+                    } else {
+                        stringResource(R.string.precision_pointer_off_hint)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = precisionPointer,
+                onCheckedChange = onPrecisionPointerChange,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InputTabContent(
+    motionAvailable: Boolean,
+    motionEnabled: Boolean,
+    motionSensitivity: Float,
+    touchpadSensitivity: Float,
+    isCalibrating: Boolean,
+    onCalibrate: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = when {
-                    !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
-                    textEntryActive -> stringResource(R.string.companion_text_entry_hint)
-                    touchpadClickSuppressed -> stringResource(R.string.precision_pointer_on_hint)
-                    launcherForeground -> stringResource(R.string.companion_launcher_foreground_hint)
-                    else -> stringResource(R.string.companion_pointer_active_hint)
+                text = stringResource(R.string.motion_control),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = if (motionEnabled) {
+                    stringResource(R.string.motion_control_on_hint)
+                } else {
+                    stringResource(R.string.motion_control_off_hint)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (desktopPointerReady) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.precision_pointer),
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
-                            text = if (precisionPointer) {
-                                stringResource(R.string.precision_pointer_on_hint)
-                            } else {
-                                stringResource(R.string.precision_pointer_off_hint)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = precisionPointer,
-                        onCheckedChange = {
-                            precisionPointer = it
-                            CompanionPointerBus.setManualPrecisionPointer(it)
-                        },
-                    )
-                }
-            }
-            if (!desktopPointerReady) {
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.enable_desktop_pointer))
-                }
+        }
+        Switch(
+            checked = motionEnabled,
+            onCheckedChange = { CompanionPointerBus.setMotionControlEnabled(it) },
+            enabled = motionAvailable,
+        )
+    }
+
+    if (motionEnabled) {
+        Text(
+            text = stringResource(R.string.motion_sensitivity),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = motionSensitivity,
+            onValueChange = { CompanionPointerBus.setMotionSensitivity(it) },
+            valueRange = 0.25f..3f,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { CompanionPointerBus.recenterCursor() },
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Text(stringResource(R.string.recenter))
             }
             OutlinedButton(
-                onClick = { DisplayLaunchHelper.showLauncherOnGlasses(context) },
-                modifier = Modifier.fillMaxWidth(),
+                onClick = onCalibrate,
+                enabled = !isCalibrating,
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.medium,
             ) {
-                Text(stringResource(R.string.show_launcher_on_glasses))
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.motion_control),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = if (motionEnabled) {
-                            stringResource(R.string.motion_control_on_hint)
-                        } else {
-                            stringResource(R.string.motion_control_off_hint)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = motionEnabled,
-                    onCheckedChange = { CompanionPointerBus.setMotionControlEnabled(it) },
-                    enabled = motionAvailable,
-                )
-            }
-
-            if (motionEnabled) {
                 Text(
-                    text = stringResource(R.string.motion_sensitivity),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Slider(
-                    value = motionSensitivity,
-                    onValueChange = { CompanionPointerBus.setMotionSensitivity(it) },
-                    valueRange = 0.25f..3f,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = { CompanionPointerBus.recenterCursor() },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.recenter))
-                    }
-                    OutlinedButton(
-                        onClick = onCalibrate,
-                        enabled = !isCalibrating,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            if (isCalibrating) {
-                                stringResource(R.string.calibrating)
-                            } else {
-                                stringResource(R.string.calibrate)
-                            },
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = stringResource(R.string.touchpad_sensitivity),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Slider(
-                    value = touchpadSensitivity,
-                    onValueChange = { CompanionPointerBus.setTouchpadSensitivity(it) },
-                    valueRange = 0.25f..3f,
-                )
-                OutlinedButton(
-                    onClick = { CompanionPointerBus.recenterCursor() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.recenter))
-                }
-            }
-
-            if (cursor.hoveredLabel != null) {
-                Text(
-                    text = stringResource(R.string.cursor_over, cursor.hoveredLabel!!),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            if (focusedPanelId != null && launcherForeground) {
-                Text(
-                    text = stringResource(
-                        R.string.workspace_focused_panel,
-                        focusedPanelLabel(focusedPanelId!!),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-                OutlinedButton(
-                    onClick = {
-                        CompanionPointerBus.focusNextPanel(
-                            listOf(
-                                "widget_clock",
-                                "widget_calendar",
-                                "app_drawer",
-                                "hotseat",
-                            ),
-                        )
+                    if (isCalibrating) {
+                        stringResource(R.string.calibrating)
+                    } else {
+                        stringResource(R.string.calibrate)
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.workspace_focus_next))
-                }
-            }
-
-            BoxWithConstraints(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(motionEnabled, desktopPointerReady, touchpadClickSuppressed) {
-                        val useDesktopGestures = desktopPointerReady
-                        var lastTapTime = 0L
-                        var lastTapPos = Offset.Zero
-                        val doubleTapTimeoutMs = 300L
-                        val doubleTapMinTimeMs = 40L
-                        val doubleTapSlop = viewConfiguration.touchSlop * 2f
-
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            var accumulated = Offset.Zero
-                            val touchSlop = viewConfiguration.touchSlop
-                            var dragging = false
-                            val pointerId = down.id
-                            val tapToClick = !useDesktopGestures
-
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Main)
-                                val change = event.changes.firstOrNull { it.id == pointerId } ?: break
-                                if (!change.pressed) {
-                                    when {
-                                        useDesktopGestures -> {
-                                            if (!dragging && !touchpadClickSuppressed) {
-                                                val now = System.currentTimeMillis()
-                                                val isSecondTap = lastTapTime > 0L &&
-                                                    now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
-                                                    (down.position - lastTapPos).getDistance() <= doubleTapSlop
-                                                if (isSecondTap) {
-                                                    lastTapTime = 0L
-                                                    CompanionPointerBus.click(PointerButton.LEFT)
-                                                } else {
-                                                    lastTapTime = now
-                                                    lastTapPos = down.position
-                                                }
-                                            } else if (dragging) {
-                                                lastTapTime = 0L
-                                            }
-                                        }
-                                        tapToClick && !dragging -> CompanionPointerBus.click(PointerButton.LEFT)
-                                    }
-                                    break
-                                }
-                                val delta = change.positionChange()
-                                if (!dragging) {
-                                    accumulated += delta
-                                    if (accumulated.getDistance() > touchSlop) {
-                                        dragging = true
-                                        lastTapTime = 0L
-                                    }
-                                }
-                                if (dragging && !motionEnabled) {
-                                    change.consume()
-                                    CompanionPointerBus.emit(
-                                        PointerEvent(
-                                            action = PointerAction.MOVE,
-                                            deltaX = delta.x,
-                                            deltaY = delta.y,
-                                        ),
-                                    )
-                                }
-                            }
-                        }
-                    },
-            ) {
-                val density = LocalDensity.current
-                val touchpadWidthPx = with(density) { maxWidth.toPx() }
-                val touchpadHeightPx = with(density) { maxHeight.toPx() }
-                val cursorXPx = cursor.x * touchpadWidthPx
-                val cursorYPx = cursor.y * touchpadHeightPx
-                val halfPx = with(density) { cursorStyle.halfDotSize.toPx() }
-
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = when {
-                            motionEnabled -> stringResource(R.string.companion_motion_hint)
-                            desktopPointerReady -> stringResource(R.string.companion_desktop_hint)
-                            else -> stringResource(R.string.companion_hint)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.cursor_position,
-                            (cursor.x * 100).toInt(),
-                            (cursor.y * 100).toInt(),
-                        ),
-                        modifier = Modifier.padding(top = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .offset {
-                            IntOffset(
-                                (cursorXPx - halfPx).roundToInt(),
-                                (cursorYPx - halfPx).roundToInt(),
-                            )
-                        }
-                        .size(cursorStyle.dotSize)
-                        .clip(CircleShape)
-                        .alpha(cursorStyle.dotAlpha)
-                        .background(
-                            if (cursor.isPressed) Color(0xFF6750A4) else Color(0xFF03DAC5),
-                        ),
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                val useHoldLeft = desktopPointerReady
-                if (useHoldLeft) {
-                    HoldablePointerButton(
-                        label = stringResource(R.string.left_click),
-                        modifier = Modifier.weight(1f),
-                        onPress = { CompanionPointerBus.beginLeftButton() },
-                        onRelease = { CompanionPointerBus.endLeftButton() },
-                    )
-                } else {
-                    Button(
-                        onClick = { CompanionPointerBus.click(PointerButton.LEFT) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.left_click))
-                    }
-                }
-                OutlinedButton(
-                    onClick = { CompanionPointerBus.click(PointerButton.RIGHT) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.right_click))
-                }
             }
         }
+    } else {
+        Text(
+            text = stringResource(R.string.touchpad_sensitivity),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = touchpadSensitivity,
+            onValueChange = { CompanionPointerBus.setTouchpadSensitivity(it) },
+            valueRange = 0.25f..3f,
+        )
+        OutlinedButton(
+            onClick = { CompanionPointerBus.recenterCursor() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(stringResource(R.string.recenter))
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceTabContent(
+    cursorHoveredLabel: String?,
+    focusedPanelId: String?,
+    launcherForeground: Boolean,
+) {
+    if (cursorHoveredLabel != null) {
+        Text(
+            text = stringResource(R.string.cursor_over, cursorHoveredLabel),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.secondary,
+        )
+    }
+
+    if (focusedPanelId != null && launcherForeground) {
+        Text(
+            text = stringResource(
+                R.string.workspace_focused_panel,
+                focusedPanelLabel(focusedPanelId),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        OutlinedButton(
+            onClick = {
+                CompanionPointerBus.focusNextPanel(
+                    listOf(
+                        "widget_clock",
+                        "widget_calendar",
+                        "app_drawer",
+                        "hotseat",
+                    ),
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(stringResource(R.string.workspace_focus_next))
+        }
+    } else if (cursorHoveredLabel == null) {
+        Text(
+            text = stringResource(R.string.companion_pointer_active_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -416,42 +439,4 @@ private fun focusedPanelLabel(panelId: String): String = when (panelId) {
     "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
     "empty_slot" -> stringResource(R.string.workspace_empty_slot)
     else -> panelId
-}
-
-@Composable
-private fun HoldablePointerButton(
-    label: String,
-    onPress: () -> Unit,
-    onRelease: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.primary)
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    onPress()
-                    val pointerId = down.id
-                    try {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
-                            if (!change.pressed) break
-                        }
-                    } finally {
-                        onRelease()
-                    }
-                }
-            }
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
 }

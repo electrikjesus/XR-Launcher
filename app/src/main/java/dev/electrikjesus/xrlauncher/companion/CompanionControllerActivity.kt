@@ -45,7 +45,7 @@ class CompanionControllerActivity : ComponentActivity() {
         }
 
         setContent {
-            XRLauncherTheme {
+            XRLauncherTheme(forCompanion = true) {
                 CompanionTouchpadScreen(
                     motionAvailable = motionController.isAvailable,
                     isCalibrating = isCalibrating,
