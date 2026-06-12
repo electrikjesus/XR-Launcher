@@ -212,6 +212,13 @@ fun CompanionTouchpadScreen(
                     .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .pointerInput(motionEnabled, controlMode) {
+                        val desktopDrag = controlMode == GlassesControlMode.DESKTOP
+                        var lastTapTime = 0L
+                        var lastTapPos = Offset.Zero
+                        val doubleTapTimeoutMs = 300L
+                        val doubleTapMinTimeMs = 40L
+                        val doubleTapSlop = viewConfiguration.touchSlop * 2f
+
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             var accumulated = Offset.Zero
@@ -219,13 +226,34 @@ fun CompanionTouchpadScreen(
                             var dragging = false
                             val pointerId = down.id
                             val tapToClick = controlMode == GlassesControlMode.LAUNCHER
+                            var clickDragActive = false
+
+                            if (desktopDrag) {
+                                val now = System.currentTimeMillis()
+                                val isDoubleTap = lastTapTime > 0L &&
+                                    now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
+                                    (down.position - lastTapPos).getDistance() <= doubleTapSlop
+                                if (isDoubleTap) {
+                                    lastTapTime = 0L
+                                    CompanionPointerBus.beginTouchpadDragGesture()
+                                    clickDragActive = true
+                                }
+                            }
 
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Main)
                                 val change = event.changes.firstOrNull { it.id == pointerId } ?: break
                                 if (!change.pressed) {
-                                    if (tapToClick && !dragging) {
-                                        CompanionPointerBus.click(PointerButton.LEFT)
+                                    when {
+                                        desktopDrag -> {
+                                            if (clickDragActive) {
+                                                CompanionPointerBus.endTouchpadDragGesture()
+                                            } else if (!dragging) {
+                                                lastTapTime = System.currentTimeMillis()
+                                                lastTapPos = down.position
+                                            }
+                                        }
+                                        tapToClick && !dragging -> CompanionPointerBus.click(PointerButton.LEFT)
                                     }
                                     break
                                 }
@@ -302,11 +330,21 @@ fun CompanionTouchpadScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Button(
-                    onClick = { CompanionPointerBus.click(PointerButton.LEFT) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.left_click))
+                val useHoldLeft = desktopPointerReady && controlMode == GlassesControlMode.DESKTOP
+                if (useHoldLeft) {
+                    HoldablePointerButton(
+                        label = stringResource(R.string.left_click),
+                        modifier = Modifier.weight(1f),
+                        onPress = { CompanionPointerBus.beginLeftButton() },
+                        onRelease = { CompanionPointerBus.endLeftButton() },
+                    )
+                } else {
+                    Button(
+                        onClick = { CompanionPointerBus.click(PointerButton.LEFT) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.left_click))
+                    }
                 }
                 OutlinedButton(
                     onClick = { CompanionPointerBus.click(PointerButton.RIGHT) },
@@ -316,5 +354,43 @@ fun CompanionTouchpadScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HoldablePointerButton(
+    label: String,
+    onPress: () -> Unit,
+    onRelease: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.primary)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    onPress()
+                    val pointerId = down.id
+                    try {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                            if (!change.pressed) break
+                        }
+                    } finally {
+                        onRelease()
+                    }
+                }
+            }
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }

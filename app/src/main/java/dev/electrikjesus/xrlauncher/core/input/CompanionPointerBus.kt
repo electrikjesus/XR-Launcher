@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import kotlin.math.hypot
 
 enum class PointerAction {
     MOVE,
@@ -50,6 +51,14 @@ data class CompanionCursorState(
 object CompanionPointerBus {
     private const val TOUCHPAD_SENSITIVITY = 0.004f
     private const val MOTION_SENSITIVITY = 0.015f
+    /** Normalized distance above which pointer-up becomes drag instead of click. */
+    private const val DRAG_THRESHOLD = 0.012f
+
+    private var gestureAnchorX: Float? = null
+    private var gestureAnchorY: Float? = null
+    private var gesturePressCount = 0
+    private var leftButtonInGesture = false
+    private var touchpadInGesture = false
 
     private val _events = MutableSharedFlow<PointerEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<PointerEvent> = _events.asSharedFlow()
@@ -118,25 +127,92 @@ object CompanionPointerBus {
 
     fun click(button: PointerButton) {
         val current = _cursor.value
-        val injectOnGlasses =
-            GlassesSessionState.controlMode == GlassesControlMode.DESKTOP &&
-                GlassesSessionState.secondaryDisplayId != null &&
-                DisplayPointerInjector.isAvailable
-
-        if (injectOnGlasses) {
-            DisplayPointerInjector.dispatchClick(
-                GlassesSessionState.secondaryDisplayId!!,
-                current.x,
-                current.y,
-                button,
-            )
-        } else {
-            emitClick(PointerClick(button = button, x = current.x, y = current.y))
+        if (button == PointerButton.LEFT && shouldInjectOnGlasses()) {
+            injectClickAt(current.x, current.y, button)
+            flashPressed()
+            return
         }
+        emitClick(PointerClick(button = button, x = current.x, y = current.y))
         if (button == PointerButton.LEFT) {
-            _cursor.value = current.copy(isPressed = true)
-            _cursor.value = _cursor.value.copy(isPressed = false)
+            flashPressed()
         }
+    }
+
+    /** Touchpad or left-button press — anchor for click vs drag on final release. */
+    fun beginPointerGesture() {
+        val current = _cursor.value
+        if (gesturePressCount++ == 0) {
+            gestureAnchorX = current.x
+            gestureAnchorY = current.y
+        }
+        _cursor.value = current.copy(isPressed = true)
+    }
+
+    fun beginLeftButton() {
+        leftButtonInGesture = true
+        beginPointerGesture()
+    }
+
+    fun endLeftButton() = finishPointerGesture(fromTouchpad = false)
+
+    /** Second tap of a double-tap-and-hold — anchors click-drag on the glasses display. */
+    fun beginTouchpadDragGesture() {
+        touchpadInGesture = true
+        beginPointerGesture()
+    }
+
+    fun endTouchpadDragGesture() {
+        if (!touchpadInGesture) return
+        finishPointerGesture(fromTouchpad = true)
+    }
+
+    private fun finishPointerGesture(fromTouchpad: Boolean) {
+        if (gesturePressCount <= 0) return
+        gesturePressCount--
+        if (gesturePressCount > 0) {
+            _cursor.value = _cursor.value.copy(isPressed = true)
+            return
+        }
+        val startX = gestureAnchorX
+        val startY = gestureAnchorY
+        gestureAnchorX = null
+        gestureAnchorY = null
+        val hadLeftButton = leftButtonInGesture
+        val hadTouchpadDrag = fromTouchpad && touchpadInGesture
+        touchpadInGesture = false
+        leftButtonInGesture = false
+        val end = _cursor.value.copy(isPressed = false)
+        _cursor.value = end
+        if (startX == null || startY == null) return
+        if (!shouldInjectOnGlasses()) return
+        val moved = hypot(end.x - startX, end.y - startY) > DRAG_THRESHOLD
+        when {
+            moved && (hadLeftButton || hadTouchpadDrag) -> DisplayPointerInjector.dispatchDrag(
+                GlassesSessionState.secondaryDisplayId!!,
+                startX,
+                startY,
+                end.x,
+                end.y,
+            )
+            !moved && (hadLeftButton || hadTouchpadDrag) ->
+                injectClickAt(end.x, end.y, PointerButton.LEFT)
+        }
+    }
+
+    private fun shouldInjectOnGlasses(): Boolean =
+        GlassesSessionState.controlMode == GlassesControlMode.DESKTOP &&
+            GlassesSessionState.secondaryDisplayId != null &&
+            DisplayPointerInjector.isAvailable
+
+    private fun injectClickAt(x: Float, y: Float, button: PointerButton) {
+        val displayId = GlassesSessionState.secondaryDisplayId ?: return
+        DisplayPointerInjector.dispatchClick(displayId, x, y, button)
+    }
+
+    private fun flashPressed() {
+        val current = _cursor.value
+        _cursor.value = current.copy(isPressed = true)
+        _cursor.value = current.copy(isPressed = false)
     }
 
     fun clickAt(x: Float, y: Float, button: PointerButton) {
@@ -174,6 +250,11 @@ object CompanionPointerBus {
     }
 
     fun resetCursor() {
+        gestureAnchorX = null
+        gestureAnchorY = null
+        gesturePressCount = 0
+        leftButtonInGesture = false
+        touchpadInGesture = false
         _cursor.value = CompanionCursorState()
         _motionSensitivity.value = 1f
         _glassesControlMode.value = GlassesSessionState.controlMode

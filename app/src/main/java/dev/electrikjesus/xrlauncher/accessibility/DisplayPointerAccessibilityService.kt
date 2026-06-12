@@ -79,6 +79,39 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         return dispatchGesture(gesture, null, null)
     }
 
+    fun dispatchDrag(
+        displayId: Int,
+        fromNormalizedX: Float,
+        fromNormalizedY: Float,
+        toNormalizedX: Float,
+        toNormalizedY: Float,
+    ): Boolean {
+        val displayManager = getSystemService(DisplayManager::class.java)
+        val display = displayManager.getDisplay(displayId) ?: return false
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        val w = metrics.widthPixels.toFloat()
+        val h = metrics.heightPixels.toFloat()
+        val x1 = (fromNormalizedX * w).coerceIn(0f, w)
+        val y1 = (fromNormalizedY * h).coerceIn(0f, h)
+        val x2 = (toNormalizedX * w).coerceIn(0f, w)
+        val y2 = (toNormalizedY * h).coerceIn(0f, h)
+
+        val path = Path().apply {
+            moveTo(x1, y1)
+            lineTo(x2, y2)
+        }
+        val stroke = GestureDescription.StrokeDescription(path, 0, DRAG_DURATION_MS)
+        val gesture = GestureDescription.Builder()
+            .setDisplayId(displayId)
+            .addStroke(stroke)
+            .build()
+
+        Log.d(TAG, "dispatchDrag display=$displayId ($x1,$y1)->($x2,$y2)")
+        return dispatchGesture(gesture, null, null)
+    }
+
     private fun syncOverlay(
         normalizedX: Float,
         normalizedY: Float,
@@ -103,5 +136,6 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "XRLauncher/DisplayPointer"
         private const val TAP_DURATION_MS = 50L
+        private const val DRAG_DURATION_MS = 250L
     }
 }

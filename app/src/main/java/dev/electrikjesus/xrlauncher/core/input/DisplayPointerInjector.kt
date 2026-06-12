@@ -22,4 +22,20 @@ object DisplayPointerInjector {
     fun dispatchClick(displayId: Int, normalizedX: Float, normalizedY: Float, button: PointerButton): Boolean {
         return service?.dispatchClick(displayId, normalizedX, normalizedY, button) ?: false
     }
+
+    fun dispatchDrag(
+        displayId: Int,
+        fromNormalizedX: Float,
+        fromNormalizedY: Float,
+        toNormalizedX: Float,
+        toNormalizedY: Float,
+    ): Boolean {
+        return service?.dispatchDrag(
+            displayId,
+            fromNormalizedX,
+            fromNormalizedY,
+            toNormalizedX,
+            toNormalizedY,
+        ) ?: false
+    }
 }
