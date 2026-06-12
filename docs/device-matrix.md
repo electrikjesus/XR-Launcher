@@ -58,7 +58,8 @@ Run after each glasses-session change; mark in commit or PR notes.
 | 2D mode resolution | 1920×1080 | |
 | 3D mode resolution / layout | N/A (2D desktop path) | |
 | `ProjectedContext.isProjectedDeviceConnected` | ☐ Not tested | Tier 1 `EXTERNAL_DISPLAY`, not `XR_PROJECTED` |
-| `android.software.xr.api.spatial` | ☐ No (expected on phone) | `preferSubspaceShell=false` → flat 2.5D shell |
+| `android.software.xr.api.spatial` | ☑ No | `preferSubspaceShell=false` → flat 2.5D shell |
+| Subspace forced on EXTERNAL (spike) | ☑ **No inner compose** | display 14: `outerComposed=true`, `innerComposed=false`; black + cursor only |
 | Launch activity on glasses display | ☑ Yes | `ExternalDisplayActivity` via `setLaunchDisplayId` + launch bounds |
 | OEM multi-window / freeform | ☑ Yes | Desktop Mode; `singleTask` + inject frame for click aim |
 | IMU via projected `SensorManager` | N/A | Phone gyro for motion pointer |

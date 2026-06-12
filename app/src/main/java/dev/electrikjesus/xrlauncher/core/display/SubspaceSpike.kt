@@ -11,8 +11,12 @@ object SubspaceSpike {
     /**
      * When true (debug builds only), glasses session uses [GlassesWorkspaceScreen]
      * even if `android.software.xr.api.spatial` is absent.
+     *
+     * Pixel 8 + RayNeo spike (2026-06-12): outer 2D shell composes but inner
+     * `Subspace { }` never runs (`innerComposed=false`) — black screen, cursor only,
+     * tiny orange banner top-left. Keep false; use flat shell on EXTERNAL Tier 1.
      */
-    const val FORCE_ON_EXTERNAL_DEBUG = true
+    const val FORCE_ON_EXTERNAL_DEBUG = false
 
     data class Decision(
         val hasSpatialApi: Boolean,
