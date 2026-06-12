@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- RayNeo AR Glasses — VID 0x1BBB / PID 0xAF50 (7099 / 44880) -->
+    <usb-device vendor-id="7099" product-id="44880" />
+</resources>

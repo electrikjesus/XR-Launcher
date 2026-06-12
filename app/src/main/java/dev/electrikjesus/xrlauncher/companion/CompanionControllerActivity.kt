@@ -13,8 +13,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.MotionPointerController
+import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
+import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.companion.CompanionTouchpadScreen
@@ -30,6 +34,8 @@ class CompanionControllerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        HeadTrackingCalibrationStore.init(this)
+        CompanionPointerBus.initHeadTrackingControls(this)
 
         motionController = MotionPointerController(this) { deltaX, deltaY ->
             if (CompanionPointerBus.motionControlEnabled.value) {
@@ -40,11 +46,28 @@ class CompanionControllerActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 CompanionPointerBus.motionControlEnabled.collect { enabled ->
-                    if (enabled) {
+                    if (enabled && GlassesSessionState.xrInputMode == GlassesXrInputMode.COMPANION) {
                         motionController.start()
                         runCalibration()
                     } else {
                         motionController.stop()
+                    }
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                GlassesSessionState.xrInputModeFlow.collect { mode ->
+                    when (mode) {
+                        GlassesXrInputMode.GLASSES_HEAD_TRACKING -> {
+                            CompanionPointerBus.setMotionControlEnabled(false)
+                            CompanionPointerBus.recenterCursor()
+                            RayNeoHeadTrackingController.start(this@CompanionControllerActivity)
+                        }
+                        GlassesXrInputMode.COMPANION -> {
+                            RayNeoHeadTrackingController.stop()
+                        }
                     }
                 }
             }
@@ -86,6 +109,7 @@ class CompanionControllerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         motionController.stop()
+        RayNeoHeadTrackingController.shutdown(this)
         super.onDestroy()
     }
 

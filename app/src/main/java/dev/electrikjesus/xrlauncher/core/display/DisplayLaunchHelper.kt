@@ -11,6 +11,7 @@ import android.view.Display
 import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
@@ -99,6 +100,7 @@ object DisplayLaunchHelper {
 
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
+        GlassesSessionState.rayNeoUsbAttached = RayNeoHeadTrackingController.isRayNeoAttached(context)
         GlassesSessionState.secondaryDisplayId = displayId
         val subspaceDecision = SubspaceSpike.resolvePreferSubspace(context)
         GlassesSessionState.subspaceDecision = subspaceDecision

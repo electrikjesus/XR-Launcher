@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.display
 
+import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,6 +81,20 @@ object GlassesSessionState {
         allAppsOverlayVisible = !allAppsOverlayVisible
     }
 
+    private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
+    val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
+
+    var xrInputMode: GlassesXrInputMode
+        get() = _xrInputMode.value
+        set(value) {
+            if (_xrInputMode.value != value) {
+                _xrInputMode.value = value
+            }
+        }
+
+    /** Whether RayNeo USB HID IMU was detected the last time we checked. */
+    var rayNeoUsbAttached: Boolean = false
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
@@ -94,5 +109,8 @@ object GlassesSessionState {
         subspaceOuterComposed = false
         subspaceInnerComposed = false
         allAppsOverlayVisible = false
+        _xrInputMode.value = GlassesXrInputMode.COMPANION
+        rayNeoUsbAttached = false
+        RayNeoHeadTrackingController.stop()
     }
 }

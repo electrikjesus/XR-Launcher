@@ -6,8 +6,14 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import android.content.Context
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
+import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationSession
+import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
+import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
+import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import kotlin.math.hypot
 
@@ -54,6 +60,8 @@ object CompanionPointerBus {
     private const val MOTION_SENSITIVITY = 0.015f
     /** Degrees of look per normalized touchpad pixel in launcher mouse-look mode. */
     private const val LOOK_SENSITIVITY = 0.06f
+    /** Normalized cursor delta per degree of head rotation (mouse-look pan on the cylinder). */
+    private const val GLASSES_IMU_CURSOR_SENSITIVITY = 0.011f
     /** Normalized distance above which pointer-up becomes drag instead of click. */
     private const val DRAG_THRESHOLD = 0.012f
 
@@ -89,6 +97,16 @@ object CompanionPointerBus {
 
     private val _touchpadSensitivity = MutableStateFlow(1f)
     val touchpadSensitivity: StateFlow<Float> = _touchpadSensitivity.asStateFlow()
+
+    private val _glassesImuMovementScales =
+        MutableStateFlow(HeadTrackingMovementScales.defaults())
+    val glassesImuMovementScales: StateFlow<HeadTrackingMovementScales> =
+        _glassesImuMovementScales.asStateFlow()
+
+    fun initHeadTrackingControls(context: Context) {
+        HeadTrackingSensitivityStore.init(context)
+        _glassesImuMovementScales.value = HeadTrackingSensitivityStore.current()
+    }
 
     private val _glassesControlMode = MutableStateFlow(GlassesSessionState.controlMode)
     val glassesControlMode: StateFlow<GlassesControlMode> = _glassesControlMode.asStateFlow()
@@ -145,6 +163,53 @@ object CompanionPointerBus {
     fun lookByMotion(deltaX: Float, deltaY: Float) {
         val scale = MOTION_SENSITIVITY * _motionSensitivity.value
         WorkspaceLookOffset.addDelta(-deltaY * scale, -deltaX * scale)
+    }
+
+    /**
+     * Glasses USB HID gyro → mouse-look view pan (same path as touchpad cursor on the cylinder).
+     * Does not touch persisted look-left/right sliders or scene rotation offsets.
+     */
+    fun applyGlassesImuSample(
+        gyroXDps: Float,
+        gyroYDps: Float,
+        gyroZDps: Float,
+        deltaTimeSec: Float,
+    ) {
+        if (GlassesSessionState.xrInputMode != GlassesXrInputMode.GLASSES_HEAD_TRACKING) return
+
+        if (HeadTrackingCalibrationSession.isActive) {
+            HeadTrackingCalibrationSession.feedSample(gyroXDps, gyroYDps, gyroZDps)
+            return
+        }
+
+        val scales = _glassesImuMovementScales.value
+        val base = GLASSES_IMU_CURSOR_SENSITIVITY
+        val dt = deltaTimeSec.coerceIn(0.001f, 0.05f)
+        val calibration = HeadTrackingCalibrationStore.current()
+        val (yawRate, pitchRate) = calibration.mapGyroRates(gyroXDps, gyroYDps, gyroZDps)
+        moveBy(
+            yawRate * dt * base * scales.yawScale,
+            pitchRate * dt * base * scales.pitchScale,
+        )
+    }
+
+    fun setGlassesImuYawScale(value: Float) {
+        HeadTrackingSensitivityStore.saveYaw(value)
+        _glassesImuMovementScales.value = HeadTrackingSensitivityStore.current()
+    }
+
+    fun setGlassesImuPitchScale(value: Float) {
+        HeadTrackingSensitivityStore.savePitch(value)
+        _glassesImuMovementScales.value = HeadTrackingSensitivityStore.current()
+    }
+
+    fun resetGlassesImuMovementScales() {
+        HeadTrackingSensitivityStore.resetToDefaults()
+        _glassesImuMovementScales.value = HeadTrackingSensitivityStore.current()
+    }
+
+    fun recenterHeadLook() {
+        recenterCursor()
     }
 
     /** Launcher cylinder view: cursor at screen edge pans across the wide canvas (no desktop overlay). */

@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher
 
 import android.content.Intent
 import android.hardware.display.DisplayManager
+import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +10,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dev.electrikjesus.xrlauncher.core.capability.CapabilityDetector
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
+import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +39,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        handleUsbIntent(intent)
     }
 
     override fun onResume() {
@@ -50,7 +55,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         refreshCapabilities()
+        handleUsbIntent(intent)
+    }
+
+    private fun handleUsbIntent(intent: Intent?) {
+        if (intent?.action != UsbManager.ACTION_USB_DEVICE_ATTACHED) return
+        GlassesSessionState.rayNeoUsbAttached = RayNeoHeadTrackingController.isRayNeoAttached(this)
+        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+            RayNeoHeadTrackingController.start(this)
+        }
     }
 
     private fun refreshCapabilities() {

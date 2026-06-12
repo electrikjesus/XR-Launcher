@@ -1,5 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -128,6 +130,20 @@ class WorkspaceWraparoundTest {
             assertEquals(-1f, WorkspaceWraparound.effectiveLookPitch(appearance), 0.001f)
         } finally {
             WorkspaceLookOffset.reset()
+        }
+    }
+
+    @Test
+    fun effectiveLook_isZeroWhenGlassesHeadTrackingActive() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        WorkspaceLookOffset.setOffset(12f, 8f)
+        try {
+            val appearance = WorkspaceAppearance(lookYawDegrees = 20f, lookPitchDegrees = 5f)
+            assertEquals(0f, WorkspaceWraparound.effectiveLookYaw(appearance), 0.001f)
+            assertEquals(0f, WorkspaceWraparound.effectiveLookPitch(appearance), 0.001f)
+        } finally {
+            WorkspaceLookOffset.reset()
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
         }
     }
 }

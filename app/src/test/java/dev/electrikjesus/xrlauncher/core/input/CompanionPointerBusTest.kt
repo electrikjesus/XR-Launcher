@@ -1,10 +1,13 @@
 package dev.electrikjesus.xrlauncher.core.input
 
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.math.abs
 
 class CompanionPointerBusTest {
     @Before
@@ -149,6 +152,62 @@ class CompanionPointerBusTest {
         CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
         CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
         assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
+    }
+
+    @Test
+    fun applyGlassesImuSample_movesCursorWhenHeadTrackingActive() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        try {
+            CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+            CompanionPointerBus.applyGlassesImuSample(
+                gyroXDps = 0f,
+                gyroYDps = -30f,
+                gyroZDps = 0f,
+                deltaTimeSec = 0.016f,
+            )
+            assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
+        } finally {
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+            CompanionPointerBus.resetCursor()
+        }
+    }
+
+    @Test
+    fun applyGlassesImuSample_usesSeparateYawAndPitchScales() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        try {
+            CompanionPointerBus.setGlassesImuYawScale(0.5f)
+            CompanionPointerBus.setGlassesImuPitchScale(1.5f)
+            CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+            CompanionPointerBus.applyGlassesImuSample(
+                gyroXDps = -30f,
+                gyroYDps = -30f,
+                gyroZDps = 0f,
+                deltaTimeSec = 0.016f,
+            )
+            val x = CompanionPointerBus.cursor.value.x
+            val y = CompanionPointerBus.cursor.value.y
+            assertTrue(x > 0.5f)
+            assertTrue(y > 0.5f)
+            assertTrue(abs(y - 0.5f) > abs(x - 0.5f))
+        } finally {
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+            CompanionPointerBus.resetGlassesImuMovementScales()
+            CompanionPointerBus.resetCursor()
+        }
+    }
+
+    @Test
+    fun applyGlassesImuSample_ignoredInCompanionMode() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        CompanionPointerBus.applyGlassesImuSample(
+            gyroXDps = 0f,
+            gyroYDps = 30f,
+            gyroZDps = 0f,
+            deltaTimeSec = 0.016f,
+        )
+        assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
     }
 
     @Test

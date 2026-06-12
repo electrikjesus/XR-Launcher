@@ -44,6 +44,7 @@ fun CompanionTouchpadSurface(
     motionEnabled: Boolean,
     desktopPointerReady: Boolean,
     touchpadClickSuppressed: Boolean,
+    headTrackingActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
@@ -147,6 +148,7 @@ fun CompanionTouchpadSurface(
             ) {
                 Text(
                     text = when {
+                        headTrackingActive -> stringResource(R.string.companion_head_tracking_hint)
                         motionEnabled -> stringResource(R.string.companion_motion_hint)
                         desktopPointerReady -> stringResource(R.string.companion_desktop_hint)
                         CompanionPointerBus.usesLauncherCylinderNavigation() ->

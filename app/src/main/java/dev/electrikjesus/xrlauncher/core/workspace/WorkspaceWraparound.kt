@@ -1,5 +1,8 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
+
 /**
  * Legacy facade — delegates to [WorkspaceCylinderGeometry] for inner-cylinder math.
  */
@@ -110,13 +113,17 @@ object WorkspaceWraparound {
         cursorX, cursorY, lookYawDegrees, lookPitchDegrees, workspaceWidth, workspaceHeight,
     )
 
-    fun effectiveLookYaw(appearance: WorkspaceAppearance): Float =
-        (appearance.lookYawDegrees + WorkspaceLookOffset.yawDegrees)
+    fun effectiveLookYaw(appearance: WorkspaceAppearance): Float {
+        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) return 0f
+        return (appearance.lookYawDegrees + WorkspaceLookOffset.yawDegrees)
             .coerceIn(WorkspaceAppearance.MIN_LOOK_YAW, WorkspaceAppearance.MAX_LOOK_YAW)
+    }
 
-    fun effectiveLookPitch(appearance: WorkspaceAppearance): Float =
-        (appearance.lookPitchDegrees + WorkspaceLookOffset.pitchDegrees)
+    fun effectiveLookPitch(appearance: WorkspaceAppearance): Float {
+        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) return 0f
+        return (appearance.lookPitchDegrees + WorkspaceLookOffset.pitchDegrees)
             .coerceIn(WorkspaceAppearance.MIN_LOOK_PITCH, WorkspaceAppearance.MAX_LOOK_PITCH)
+    }
 }
 
 object WorkspaceLookOffset {
