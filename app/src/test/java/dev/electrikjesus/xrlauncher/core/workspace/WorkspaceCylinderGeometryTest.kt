@@ -82,4 +82,48 @@ class WorkspaceCylinderGeometryTest {
         assertEquals(-20f, camera.yawDegrees, 0.001f)
         assertEquals(5f, camera.pitchDegrees, 0.001f)
     }
+
+    @Test
+    fun panelWorldFrame_centerPanelStandsOffFromViewer() {
+        val center = WorkspaceCylinderGeometry.panelWorldFrame(
+            centerXNorm = 0.5f,
+            centerYNorm = 0.5f,
+            widthNorm = 0.3f,
+            heightNorm = 0.25f,
+            curvature = 0.35f,
+            workspaceWidth = 1f,
+            workspaceHeight = 0.7f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertTrue(center.positionZ < -0.5f)
+    }
+
+    @Test
+    fun panelWorldFrame_edgePanelRecedesOnZ() {
+        val edge = WorkspaceCylinderGeometry.panelWorldFrame(
+            centerXNorm = 0f,
+            centerYNorm = 0.5f,
+            widthNorm = 0.3f,
+            heightNorm = 0.25f,
+            curvature = 1f,
+            workspaceWidth = 1f,
+            workspaceHeight = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        val center = WorkspaceCylinderGeometry.panelWorldFrame(
+            centerXNorm = 0.5f,
+            centerYNorm = 0.5f,
+            widthNorm = 0.3f,
+            heightNorm = 0.25f,
+            curvature = 1f,
+            workspaceWidth = 1f,
+            workspaceHeight = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertTrue(edge.positionZ < center.positionZ)
+        assertTrue(edge.scale < center.scale)
+    }
 }

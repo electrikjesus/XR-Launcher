@@ -6,35 +6,39 @@ import kotlin.math.sin
 /**
  * Viewer-inside inner-cylinder placement for workspace panels.
  *
- * The viewer sits at the cylinder axis; panels live on the inner wall and rotate to face
- * the viewer. Rotations use Compose/Android conventions (negated arc angles vs raw θ).
+ * Curvature controls how far panels wrap around the arc; radius and standoff keep the
+ * wall at a comfortable distance so panels stay selectable and readable.
  */
 object WorkspaceCylinderGeometry {
     /** Horizontal arc span (degrees) at curvature = 1, span = 1. */
-    const val MAX_ARC_YAW_DEGREES = 78f
+    const val MAX_ARC_YAW_DEGREES = 72f
 
     /** Vertical arc span (degrees) at curvature = 1, span = 1. */
-    const val MAX_ARC_PITCH_DEGREES = 28f
+    const val MAX_ARC_PITCH_DEGREES = 26f
 
-    /** Default perspective focal length as a multiple of viewport width. */
-    const val FOCAL_LENGTH_VIEWPORT_FRACTION = 1.35f
+    /** Compose / perspective focal length as a multiple of viewport width. */
+    const val FOCAL_LENGTH_VIEWPORT_FRACTION = 2.85f
 
-    /** Cylinder radius as a fraction of half the viewport width. */
-    const val RADIUS_X_FRACTION = 0.88f
+    /**
+     * Forward distance from viewer to the center of the front wall, as a fraction of viewport width.
+     * Keeps center panels off the camera plane.
+     */
+    const val BASE_WALL_DEPTH_FRACTION = 1.65f
 
-    /** Cylinder radius as a fraction of half the viewport height. */
-    const val RADIUS_Y_FRACTION = 0.55f
+    /** Inner-cylinder horizontal radius multiplier (× half viewport width). */
+    const val RADIUS_X_FRACTION = 2.35f
+
+    /** Inner-cylinder vertical radius multiplier (× half viewport height). */
+    const val RADIUS_Y_FRACTION = 1.45f
+
+    /** Floor for curvature when scaling radius/depth so low wrap values still feel spacious. */
+    const val MIN_CURVATURE_BLEND = 0.5f
 
     data class PanelPlacement(
-        /** Extra horizontal shift (px) from flat slot toward the inner arc. */
         val arcShiftXPx: Float,
-        /** Extra vertical shift (px) from flat slot toward the inner arc. */
         val arcShiftYPx: Float,
-        /** Y rotation (degrees) so the panel faces the viewer. */
         val rotationYDeg: Float,
-        /** X rotation (degrees) for vertical arc. */
         val rotationXDeg: Float,
-        /** Perspective foreshortening scale. */
         val scale: Float,
     )
 
@@ -45,7 +49,61 @@ object WorkspaceCylinderGeometry {
         val panNormY: Float,
     )
 
-    fun panelPlacement(
+    data class WallPoint(
+        val xPx: Float,
+        val yPx: Float,
+        /** Distance into the scene from the viewer (always positive). */
+        val depthPx: Float,
+        val rotationYDeg: Float,
+        val rotationXDeg: Float,
+        val foreshorten: Float,
+    )
+
+    /** World-space panel frame for GLES quads (viewer at origin, −Z into the scene). */
+    data class PanelWorldFrame(
+        val positionX: Float,
+        val positionY: Float,
+        val positionZ: Float,
+        val rotationYDeg: Float,
+        val rotationXDeg: Float,
+        val widthScene: Float,
+        val heightScene: Float,
+        val scale: Float,
+    )
+
+    internal fun curvatureBlend(curvature: Float): Float {
+        val c = curvature.coerceIn(0f, 1f)
+        return MIN_CURVATURE_BLEND + (1f - MIN_CURVATURE_BLEND) * c
+    }
+
+    internal fun baseDepthPx(viewportWidthPx: Float, curvature: Float): Float =
+        viewportWidthPx * BASE_WALL_DEPTH_FRACTION * curvatureBlend(curvature)
+
+    internal fun horizontalRadiusPx(
+        viewportWidthPx: Float,
+        spanX: Float,
+        curvature: Float,
+    ): Float = viewportWidthPx * 0.5f * RADIUS_X_FRACTION * spanX * curvatureBlend(curvature)
+
+    internal fun verticalRadiusPx(
+        viewportHeightPx: Float,
+        spanY: Float,
+        curvature: Float,
+    ): Float = viewportHeightPx * 0.5f * RADIUS_Y_FRACTION * spanY * curvatureBlend(curvature)
+
+    /** Normalized GL scene radius on X (matches [panelWorldFrame] units). */
+    fun sceneRadiusX(viewportWidthPx: Float, spanX: Float, curvature: Float): Float {
+        if (viewportWidthPx <= 0f) return 0f
+        return horizontalRadiusPx(viewportWidthPx, spanX, curvature) / (viewportWidthPx * 0.5f)
+    }
+
+    /** Normalized GL scene base depth (matches [panelWorldFrame] units). */
+    fun sceneBaseDepth(viewportWidthPx: Float, curvature: Float): Float {
+        if (viewportWidthPx <= 0f) return 0f
+        return baseDepthPx(viewportWidthPx, curvature) / (viewportWidthPx * 0.5f)
+    }
+
+    fun wallPoint(
         centerXNorm: Float,
         centerYNorm: Float,
         curvature: Float,
@@ -53,11 +111,9 @@ object WorkspaceCylinderGeometry {
         workspaceHeight: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
-    ): PanelPlacement {
+    ): WallPoint? {
         val c = curvature.coerceIn(0f, 1f)
-        if (c <= 0f || viewportWidthPx <= 0f || viewportHeightPx <= 0f) {
-            return PanelPlacement(0f, 0f, 0f, 0f, 1f)
-        }
+        if (c <= 0f || viewportWidthPx <= 0f || viewportHeightPx <= 0f) return null
 
         val spanX = workspaceWidth.coerceIn(
             WorkspaceAppearance.MIN_WORKSPACE_SPAN,
@@ -70,48 +126,113 @@ object WorkspaceCylinderGeometry {
 
         val halfArcYawRad = Math.toRadians((MAX_ARC_YAW_DEGREES * c * spanX) / 2.0)
         val halfArcPitchRad = Math.toRadians((MAX_ARC_PITCH_DEGREES * c * spanY) / 2.0)
-
-        // u = 0 left, 1 right → negative θ on left, positive on right (viewer at center).
         val thetaYaw = (centerXNorm - 0.5f) * 2f * halfArcYawRad.toFloat()
         val thetaPitch = (centerYNorm - 0.5f) * 2f * halfArcPitchRad.toFloat()
 
-        val radiusX = viewportWidthPx * 0.5f * RADIUS_X_FRACTION * c * spanX
-        val radiusY = viewportHeightPx * 0.5f * RADIUS_Y_FRACTION * c * spanY
+        val radiusX = horizontalRadiusPx(viewportWidthPx, spanX, c)
+        val radiusY = verticalRadiusPx(viewportHeightPx, spanY, c)
+        val baseDepth = baseDepthPx(viewportWidthPx, c)
+
+        // Inner wall: center panel sits at baseDepth; edges wrap on the arc.
+        val xPx = radiusX * sin(thetaYaw)
+        val depthPx = baseDepth + radiusX * (1f - cos(thetaYaw))
+        val yPx = radiusY * sin(thetaPitch)
+
+        val rotationYDeg = Math.toDegrees(-thetaYaw.toDouble()).toFloat()
+        val rotationXDeg = Math.toDegrees(-thetaPitch.toDouble()).toFloat()
+        val foreshorten = (cos(thetaYaw) * cos(thetaPitch)).coerceIn(0.65f, 1f)
+
+        return WallPoint(
+            xPx = xPx,
+            yPx = yPx,
+            depthPx = depthPx,
+            rotationYDeg = rotationYDeg,
+            rotationXDeg = rotationXDeg,
+            foreshorten = foreshorten,
+        )
+    }
+
+    fun panelWorldFrame(
+        centerXNorm: Float,
+        centerYNorm: Float,
+        widthNorm: Float,
+        heightNorm: Float,
+        curvature: Float,
+        workspaceWidth: Float,
+        workspaceHeight: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+    ): PanelWorldFrame {
+        val wall = wallPoint(
+            centerXNorm, centerYNorm, curvature, workspaceWidth, workspaceHeight,
+            viewportWidthPx, viewportHeightPx,
+        )
+        if (wall == null) {
+            return PanelWorldFrame(
+                positionX = (centerXNorm - 0.5f) * 2f,
+                positionY = (centerYNorm - 0.5f) * 2f,
+                positionZ = 0f,
+                rotationYDeg = 0f,
+                rotationXDeg = 0f,
+                widthScene = widthNorm * 2f,
+                heightScene = heightNorm * 2f,
+                scale = 1f,
+            )
+        }
+
+        val placement = panelPlacement(
+            centerXNorm, centerYNorm, curvature, workspaceWidth, workspaceHeight,
+            viewportWidthPx, viewportHeightPx,
+        )
+        val halfW = viewportWidthPx / 2f
+        val halfH = viewportHeightPx / 2f
+
+        return PanelWorldFrame(
+            positionX = wall.xPx / halfW,
+            positionY = wall.yPx / halfH,
+            positionZ = -wall.depthPx / halfW,
+            rotationYDeg = wall.rotationYDeg,
+            rotationXDeg = wall.rotationXDeg,
+            widthScene = widthNorm * 2f,
+            heightScene = heightNorm * 2f,
+            scale = placement.scale,
+        )
+    }
+
+    fun panelPlacement(
+        centerXNorm: Float,
+        centerYNorm: Float,
+        curvature: Float,
+        workspaceWidth: Float,
+        workspaceHeight: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+    ): PanelPlacement {
+        val wall = wallPoint(
+            centerXNorm, centerYNorm, curvature, workspaceWidth, workspaceHeight,
+            viewportWidthPx, viewportHeightPx,
+        ) ?: return PanelPlacement(0f, 0f, 0f, 0f, 1f)
+
         val focal = viewportWidthPx * FOCAL_LENGTH_VIEWPORT_FRACTION
+        val perspective = (focal / (focal + wall.depthPx)).coerceIn(0.55f, 1f)
 
-        // Inner wall point in viewer space (+Z toward viewer, wall recedes at edges).
-        val wallX = radiusX * sin(thetaYaw)
-        val wallZ = radiusX * (1f - cos(thetaYaw))
-        val wallY = radiusY * sin(thetaPitch)
-
-        val depth = wallZ.coerceAtLeast(0f)
-        val perspective = (focal / (focal + depth)).coerceIn(0.72f, 1f)
-
-        // Flat layout center in px (freeform / normalized slots).
         val flatCenterX = (centerXNorm - 0.5f) * viewportWidthPx
         val flatCenterY = (centerYNorm - 0.5f) * viewportHeightPx
 
-        // Project arc position; shift is delta from flat slot.
-        val projectedX = wallX * perspective
-        val projectedY = wallY * perspective + flatCenterY * (1f - perspective) * 0.35f
+        val projectedX = wall.xPx * perspective
+        val projectedY = wall.yPx * perspective + flatCenterY * (1f - perspective) * 0.15f
         val arcShiftX = projectedX - flatCenterX * perspective
         val arcShiftY = projectedY - flatCenterY * perspective
-
-        // Face the viewer: invert yaw/pitch vs raw arc angle (fixes outward-bend bug).
-        val rotationYDeg = Math.toDegrees(-thetaYaw.toDouble()).toFloat()
-        val rotationXDeg = Math.toDegrees(-thetaPitch.toDouble()).toFloat()
-        val foreshorten = (cos(thetaYaw) * cos(thetaPitch)).coerceIn(0.72f, 1f)
 
         return PanelPlacement(
             arcShiftXPx = arcShiftX,
             arcShiftYPx = arcShiftY,
-            rotationYDeg = rotationYDeg,
-            rotationXDeg = rotationXDeg,
-            scale = perspective * foreshorten,
+            rotationYDeg = wall.rotationYDeg,
+            rotationXDeg = wall.rotationXDeg,
+            scale = perspective * wall.foreshorten,
         )
     }
 
-    /** Cursor-only pan; look is applied as scene camera rotation. */
     fun cursorPanNorm(
         cursorX: Float,
         cursorY: Float,
