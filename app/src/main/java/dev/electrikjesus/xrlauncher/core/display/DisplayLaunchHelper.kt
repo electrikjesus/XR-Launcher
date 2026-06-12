@@ -102,15 +102,17 @@ object DisplayLaunchHelper {
         CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
 
         openCompanionController(context)
-        val workspaceLaunched = launchActivityOnDisplay(
+        launchActivityOnDisplay(
             context = context,
             activityClass = ExternalDisplayActivity::class.java,
             displayId = displayId,
         )
-        if (workspaceLaunched) {
-            Log.d(TAG, "Opened glasses session on displayId=$displayId")
+        // CLEAR_TOP relaunch lands fullscreen on Desktop Mode (not freeform) — verified on Pixel 8.
+        val fullscreen = showLauncherOnGlasses(context)
+        if (fullscreen) {
+            Log.d(TAG, "Opened glasses session on displayId=$displayId (fullscreen relaunch)")
         }
-        return workspaceLaunched
+        return fullscreen
     }
 
     fun showLauncherOnGlasses(context: Context): Boolean {

@@ -1,11 +1,21 @@
 package dev.electrikjesus.xrlauncher.core.input
 
 import dev.electrikjesus.xrlauncher.accessibility.DisplayPointerAccessibilityService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-/** Bridges companion clicks to the optional accessibility display-pointer service. */
+/** Bridges companion pointer state to the accessibility display-pointer service. */
 object DisplayPointerInjector {
+    private val _isAvailable = MutableStateFlow(false)
+    val isAvailableFlow: StateFlow<Boolean> = _isAvailable.asStateFlow()
+
     @Volatile
     var service: DisplayPointerAccessibilityService? = null
+        set(value) {
+            field = value
+            _isAvailable.value = value != null
+        }
 
     val isAvailable: Boolean get() = service != null
 

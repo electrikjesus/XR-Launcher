@@ -11,17 +11,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.CursorStyles
 import kotlin.math.roundToInt
 
+/** In-activity cursor for Launcher mode on the glasses display. */
 @Composable
-fun ExternalCursorDot(modifier: Modifier = Modifier) {
+fun ExternalCursorDot(
+    modifier: Modifier = Modifier,
+) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
+    val style = CursorStyles.launcher
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -29,17 +34,19 @@ fun ExternalCursorDot(modifier: Modifier = Modifier) {
         val rootHeightPx = with(density) { maxHeight.toPx() }
         val cursorXPx = cursor.x * rootWidthPx
         val cursorYPx = cursor.y * rootHeightPx
+        val halfPx = with(density) { style.halfDotSize.toPx() }
 
         Box(
             modifier = Modifier
                 .offset {
                     IntOffset(
-                        (cursorXPx - with(density) { 12.dp.toPx() }).roundToInt(),
-                        (cursorYPx - with(density) { 12.dp.toPx() }).roundToInt(),
+                        (cursorXPx - halfPx).roundToInt(),
+                        (cursorYPx - halfPx).roundToInt(),
                     )
                 }
-                .size(24.dp)
+                .size(style.dotSize)
                 .clip(CircleShape)
+                .alpha(style.dotAlpha)
                 .background(
                     if (cursor.isPressed) Color(0xFFBB86FC) else Color(0xFF03DAC5),
                 ),

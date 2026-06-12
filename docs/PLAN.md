@@ -301,7 +301,7 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | Motion pointer | ☑ Direction feels correct (laser-pointer invert applied); ☐ corner reach / drift needs calibration |
 | External display window | ☐ Freeform — task `mBounds=Rect(269, 113 – 1651, 890)` on 1920×1080; **two freeform windows** if overlay activity launched separately (fixed in 1.19) |
 | Display-level pointer | ☐ Partial — Desktop mode + accessibility inject; cursor not visible over other apps without overlay (see 1.21) |
-| Glasses workspace UX | ☐ Flat black app list only — needs 3D spatial desktop (see 1.22) |
+| Glasses workspace UX | ☐ Spatial shell (wallpaper, icons, hotseat, widget stub) — task 1.22a; full Subspace TBD |
 
 **Exit criteria:** One glasses window; tap/buttons work; optional desktop pointer; path documented for fullscreen + 3D workspace.
 
@@ -313,8 +313,8 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 | 1.18 | **Re-test full glasses session** after 1.15–1.19; update `device-matrix.md`. | ☐ |
 | 1.19 | **Single glasses activity** — one `ExternalDisplayActivity` per display (no separate cursor overlay task). | ☑ |
 | 1.20 | **Fullscreen immersive on Desktop secondary display** — edge-to-edge, no freeform chrome; investigate `launchBounds`, `resizeableActivity=false`, WM flags, OEM limits. | ☐ |
-| 1.21 | **System-style cursor on secondary display** — pointer visible and clickable over *any* app (Settings, Play Store), not just XR Launcher UI. Options: accessibility `dispatchGesture` + `TYPE_ACCESSIBILITY_OVERLAY` cursor sprite; avoid second freeform activity. | ☐ |
-| 1.22 | **3D XR desktop on glasses** — replace flat black app list with spatial workspace (`Subspace` / panels / environment), aligned with Tier 0 spatial model and RayNeo optics. | ☐ |
+| 1.21 | **System-style cursor on secondary display** — pointer visible and clickable over *any* app (Settings, Play Store), not just XR Launcher UI. | ☑ (overlay + inject; Desktop move-only touchpad) |
+| 1.22 | **3D XR desktop on glasses** — replace flat black app list with spatial workspace (`Subspace` / panels / environment), aligned with Tier 0 spatial model and RayNeo optics. | ☐ (1.22a visual shell done) |
 
 #### Task 1.15 — Fix tap-to-click
 
@@ -379,6 +379,8 @@ mLastNonFullscreenBounds=Rect(269, 113 - 1651, 890)
 
 Desktop Mode on Pixel treats secondary-display activities as resizable freeform tasks even when windowing mode is “fullscreen”.
 
+**Workaround (verified 2026-06-12):** Launch companion + workspace, then relaunch workspace with `FLAG_ACTIVITY_CLEAR_TOP` (“Show launcher on glasses”). `openGlassesSession()` now does this automatically after the initial launch.
+
 **Planned fix (try in order; record results in `device-matrix.md`):**
 
 | Step | Approach | Files |
@@ -432,9 +434,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Goal:** Phone companion drives a **real** pointer on the glasses display that works over Settings, Play Store, and other apps — not only XR Launcher’s Compose UI.
 
-**Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Accessibility `dispatchGesture` with `GestureDescription.setDisplayId` is the viable path for clicks. Cursor *sprite* likely needs `AccessibilityService` overlay or single full-screen transparent **Presentation** (not Activity) — must not create a second freeform task.
+**Implementation (2026-06-12):** `DisplayPointerAccessibilityService` draws a `TYPE_ACCESSIBILITY_OVERLAY` cursor on the glasses display in **Desktop** mode and injects clicks via `dispatchGesture` + `setDisplayId`. In-app `ExternalCursorDot` is hidden when the overlay is active.
 
-**Companion UX:** Launcher vs Desktop control modes; user enables accessibility service once.
+**Constraints (Play Store):** No `InputManager.injectInputEvent` (system). Freeform app windows may offset click coordinates — fullscreen launcher workaround (1.17) helps.
+
+**Companion UX:** Switch to **Desktop** after launching an app; enable accessibility service once.
 
 ---
 
@@ -442,21 +446,51 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 **Goal:** Glasses show spatial workspace (panels, depth, optional environment) per product vision — not a 2D text app list on black.
 
-**Depends on:** Tier 1 `EXTERNAL` vs Tier 2 `XR_PROJECTED` path; Jetpack XR `Subspace` where available; black-background glasses theme for additive optics. Tie to Phase 2 workspace layout + Phase 5 spatial polish.
+**Current state (2026-06-12):** Tier 1 `ExternalDisplayActivity` uses `GlassesSpatialWorkspaceScreen` — gradient wallpaper, clock widget stub, icon grid, hotseat. Still flat Compose (2.5D), not Jetpack XR depth. Tier 2 `GlassesWorkspaceScreen` wraps the same shell in `Subspace` + `SpatialPanel`.
+
+**Phased delivery:**
+
+| Step | Deliverable | Tier | Status |
+|------|-------------|------|--------|
+| **1.22a** | Visual launcher shell — wallpaper, icons, hotseat, widget stub; companion hit-test | 1 EXTERNAL | ☑ |
+| **1.22b** | `Subspace` multi-panel layout on external display (test on SmartGlasses) | 1 / 2 | ☐ |
+| **1.22c** | Virtual environment / passthrough backdrop (Phase 5.5) | 2 / 3 | ☐ |
+| **1.22d** | Real widgets (AppWidgetHost or curated composables) | 2 | ☐ |
+| **1.22e** | User-pinned hotseat + workspace persistence (Phase 2.1–2.2) | 2 | ☐ |
+| **1.22f** | Movable/resizable spatial panels; orbit camera via companion | 0 / 3 | ☐ |
+
+**Constraints:** SmartGlasses = `EXTERNAL` display, not `XR_PROJECTED` — `Subspace` may be limited; keep 2.5D fallback. Additive optics → dark wallpaper, high-contrast icons (rule 14).
+
+**Depends on:** Phase 2 workspace layout + Phase 5 spatial polish for full vision.
 
 ---
 
 ### Phase 2 — Workspace layout
 
-**Goal:** Multiple launcher-owned panels with layout persistence.
+**Goal:** Multiple launcher-owned panels with layout persistence — turn the glasses shell into a **real launcher** (wallpaper, dock/hotseat, app drawer, widgets, panel chrome).
 
-**Exit criteria:** User can arrange 3+ panels, resize/move them, save and restore one workspace.
+**Entry (2026-06-12):** Tier 1 external display navigation works — Desktop overlay cursor + gesture inject; Launcher tap-to-click; fullscreen relaunch on session open. Phase 1.22a visual shell is the starting layout.
+
+**Exit criteria:** User can arrange 3+ panels, resize/move them, save and restore one workspace; hotseat pins persist; at least one live widget on glasses.
+
+**Lead platform order (RayNeo Tier 1 — do these first):**
+
+| Order | Task | Why now |
+|-------|------|---------|
+| 1 | **2.1–2.2** | `Workspace` / `PanelState` model + DataStore — foundation for hotseat pins and layout |
+| 2 | **2.13** | User-pinned hotseat (replace hard-coded Settings/Play Store list) | 
+| 3 | **2.14** | App drawer panel polish — search/filter, lazy grid perf, app icon cache |
+| 4 | **2.3 / 2.15** | Widget panel v1 — clock done; add weather or calendar composable |
+| 5 | **2.4 / 2.11** | Panel focus ring + companion pointer targets focused panel |
+| 6 | **2.5–2.7** | Move/resize panels + layout presets on `GlassesSpatialWorkspaceScreen` |
+| 7 | **2.8** | Restore workspace on `ExternalDisplayActivity` start |
+| 8 | **2.9–2.10** | Tier 0 spatial parity (parallel, not blocking glasses) |
 
 | # | Task | Done |
 |---|------|------|
-| 2.1 | Define `Workspace`, `PanelState`, `EmbedMode` data classes in `core/workspace`. | ☐ |
-| 2.2 | Persist workspace JSON via DataStore (single default workspace). | ☐ |
-| 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☐ |
+| 2.1 | Define `Workspace`, `PanelState`, `PanelKind`, `EmbedMode` in `core/workspace`. | ☐ |
+| 2.2 | Persist workspace JSON via DataStore (default workspace + hotseat pins). | ☐ |
+| 2.3 | Render static panels: app drawer, clock/status, placeholder “empty slot.” | ☐ (partial — 1.22a shell) |
 | 2.4 | Add panel focus model (mouse click / touch / companion tap / keyboard focus next). | ☐ |
 | 2.5 | Implement move (drag) for panels — tier-appropriate API (`movable` modifier, Glimmer, or drag handles). | ☐ |
 | 2.6 | Implement resize with min/max bounds and optional fixed aspect ratio. | ☐ |
@@ -464,8 +498,23 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.8 | Save on change; restore workspace on activity start (all tiers). | ☐ |
 | 2.9 | **Tier 0:** Spatial app-drawer panel + dock orbiter in 3D scene (not flat grid). | ☐ |
 | 2.10 | **Tier 0:** Keyboard shortcut map (focus panels, launch, close, snap preset) + help overlay. | ☐ |
-| 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☐ |
-| 2.12 | **Companion:** Motion pointer mode using phone `SensorManager` (toggle, sensitivity, recenter). | ☐ |
+| 2.11 | **Companion:** Wire touchpad pointer → focused panel on glasses / large-screen workspace. | ☐ (partial — icon hit-test) |
+| 2.12 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☑ (1.16) |
+| 2.13 | **Tier 1:** User-pinned hotseat — long-press / companion right-click to pin; persist in DataStore. | ☐ |
+| 2.14 | **Tier 1:** App drawer — search bar, alphabetical sections, icon lazy-load cache. | ☐ |
+| 2.15 | **Tier 1:** Widget slot v1 — composable widgets (clock ☑); add at least one more; `AppWidgetHost` spike in 2.16. | ☐ |
+| 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☐ |
+| 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☐ (partial) |
+| 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☐ |
+
+#### Phase 2 — Next steps (immediate)
+
+1. **Create `core/workspace/`** — `Workspace`, `PanelState(id, kind, bounds, zOrder)`, `HotseatPin`, serialization.
+2. **DataStore** — load on `ExternalDisplayActivity` / `GlassesSpatialWorkspaceScreen` start; save on hotseat change.
+3. **Hotseat UX** — companion right-click on app → pin/unpin; render pinned row from store.
+4. **App drawer** — port phone shell search/filter to glasses grid; reuse `AppRepository.filterApps`.
+5. **Focus** — visual ring on focused panel; tab order for companion clicks between hotseat ↔ drawer ↔ widget.
+6. **Document** — update `device-matrix.md` after 2.1–2.13 land on Pixel 8 + SmartGlasses.
 
 ---
 
@@ -553,7 +602,7 @@ Must ship before public beta:
 
 - Phase 0 (complete device matrix)
 - Phase 1 (all tasks — Tier 0 3D desktop + Tier 0c phone shell + companion stub)
-- Phase 2: tasks 2.1–2.12 (includes spatial panels, keyboard map, companion touchpad + motion)
+- Phase 2: tasks **2.1–2.8**, **2.11**, **2.13–2.15** (glasses real launcher: model, persistence, hotseat, drawer, widgets)
 - Phase 4: tasks 4.1–4.6, 4.8 (desktop input + companion + glasses head-mouse optional)
 - Phase 6: tasks 6.1–6.3, 6.6–6.8
 

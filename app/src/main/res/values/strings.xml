@@ -8,7 +8,8 @@
     <string name="connect_glasses">Connect glasses</string>
     <string name="companion_touchpad">Companion touchpad</string>
     <string name="companion_hint">Drag to move pointer · Tap to click</string>
-    <string name="companion_motion_hint">Tilt phone to move pointer · Tap or use buttons to click</string>
+    <string name="companion_desktop_hint">Drag to move pointer · Use Left/Right click buttons</string>
+    <string name="companion_motion_hint">Tilt phone to move pointer · Use buttons to click in Desktop mode</string>
     <string name="motion_control">Motion control</string>
     <string name="motion_control_on_hint">Tilt phone to move the glasses cursor</string>
     <string name="motion_control_off_hint">Drag the touchpad to move the glasses cursor</string>
@@ -26,11 +27,12 @@
     <string name="control_mode_desktop">Desktop</string>
     <string name="control_mode_launcher_hint">Launcher mode: pick apps from the list. The app opens on glasses — use Desktop mode on the phone to click inside it.</string>
     <string name="control_mode_launcher_on_hint">Clicks open apps on the glasses display.</string>
-    <string name="control_mode_desktop_on_hint">Clicks go to the app in front on glasses (Settings, Play Store, etc.).</string>
-    <string name="control_mode_desktop_setup_hint">Enable Desktop pointer in Accessibility to click apps on the glasses display.</string>
+    <string name="control_mode_desktop_on_hint">Desktop mode: cursor and clicks go to the glasses display — works over Settings, Play Store, etc.</string>
+    <string name="control_mode_desktop_setup_hint">Enable Desktop pointer in Accessibility. Required to see the cursor and click apps on glasses.</string>
     <string name="enable_desktop_pointer">Enable desktop pointer</string>
     <string name="show_launcher_on_glasses">Show launcher on glasses</string>
-    <string name="display_pointer_service_description">Lets the phone companion click and control apps on the glasses display.</string>
+    <string name="workspace_widget_hint">Widgets · Phase 2</string>
+    <string name="display_pointer_service_description">Shows a cursor on the glasses display and lets the phone companion click apps there.</string>
     <string name="no_apps_found">No apps found</string>
     <string name="workspace_panel_drawer">Apps</string>
     <string name="workspace_panel_status">Status</string>

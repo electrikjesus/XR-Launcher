@@ -29,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.CursorStyles
 import dev.electrikjesus.xrlauncher.core.input.PointerAction
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.input.PointerEvent
@@ -66,6 +68,7 @@ fun CompanionTouchpadScreen(
     val controlMode by CompanionPointerBus.glassesControlMode.collectAsState()
     val context = LocalContext.current
     val desktopPointerReady = DisplayPointerInjector.isAvailable
+    val cursorStyle = CursorStyles.forControlMode(controlMode)
 
     Scaffold(
         topBar = {
@@ -208,19 +211,20 @@ fun CompanionTouchpadScreen(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(motionEnabled) {
+                    .pointerInput(motionEnabled, controlMode) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             var accumulated = Offset.Zero
                             val touchSlop = viewConfiguration.touchSlop
                             var dragging = false
                             val pointerId = down.id
+                            val tapToClick = controlMode == GlassesControlMode.LAUNCHER
 
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Main)
                                 val change = event.changes.firstOrNull { it.id == pointerId } ?: break
                                 if (!change.pressed) {
-                                    if (!dragging) {
+                                    if (tapToClick && !dragging) {
                                         CompanionPointerBus.click(PointerButton.LEFT)
                                     }
                                     break
@@ -251,16 +255,18 @@ fun CompanionTouchpadScreen(
                 val touchpadHeightPx = with(density) { maxHeight.toPx() }
                 val cursorXPx = cursor.x * touchpadWidthPx
                 val cursorYPx = cursor.y * touchpadHeightPx
+                val halfPx = with(density) { cursorStyle.halfDotSize.toPx() }
 
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = if (motionEnabled) {
-                            stringResource(R.string.companion_motion_hint)
-                        } else {
-                            stringResource(R.string.companion_hint)
+                        text = when {
+                            motionEnabled -> stringResource(R.string.companion_motion_hint)
+                            controlMode == GlassesControlMode.DESKTOP ->
+                                stringResource(R.string.companion_desktop_hint)
+                            else -> stringResource(R.string.companion_hint)
                         },
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -279,12 +285,13 @@ fun CompanionTouchpadScreen(
                     modifier = Modifier
                         .offset {
                             IntOffset(
-                                (cursorXPx - with(density) { 14.dp.toPx() }).roundToInt(),
-                                (cursorYPx - with(density) { 14.dp.toPx() }).roundToInt(),
+                                (cursorXPx - halfPx).roundToInt(),
+                                (cursorYPx - halfPx).roundToInt(),
                             )
                         }
-                        .size(28.dp)
+                        .size(cursorStyle.dotSize)
                         .clip(CircleShape)
+                        .alpha(cursorStyle.dotAlpha)
                         .background(
                             if (cursor.isPressed) Color(0xFF6750A4) else Color(0xFF03DAC5),
                         ),

@@ -6,22 +6,46 @@ import android.graphics.Path
 import android.hardware.display.DisplayManager
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Display
+import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 /**
- * Injects tap gestures on a secondary display so the phone companion can drive
- * a desktop-style pointer on glasses. User must enable this service in Settings.
+ * Injects tap gestures and draws a system overlay cursor on the glasses display.
+ * User must enable this service in Settings.
  */
 class DisplayPointerAccessibilityService : AccessibilityService() {
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var overlayManager: DisplayCursorOverlayManager? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         DisplayPointerInjector.service = this
+        overlayManager = DisplayCursorOverlayManager(this)
+        serviceScope.launch {
+            combine(
+                CompanionPointerBus.cursor,
+                CompanionPointerBus.glassesControlMode,
+            ) { cursor, mode -> cursor to mode }
+                .collect { (cursor, mode) ->
+                    syncOverlay(cursor.x, cursor.y, cursor.isPressed, mode)
+                }
+        }
         Log.d(TAG, "Display pointer service connected")
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
+        overlayManager?.detach()
+        overlayManager = null
         DisplayPointerInjector.service = null
         super.onDestroy()
     }
@@ -53,6 +77,27 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
 
         Log.d(TAG, "dispatchClick display=$displayId ($x,$y) button=$button")
         return dispatchGesture(gesture, null, null)
+    }
+
+    private fun syncOverlay(
+        normalizedX: Float,
+        normalizedY: Float,
+        pressed: Boolean,
+        mode: GlassesControlMode,
+    ) {
+        val manager = overlayManager ?: return
+        val displayId = GlassesSessionState.secondaryDisplayId
+        if (displayId == null) {
+            manager.detach()
+            return
+        }
+        // Overlay cursor in Desktop mode (controlling other apps). Launcher uses in-activity dot.
+        if (mode != GlassesControlMode.DESKTOP) {
+            manager.detach()
+            return
+        }
+        manager.attach(displayId)
+        manager.update(normalizedX, normalizedY, pressed)
     }
 
     companion object {
