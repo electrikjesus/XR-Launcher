@@ -61,12 +61,11 @@ fun XRLauncherApp(
                 ),
                 onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
                 onOpenGlassesWorkspace = {
-                    val displayId = capabilities.secondaryDisplayIds.firstOrNull()
-                        ?: DisplayLaunchHelper.findSecondaryDisplayId(context)
-                    if (displayId != null) {
-                        DisplayLaunchHelper.openGlassesSession(context, displayId)
-                    }
                     onRefreshCapabilities()
+                    DisplayLaunchHelper.openGlassesSession(
+                        context = context,
+                        preferredDisplayId = capabilities.secondaryDisplayIds.firstOrNull(),
+                    )
                 },
                 onOpenCompanion = {
                     DisplayLaunchHelper.openCompanionController(context)
