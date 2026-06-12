@@ -52,7 +52,7 @@ object CompanionPointerBus {
     private val _events = MutableSharedFlow<PointerEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<PointerEvent> = _events.asSharedFlow()
 
-    private val _clicks = MutableSharedFlow<PointerClick>(extraBufferCapacity = 16)
+    private val _clicks = MutableSharedFlow<PointerClick>(replay = 1, extraBufferCapacity = 16)
     val clicks: SharedFlow<PointerClick> = _clicks.asSharedFlow()
 
     private val _camera = MutableStateFlow(WorkspaceCameraState())
@@ -66,6 +66,9 @@ object CompanionPointerBus {
 
     private val _motionControlEnabled = MutableStateFlow(false)
     val motionControlEnabled: StateFlow<Boolean> = _motionControlEnabled.asStateFlow()
+
+    private val _motionSensitivity = MutableStateFlow(1f)
+    val motionSensitivity: StateFlow<Float> = _motionSensitivity.asStateFlow()
 
     fun emit(event: PointerEvent) {
         if (event.action == PointerAction.MOVE) {
@@ -87,7 +90,8 @@ object CompanionPointerBus {
     }
 
     fun moveByMotion(deltaX: Float, deltaY: Float) {
-        moveBy(deltaX * MOTION_SENSITIVITY, deltaY * MOTION_SENSITIVITY)
+        val scale = MOTION_SENSITIVITY * _motionSensitivity.value
+        moveBy(deltaX * scale, deltaY * scale)
     }
 
     fun setCursorPosition(x: Float, y: Float) {
@@ -95,6 +99,10 @@ object CompanionPointerBus {
             x = x.coerceIn(0f, 1f),
             y = y.coerceIn(0f, 1f),
         )
+    }
+
+    fun recenterCursor() {
+        setCursorPosition(0.5f, 0.5f)
     }
 
     fun setHoveredLabel(label: String?) {
@@ -105,15 +113,28 @@ object CompanionPointerBus {
 
     fun click(button: PointerButton) {
         val current = _cursor.value
-        _clicks.tryEmit(PointerClick(button = button, x = current.x, y = current.y))
+        emitClick(PointerClick(button = button, x = current.x, y = current.y))
         if (button == PointerButton.LEFT) {
             _cursor.value = current.copy(isPressed = true)
             _cursor.value = _cursor.value.copy(isPressed = false)
         }
     }
 
+    fun clickAt(x: Float, y: Float, button: PointerButton) {
+        setCursorPosition(x, y)
+        click(button)
+    }
+
+    private fun emitClick(click: PointerClick) {
+        _clicks.tryEmit(click)
+    }
+
     fun setMotionControlEnabled(enabled: Boolean) {
         _motionControlEnabled.value = enabled
+    }
+
+    fun setMotionSensitivity(multiplier: Float) {
+        _motionSensitivity.value = multiplier.coerceIn(0.25f, 3f)
     }
 
     fun orbitCamera(deltaYaw: Float, deltaPitch: Float) {
@@ -130,5 +151,6 @@ object CompanionPointerBus {
 
     fun resetCursor() {
         _cursor.value = CompanionCursorState()
+        _motionSensitivity.value = 1f
     }
 }

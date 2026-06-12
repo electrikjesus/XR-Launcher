@@ -305,9 +305,9 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 | # | Task | Done |
 |---|------|------|
-| 1.15 | **Fix tap-to-click on companion touchpad.** | ☐ |
-| 1.16 | **Motion pointer calibration + recenter.** | ☐ |
-| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☐ |
+| 1.15 | **Fix tap-to-click on companion touchpad.** | ☑ |
+| 1.16 | **Motion pointer calibration + recenter.** | ☑ |
+| 1.17 | **External display immersive fullscreen (Desktop Mode freeform).** | ☑ |
 | 1.18 | **Re-test full glasses session** after 1.15–1.17; update `device-matrix.md`. | ☐ |
 
 #### Task 1.15 — Fix tap-to-click

@@ -1,10 +1,11 @@
 package dev.electrikjesus.xrlauncher.core.display
 
-import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
+import android.util.DisplayMetrics
 import android.view.Display
 import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -19,6 +20,15 @@ object DisplayLaunchHelper {
             ?.displayId
     }
 
+    fun displayBounds(context: Context, displayId: Int): Rect? {
+        val displayManager = context.getSystemService(DisplayManager::class.java)
+        val display = displayManager.getDisplay(displayId) ?: return null
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        return Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+    }
+
     fun launchActivityOnDisplay(
         context: Context,
         activityClass: Class<*>,
@@ -30,6 +40,9 @@ object DisplayLaunchHelper {
         }
         val options = ActivityOptions.makeBasic()
         options.launchDisplayId = displayId
+        displayBounds(context, displayId)?.let { bounds ->
+            options.setLaunchBounds(bounds)
+        }
         context.startActivity(intent, options.toBundle())
         return true
     }

@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.ui.external
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -60,6 +61,7 @@ fun ExternalDisplayWorkspaceScreen(
     LaunchedEffect(Unit) {
         CompanionPointerBus.clicks.collect { click ->
             val app = findAppAt(cursorPoint(click.x, click.y))
+            Log.d(LOG_TAG, "click ${click.button} at (${click.x}, ${click.y}) hit=${app?.label}")
             when (click.button) {
                 PointerButton.LEFT -> app?.let(onLaunchApp)
                 PointerButton.RIGHT -> onRightClick(app)
@@ -145,3 +147,5 @@ fun ExternalDisplayWorkspaceScreen(
         }
     }
 }
+
+private const val LOG_TAG = "XRLauncher/Pointer"

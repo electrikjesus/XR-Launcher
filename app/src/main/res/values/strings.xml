@@ -17,6 +17,10 @@
     <string name="cursor_position">Cursor %1$d%%, %2$d%%</string>
     <string name="cursor_over">Over: %1$s</string>
     <string name="external_display_control_hint">Use your phone as a touchpad to control the pointer</string>
+    <string name="recenter">Recenter</string>
+    <string name="calibrate">Calibrate</string>
+    <string name="calibrating">Calibrating…</string>
+    <string name="motion_sensitivity">Motion sensitivity</string>
     <string name="no_apps_found">No apps found</string>
     <string name="workspace_panel_drawer">Apps</string>
     <string name="workspace_panel_status">Status</string>

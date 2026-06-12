@@ -37,6 +37,7 @@
             android:name=".external.ExternalDisplayActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode"
             android:exported="false"
+            android:resizeableActivity="false"
             android:theme="@style/Theme.XRLauncher.Glasses" />
 
         <activity

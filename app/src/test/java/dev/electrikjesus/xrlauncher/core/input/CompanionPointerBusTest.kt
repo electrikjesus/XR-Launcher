@@ -9,6 +9,7 @@ class CompanionPointerBusTest {
     @Before
     fun reset() {
         CompanionPointerBus.resetCursor()
+        CompanionPointerBus.setMotionControlEnabled(false)
     }
 
     @Test
@@ -53,10 +54,35 @@ class CompanionPointerBusTest {
     }
 
     @Test
+    fun clickAt_setsPositionBeforeClick() {
+        CompanionPointerBus.clickAt(0.1f, 0.9f, PointerButton.LEFT)
+        val cursor = CompanionPointerBus.cursor.value
+        assertEquals(0.1f, cursor.x)
+        assertEquals(0.9f, cursor.y)
+    }
+
+    @Test
+    fun recenterCursor_movesToCenter() {
+        CompanionPointerBus.setCursorPosition(0.1f, 0.9f)
+        CompanionPointerBus.recenterCursor()
+        val cursor = CompanionPointerBus.cursor.value
+        assertEquals(0.5f, cursor.x)
+        assertEquals(0.5f, cursor.y)
+    }
+
+    @Test
     fun setMotionControlEnabled_updatesState() {
         CompanionPointerBus.setMotionControlEnabled(true)
         assertEquals(true, CompanionPointerBus.motionControlEnabled.value)
         CompanionPointerBus.setMotionControlEnabled(false)
         assertEquals(false, CompanionPointerBus.motionControlEnabled.value)
+    }
+
+    @Test
+    fun setMotionSensitivity_clampsRange() {
+        CompanionPointerBus.setMotionSensitivity(10f)
+        assertEquals(3f, CompanionPointerBus.motionSensitivity.value)
+        CompanionPointerBus.setMotionSensitivity(0f)
+        assertEquals(0.25f, CompanionPointerBus.motionSensitivity.value)
     }
 }

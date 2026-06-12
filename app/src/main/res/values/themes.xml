@@ -4,5 +4,6 @@
     <style name="Theme.XRLauncher.Glasses" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/glasses_background</item>
         <item name="android:colorBackground">@color/glasses_background</item>
+        <item name="android:windowFullscreen">true</item>
     </style>
 </resources>
