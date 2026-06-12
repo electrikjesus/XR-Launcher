@@ -127,6 +127,7 @@ fun GlassesSpatialWorkspaceScreen(
                 appearance = tuned,
                 cursorX = cursor.x,
                 cursorY = cursor.y,
+                panels = visiblePanels,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {

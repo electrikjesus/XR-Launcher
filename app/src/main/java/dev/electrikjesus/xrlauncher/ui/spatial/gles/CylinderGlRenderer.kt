@@ -6,7 +6,9 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
 import dev.electrikjesus.xrlauncher.core.workspace.PanelTextureSnapshot
+import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -31,6 +33,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var workspaceHeight: Float = 0.7f
     var viewportWidthPx: Float = 1f
     var viewportHeightPx: Float = 1f
+    var panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList()
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -319,17 +322,21 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun drawPanelGuides() {
-        val slots = listOf(
-            0.17f to 0.25f,
-            0.17f to 0.74f,
-            0.50f to 0.50f,
-            0.83f to 0.50f,
-        )
-        slots.forEach { (x, y) -> drawPanelGuideQuad(x, y) }
+        val slots = panelGuideCenters.ifEmpty {
+            WorkspaceCylinderGrid.guideSlotsForPanels(Workspace.defaultPanels())
+        }
+        slots.forEach { slot ->
+            drawPanelGuideQuad(slot.centerX, slot.centerY, slot.widthNorm, slot.heightNorm)
+        }
     }
 
-    private fun drawPanelGuideQuad(centerX: Float, centerY: Float) {
-        val frame = worldFrameForSlot(centerX, centerY, 0.22f, 0.28f)
+    private fun drawPanelGuideQuad(
+        centerX: Float,
+        centerY: Float,
+        widthNorm: Float,
+        heightNorm: Float,
+    ) {
+        val frame = worldFrameForSlot(centerX, centerY, widthNorm, heightNorm)
         drawLineQuad(frame, color = floatArrayOf(0.03f, 0.85f, 0.82f, 0.55f))
     }
 

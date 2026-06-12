@@ -2,7 +2,6 @@ package dev.electrikjesus.xrlauncher.ui.workspace
 
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -66,13 +66,16 @@ fun DraggableWorkspacePanelShell(
     val centerX = dragBounds.x + dragBounds.width / 2f
     val centerY = dragBounds.y + dragBounds.height / 2f
 
+    val commitDragBounds = {
+        isDragging.set(false)
+        dragBounds = WorkspaceCylinderGrid.snapBounds(dragBounds).clamp()
+        onBoundsChanged(dragBounds)
+    }
+
     val moveDragModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
         detectDragGestures(
             onDragStart = { isDragging.set(true) },
-            onDragEnd = {
-                isDragging.set(false)
-                onBoundsChanged(dragBounds)
-            },
+            onDragEnd = { commitDragBounds() },
             onDragCancel = {
                 isDragging.set(false)
                 dragBounds = bounds
@@ -88,10 +91,7 @@ fun DraggableWorkspacePanelShell(
     val resizeDragModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
         detectDragGestures(
             onDragStart = { isDragging.set(true) },
-            onDragEnd = {
-                isDragging.set(false)
-                onBoundsChanged(dragBounds)
-            },
+            onDragEnd = { commitDragBounds() },
             onDragCancel = {
                 isDragging.set(false)
                 dragBounds = bounds

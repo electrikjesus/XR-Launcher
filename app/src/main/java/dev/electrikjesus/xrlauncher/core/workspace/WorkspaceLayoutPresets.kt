@@ -24,7 +24,7 @@ data class PanelBounds(
 }
 
 enum class LayoutPreset {
-    /** Vertical stack — default column layout (no freeform bounds). */
+    /** Stack-equivalent grid layout — panels are draggable with snap. */
     STANDARD,
     /** Widgets top, drawer fills center, hotseat bottom. */
     SINGLE,
@@ -36,24 +36,27 @@ enum class LayoutPreset {
 
 object WorkspaceLayoutPresets {
     fun apply(panels: List<PanelState>, preset: LayoutPreset): List<PanelState> {
-        if (preset == LayoutPreset.STANDARD) {
-            return panels.map { it.copy(bounds = null) }
+        val boundsById = when (preset) {
+            LayoutPreset.STANDARD -> standardGridBounds()
+            else -> presetBounds(preset)
         }
-        val boundsById = presetBounds(preset)
         return panels.map { panel ->
-            panel.copy(bounds = boundsById[panel.id]?.clamp())
+            val bounds = boundsById[panel.id]
+            if (bounds != null && panel.visible && panel.kind != PanelKind.EMPTY_SLOT) {
+                panel.copy(bounds = WorkspaceCylinderGrid.snapBounds(bounds).clamp())
+            } else {
+                panel.copy(bounds = null)
+            }
         }
     }
 
     fun usesFreeformLayout(panels: List<PanelState>): Boolean =
-        panels.any { it.visible && it.bounds != null }
+        panels.any { it.visible && it.kind != PanelKind.EMPTY_SLOT && it.bounds != null }
 
     /** Match saved panels to a preset chip, or null when layout was customized. */
     fun inferPreset(panels: List<PanelState>): LayoutPreset? {
         if (!usesFreeformLayout(panels)) return LayoutPreset.STANDARD
-        return LayoutPreset.entries
-            .filter { it != LayoutPreset.STANDARD }
-            .firstOrNull { preset -> panelsMatchPreset(panels, preset) }
+        return LayoutPreset.entries.firstOrNull { preset -> panelsMatchPreset(panels, preset) }
     }
 
     internal fun panelsMatchPreset(panels: List<PanelState>, preset: LayoutPreset): Boolean {
@@ -76,7 +79,7 @@ object WorkspaceLayoutPresets {
     }
 
     private fun presetBounds(preset: LayoutPreset): Map<String, PanelBounds> = when (preset) {
-        LayoutPreset.STANDARD -> emptyMap()
+        LayoutPreset.STANDARD -> standardGridBounds()
         LayoutPreset.SINGLE -> mapOf(
             "widget_clock" to PanelBounds(0.02f, 0.02f, 0.47f, 0.14f),
             "widget_calendar" to PanelBounds(0.51f, 0.02f, 0.47f, 0.14f),
@@ -96,4 +99,9 @@ object WorkspaceLayoutPresets {
             "hotseat" to PanelBounds(0.68f, 0.02f, 0.30f, 0.96f),
         )
     }
+
+    private fun standardGridBounds(): Map<String, PanelBounds> =
+        Workspace.defaultPanels().mapNotNull { panel ->
+            WorkspaceCylinderGrid.defaultStackBounds(panel.id)?.let { panel.id to it }
+        }.toMap()
 }

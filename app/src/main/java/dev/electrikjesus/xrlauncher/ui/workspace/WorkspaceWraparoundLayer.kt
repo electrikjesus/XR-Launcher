@@ -15,7 +15,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
+import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 import dev.electrikjesus.xrlauncher.ui.spatial.WorkspaceGlesBackdrop
 
@@ -27,6 +29,7 @@ fun WorkspaceWraparoundLayer(
     appearance: WorkspaceAppearance,
     cursorX: Float,
     cursorY: Float,
+    panels: List<PanelState> = emptyList(),
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -52,12 +55,14 @@ fun WorkspaceWraparoundLayer(
         val panPxY = camera.panNormY * viewportHeightPx
         val focalPx = viewportWidthPx * WorkspaceCylinderGeometry.FOCAL_LENGTH_VIEWPORT_FRACTION
         val glesPresentation = WorkspaceGlesConfig.texturedPanelsEnabled && tuned.wrapCurvature > 0.01f
+        val panelGuideCenters = WorkspaceCylinderGrid.guideSlotsForPanels(panels)
 
         WorkspaceGlesBackdrop(
             camera = camera,
             curvature = tuned.wrapCurvature,
             workspaceWidth = spanX,
             workspaceHeight = spanY,
+            panelGuideCenters = panelGuideCenters,
             modifier = Modifier.fillMaxSize(),
         )
 

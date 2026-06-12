@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.core.launcher.SystemWallpaperLoader
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspacePanelTextureBus
 import dev.electrikjesus.xrlauncher.ui.spatial.gles.CylinderGlRenderer
@@ -35,6 +36,7 @@ fun WorkspaceGlesBackdrop(
     curvature: Float,
     workspaceWidth: Float,
     workspaceHeight: Float,
+    panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
     modifier: Modifier = Modifier,
     enabled: Boolean = curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -116,6 +118,7 @@ fun WorkspaceGlesBackdrop(
             renderer.workspaceWidth = workspaceWidth
             renderer.workspaceHeight = workspaceHeight
             renderer.setWallpaperBitmap(wallpaperBitmap, wallpaperGeneration.toLong())
+            renderer.panelGuideCenters = panelGuideCenters
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },
