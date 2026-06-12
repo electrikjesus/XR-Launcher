@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
-import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerItem
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 
 @Composable
@@ -33,7 +32,7 @@ fun WorkspaceAllAppsOverlay(
     appCount: Int,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<AppDrawerItem>,
+    apps: List<LaunchableApp>,
     hoveredLabel: String?,
     pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
@@ -99,7 +98,7 @@ fun WorkspaceAllAppsOverlay(
                 WorkspaceAppDrawerPanel(
                     searchQuery = searchQuery,
                     onSearchQueryChange = onSearchQueryChange,
-                    drawerItems = drawerItems,
+                    apps = apps,
                     hoveredLabel = hoveredLabel,
                     pinnedComponentKeys = pinnedComponentKeys,
                     onBoundsChanged = onBoundsChanged,
@@ -107,6 +106,7 @@ fun WorkspaceAllAppsOverlay(
                         onLaunchApp(app)
                         onDismiss()
                     },
+                    useSharedPagination = true,
                     modifier = Modifier
                         .weight(1f)
                         .padding(top = 8.dp),

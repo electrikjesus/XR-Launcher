@@ -119,6 +119,10 @@
     <string name="all_apps_close">Close</string>
     <string name="all_apps_on_glasses">All apps on glasses</string>
     <string name="all_apps_companion_hint">Browse and launch apps on the glasses display</string>
+    <string name="all_apps_companion_page_hint">All Apps is open on glasses — use these controls or tap page buttons there.</string>
+    <string name="all_apps_page_prev">Previous page</string>
+    <string name="all_apps_page_next">Next page</string>
+    <string name="all_apps_page_status">Page %1$d of %2$d</string>
     <string name="all_apps_focus_drawer">Show app drawer panel</string>
     <string name="workspace_panel_status">Status</string>
     <string name="external_display_detected">External display detected</string>

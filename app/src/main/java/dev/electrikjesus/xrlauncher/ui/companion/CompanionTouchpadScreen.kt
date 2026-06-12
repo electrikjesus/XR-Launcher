@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.ui.workspace.CompanionAllAppsPageControls
 import kotlinx.coroutines.launch
 
 private enum class CompanionTab(val labelRes: Int) {
@@ -99,6 +100,7 @@ fun CompanionTouchpadScreen(
     var precisionPointer by remember { mutableStateOf(false) }
     val touchpadClickSuppressed = textEntryActive || precisionPointer
     val desktopPointerReady = DisplayPointerInjector.isAvailable
+    val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
 
     val statusHint = when {
@@ -218,6 +220,7 @@ fun CompanionTouchpadScreen(
                                 },
                                 apps = apps,
                                 onLaunchAppOnGlasses = onLaunchAppOnGlasses,
+                                allAppsOverlayVisible = allAppsOverlayVisible,
                             )
                             CompanionTab.Input -> InputTabContent(
                                 xrInputMode = xrInputMode,
@@ -345,6 +348,13 @@ fun CompanionTouchpadScreen(
                     desktopPointerReady = desktopPointerReady,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (allAppsOverlayVisible) {
+                    CompanionAllAppsPageControls(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                    )
+                }
             }
         }
     }
@@ -403,6 +413,7 @@ private fun DisplayTabContent(
     onOpenAccessibilitySettings: () -> Unit,
     apps: List<LaunchableApp>,
     onLaunchAppOnGlasses: (LaunchableApp) -> Unit,
+    allAppsOverlayVisible: Boolean,
 ) {
     if (!desktopPointerReady) {
         OutlinedButton(
@@ -444,6 +455,13 @@ private fun DisplayTabContent(
         CompanionAllAppsPicker(
             apps = apps,
             onLaunchApp = onLaunchAppOnGlasses,
+        )
+    }
+    if (allAppsOverlayVisible) {
+        CompanionAllAppsPageControls(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
         )
     }
 }

@@ -36,7 +36,6 @@ import androidx.xr.compose.subspace.layout.resizable
 import androidx.xr.compose.subspace.layout.width
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
-import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerLayout
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
@@ -85,8 +84,8 @@ fun SpatialDesktopScreen(
     val filteredApps = remember(gridApps, searchQuery) {
         AppRepository.filterLaunchableApps(gridApps, searchQuery)
     }
-    val drawerItems = remember(filteredApps, searchQuery) {
-        AppDrawerLayout.buildItems(filteredApps, searchQuery)
+    val drawerApps = remember(filteredApps, searchQuery) {
+        filteredApps
     }
     val pinnedKeys = workspace?.hotseatPins?.toSet() ?: emptySet()
 
@@ -138,7 +137,7 @@ fun SpatialDesktopScreen(
                             isFocused = focusedPanelIndex == index,
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
-                            drawerItems = drawerItems,
+                            drawerApps = drawerApps,
                             hotseatApps = hotseatApps,
                             pinnedComponentKeys = pinnedKeys,
                             hoveredLabel = cursor.hoveredLabel,
@@ -163,7 +162,7 @@ private fun SpatialDesktopPanel(
     isFocused: Boolean,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<dev.electrikjesus.xrlauncher.core.launcher.AppDrawerItem>,
+    drawerApps: List<LaunchableApp>,
     hotseatApps: List<LaunchableApp>,
     pinnedComponentKeys: Set<String>,
     hoveredLabel: String?,
@@ -205,7 +204,7 @@ private fun SpatialDesktopPanel(
                     PanelKind.APP_DRAWER -> WorkspaceAppDrawerPanel(
                         searchQuery = searchQuery,
                         onSearchQueryChange = onSearchQueryChange,
-                        drawerItems = drawerItems,
+                        apps = drawerApps,
                         hoveredLabel = hoveredLabel,
                         pinnedComponentKeys = pinnedComponentKeys,
                         onBoundsChanged = onBoundsChanged,

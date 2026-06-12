@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.display
 
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -109,6 +110,7 @@ object GlassesSessionState {
         subspaceOuterComposed = false
         subspaceInnerComposed = false
         allAppsOverlayVisible = false
+        AllAppsPaginationState.reset()
         _xrInputMode.value = GlassesXrInputMode.COMPANION
         rayNeoUsbAttached = false
         RayNeoHeadTrackingController.stop()

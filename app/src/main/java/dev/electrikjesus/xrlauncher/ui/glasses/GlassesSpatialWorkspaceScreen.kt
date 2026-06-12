@@ -26,8 +26,7 @@ import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
-import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerItem
-import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerLayout
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -72,21 +71,16 @@ fun GlassesSpatialWorkspaceScreen(
     val filteredApps = remember(launchableApps, searchQuery) {
         AppRepository.filterLaunchableApps(launchableApps, searchQuery)
     }
-    val drawerItems = remember(filteredApps, searchQuery) {
-        AppDrawerLayout.buildItems(filteredApps, searchQuery)
-    }
     var allAppsSearchQuery by remember { mutableStateOf("") }
     val filteredAllApps = remember(launchableApps, allAppsSearchQuery) {
         AppRepository.filterLaunchableApps(launchableApps, allAppsSearchQuery)
-    }
-    val allAppsDrawerItems = remember(filteredAllApps, allAppsSearchQuery) {
-        AppDrawerLayout.buildItems(filteredAllApps, allAppsSearchQuery)
     }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
 
     LaunchedEffect(allAppsOverlayVisible) {
         if (allAppsOverlayVisible) {
             allAppsSearchQuery = ""
+            AllAppsPaginationState.reset()
         }
     }
     val visiblePanels = remember(panels) { panels.filter { it.visible } }
@@ -159,7 +153,7 @@ fun GlassesSpatialWorkspaceScreen(
                                 pinnedComponentKeys = pinnedComponentKeys,
                                 searchQuery = searchQuery,
                                 onSearchQueryChange = { searchQuery = it },
-                                drawerItems = drawerItems,
+                                drawerApps = filteredApps,
                                 hoveredLabel = cursor.hoveredLabel,
                                 onBoundsChanged = onBoundsChanged,
                                 onPanelBoundsChanged = onPanelBoundsChanged,
@@ -181,7 +175,7 @@ fun GlassesSpatialWorkspaceScreen(
                                 pinnedComponentKeys = pinnedComponentKeys,
                                 searchQuery = searchQuery,
                                 onSearchQueryChange = { searchQuery = it },
-                                drawerItems = drawerItems,
+                                drawerApps = filteredApps,
                                 hoveredLabel = cursor.hoveredLabel,
                                 onBoundsChanged = onBoundsChanged,
                                 onPanelBoundsChanged = onPanelBoundsChanged,
@@ -218,7 +212,7 @@ fun GlassesSpatialWorkspaceScreen(
                 appCount = launchableApps.size,
                 searchQuery = allAppsSearchQuery,
                 onSearchQueryChange = { allAppsSearchQuery = it },
-                drawerItems = allAppsDrawerItems,
+                apps = filteredAllApps,
                 hoveredLabel = cursor.hoveredLabel,
                 pinnedComponentKeys = pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
@@ -274,7 +268,7 @@ private fun GlassesPanelLayout(
     pinnedComponentKeys: Set<String>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<AppDrawerItem>,
+    drawerApps: List<LaunchableApp>,
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit,
@@ -350,7 +344,7 @@ private fun GlassesPanelLayout(
                             WorkspaceAppDrawerPanel(
                                 searchQuery = searchQuery,
                                 onSearchQueryChange = onSearchQueryChange,
-                                drawerItems = drawerItems,
+                                apps = drawerApps,
                                 hoveredLabel = hoveredLabel,
                                 pinnedComponentKeys = pinnedComponentKeys,
                                 onBoundsChanged = onBoundsChanged,
@@ -427,7 +421,7 @@ private fun FreeformGlassesPanelLayout(
     pinnedComponentKeys: Set<String>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<AppDrawerItem>,
+    drawerApps: List<LaunchableApp>,
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit,
@@ -465,7 +459,7 @@ private fun FreeformGlassesPanelLayout(
                     pinnedComponentKeys = pinnedComponentKeys,
                     searchQuery = searchQuery,
                     onSearchQueryChange = onSearchQueryChange,
-                    drawerItems = drawerItems,
+                    drawerApps = drawerApps,
                     hoveredLabel = hoveredLabel,
                     onBoundsChanged = onBoundsChanged,
                     onLaunchApp = onLaunchApp,
@@ -484,7 +478,7 @@ private fun PanelBody(
     pinnedComponentKeys: Set<String>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    drawerItems: List<AppDrawerItem>,
+    drawerApps: List<LaunchableApp>,
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
@@ -496,7 +490,7 @@ private fun PanelBody(
         PanelKind.APP_DRAWER -> WorkspaceAppDrawerPanel(
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
-            drawerItems = drawerItems,
+            apps = drawerApps,
             hoveredLabel = hoveredLabel,
             pinnedComponentKeys = pinnedComponentKeys,
             onBoundsChanged = onBoundsChanged,
