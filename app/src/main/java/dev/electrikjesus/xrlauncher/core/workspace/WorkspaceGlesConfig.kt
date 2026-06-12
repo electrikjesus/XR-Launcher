@@ -10,4 +10,7 @@ object WorkspaceGlesConfig {
 
     /** Draw wireframe cylinder and slot guides. */
     var showGuideWireframe: Boolean = true
+
+    /** Map the device wallpaper onto the inner cylinder wall (preferred backdrop). */
+    var showWallpaperCylinder: Boolean = true
 }

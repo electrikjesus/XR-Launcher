@@ -539,6 +539,20 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☐ (partial) |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☐ |
 
+#### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
+
+**Goal:** Fix wallpaper parallax, make All Apps usable in XR, improve panel handles, grid-snap layout, and declutter companion UI.
+
+| # | Workstream | Decision | Status |
+|---|------------|----------|--------|
+| 1 | **Wallpaper** | Map device wallpaper onto the **inner cylinder** in GLES; vertical vignette softens top/bottom edges | ☐ |
+| 2 | **All Apps pagination** | Default **5×5** grid per page; page size configurable in Settings; prev/next + bottom page buttons; companion page controls when overlay open | ☐ |
+| 3 | **Panel handles** | Larger drag/resize affordances (48dp+) for companion pointer | ☐ |
+| 4 | **Grid layout** | **Freeform with snap** to cylinder grid; presets stay; shared grid for Compose + GL guides; widget move handles | ☐ |
+| 5 | **Settings activity** | Move rarely-changed workspace/options to dedicated Settings activity; hamburger in glasses title bar | ☐ |
+
+**Implementation order:** 1 → 2 → 3 → 4a (grid helper) → 4b (widget drag) → 5 (can parallelize after 2).
+
 #### Phase 2 — Next steps (immediate)
 
 1. **Create `core/workspace/`** — `Workspace`, `PanelState(id, kind, bounds, zOrder)`, `HotseatPin`, serialization.

@@ -17,7 +17,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * GLES 2.0 inner-cylinder scene: wireframe guides + textured panel quads on the wall.
+ * GLES 2.0 inner-cylinder scene: wallpaper backdrop, wireframe guides, textured panel quads.
  */
 class CylinderGlRenderer : GLSurfaceView.Renderer {
     var camera: WorkspaceCylinderGeometry.CameraState = WorkspaceCylinderGeometry.CameraState(
@@ -50,8 +50,17 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private var texMvpHandle = 0
     private var texSamplerHandle = 0
 
-    private lateinit var cylinderBuffer: FloatBuffer
-    private var cylinderVertexCount = 0
+    private var wallpaperProgram = 0
+    private var wallpaperPositionHandle = 0
+    private var wallpaperTexCoordHandle = 0
+    private var wallpaperMvpHandle = 0
+    private var wallpaperSamplerHandle = 0
+
+    private lateinit var cylinderLineBuffer: FloatBuffer
+    private var cylinderLineVertexCount = 0
+
+    private lateinit var wallpaperMeshBuffer: FloatBuffer
+    private var wallpaperMeshVertexCount = 0
 
     private val quadBuffer: FloatBuffer = floatArrayOf(
         -0.5f, -0.5f, 0f, 0f, 1f,
@@ -62,6 +71,15 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     @Volatile
     private var pendingTextures: List<PanelTextureSnapshot> = emptyList()
+
+    @Volatile
+    private var pendingWallpaper: Bitmap? = null
+
+    @Volatile
+    private var pendingWallpaperGeneration: Long = -1L
+
+    private var wallpaperTextureId: Int = 0
+    private var uploadedWallpaperGeneration: Long = -1L
 
     private data class GlTextureEntry(
         val textureId: Int,
@@ -74,9 +92,16 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         pendingTextures = snapshots
     }
 
+    fun setWallpaperBitmap(bitmap: Bitmap?, generation: Long) {
+        pendingWallpaper = bitmap
+        pendingWallpaperGeneration = generation
+    }
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0f, 0f, 0f, 0f)
+        GLES20.glClearColor(0f, 0f, 0f, 1f)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
+        GLES20.glCullFace(GLES20.GL_BACK)
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -91,7 +116,13 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         texMvpHandle = GLES20.glGetUniformLocation(texturedProgram, "uMvp")
         texSamplerHandle = GLES20.glGetUniformLocation(texturedProgram, "uTexture")
 
-        rebuildCylinderMesh()
+        wallpaperProgram = buildProgram(WALLPAPER_VERTEX_SHADER, WALLPAPER_FRAGMENT_SHADER)
+        wallpaperPositionHandle = GLES20.glGetAttribLocation(wallpaperProgram, "aPosition")
+        wallpaperTexCoordHandle = GLES20.glGetAttribLocation(wallpaperProgram, "aTexCoord")
+        wallpaperMvpHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uMvp")
+        wallpaperSamplerHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uTexture")
+
+        rebuildCylinderMeshes()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -100,17 +131,22 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         viewportHeightPx = height.toFloat().coerceAtLeast(1f)
         val aspect = width.toFloat() / height.coerceAtLeast(1)
         Matrix.perspectiveM(projectionMatrix, 0, 52f, aspect, 0.05f, 40f)
+        rebuildCylinderMeshes()
     }
 
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         buildViewMatrix()
         applySceneSpan()
+        uploadPendingWallpaper()
         uploadPendingTextures()
         pruneStaleTextures()
 
+        if (WorkspaceGlesConfig.showWallpaperCylinder && curvature > 0.01f) {
+            drawWallpaperCylinder()
+        }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
-            drawCylinder()
+            drawCylinderGuideLine()
             drawPanelGuides()
         }
         if (WorkspaceGlesConfig.texturedPanelsEnabled && curvature > 0.01f) {
@@ -145,6 +181,15 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     }
 
     fun rebuildCylinderMesh() {
+        rebuildCylinderMeshes()
+    }
+
+    private fun rebuildCylinderMeshes() {
+        rebuildCylinderGuideLine()
+        rebuildWallpaperMesh()
+    }
+
+    private fun rebuildCylinderGuideLine() {
         val segments = 48
         val c = curvature.coerceIn(0f, 1f)
         val halfArcRad = Math.toRadians(
@@ -160,20 +205,116 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             verts[i * 3 + 1] = -0.15f
             verts[i * 3 + 2] = -(baseDepth + radius * (1f - cos(theta)))
         }
-        cylinderBuffer = verts.toFloatBuffer()
-        cylinderVertexCount = segments + 1
+        cylinderLineBuffer = verts.toFloatBuffer()
+        cylinderLineVertexCount = segments + 1
     }
 
-    private fun drawCylinder() {
+    private fun rebuildWallpaperMesh() {
+        val horizSegments = 56
+        val vertSegments = 28
+        val c = curvature.coerceIn(0f, 1f)
+        val halfArcRad = Math.toRadians(
+            (WorkspaceCylinderGeometry.MAX_ARC_YAW_DEGREES * c * workspaceWidth) / 2.0,
+        ).toFloat()
+        val radius = WorkspaceCylinderGeometry.sceneRadiusX(viewportWidthPx, workspaceWidth, c)
+        val baseDepth = WorkspaceCylinderGeometry.sceneBaseDepth(viewportWidthPx, c)
+        val wallHeight = 2.4f
+        val halfHeight = wallHeight / 2f
+
+        val verts = mutableListOf<Float>()
+        for (row in 0..vertSegments) {
+            val v = row / vertSegments.toFloat()
+            val y = -halfHeight + v * wallHeight
+            for (col in 0..horizSegments) {
+                val t = col / horizSegments.toFloat()
+                val theta = -halfArcRad + t * 2f * halfArcRad
+                val x = radius * sin(theta)
+                val z = -(baseDepth + radius * (1f - cos(theta)))
+                verts += x
+                verts += y
+                verts += z
+                verts += t
+                verts += v
+            }
+        }
+
+        val indices = mutableListOf<Int>()
+        val rowStride = horizSegments + 1
+        for (row in 0 until vertSegments) {
+            for (col in 0 until horizSegments) {
+                val topLeft = row * rowStride + col
+                val topRight = topLeft + 1
+                val bottomLeft = (row + 1) * rowStride + col
+                val bottomRight = bottomLeft + 1
+                indices += topLeft
+                indices += bottomLeft
+                indices += topRight
+                indices += topRight
+                indices += bottomLeft
+                indices += bottomRight
+            }
+        }
+
+        val interleaved = FloatArray(indices.size * 5)
+        indices.forEachIndexed { index, vertexIndex ->
+            val base = vertexIndex * 5
+            interleaved[index * 5] = verts[base]
+            interleaved[index * 5 + 1] = verts[base + 1]
+            interleaved[index * 5 + 2] = verts[base + 2]
+            interleaved[index * 5 + 3] = verts[base + 3]
+            interleaved[index * 5 + 4] = verts[base + 4]
+        }
+        wallpaperMeshBuffer = interleaved.toFloatBuffer()
+        wallpaperMeshVertexCount = indices.size
+    }
+
+    private fun drawWallpaperCylinder() {
+        if (wallpaperTextureId == 0) return
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(wallpaperProgram)
+        GLES20.glUniformMatrix4fv(wallpaperMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, wallpaperTextureId)
+        GLES20.glUniform1i(wallpaperSamplerHandle, 0)
+
+        wallpaperMeshBuffer.position(0)
+        GLES20.glEnableVertexAttribArray(wallpaperPositionHandle)
+        GLES20.glVertexAttribPointer(
+            wallpaperPositionHandle,
+            3,
+            GLES20.GL_FLOAT,
+            false,
+            20,
+            wallpaperMeshBuffer,
+        )
+        GLES20.glEnableVertexAttribArray(wallpaperTexCoordHandle)
+        wallpaperMeshBuffer.position(3)
+        GLES20.glVertexAttribPointer(
+            wallpaperTexCoordHandle,
+            2,
+            GLES20.GL_FLOAT,
+            false,
+            20,
+            wallpaperMeshBuffer,
+        )
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, wallpaperMeshVertexCount)
+
+        GLES20.glDisableVertexAttribArray(wallpaperPositionHandle)
+        GLES20.glDisableVertexAttribArray(wallpaperTexCoordHandle)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+    }
+
+    private fun drawCylinderGuideLine() {
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
         GLES20.glUseProgram(lineProgram)
         GLES20.glUniformMatrix4fv(lineMvpHandle, 1, false, mvpMatrix, 0)
         GLES20.glEnableVertexAttribArray(linePositionHandle)
-        cylinderBuffer.position(0)
-        GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, cylinderBuffer)
+        cylinderLineBuffer.position(0)
+        GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, cylinderLineBuffer)
         GLES20.glUniform4f(lineColorHandle, 0.12f, 0.75f, 0.78f, 0.35f)
         GLES20.glLineWidth(2f)
-        GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, cylinderVertexCount)
+        GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, cylinderLineVertexCount)
         GLES20.glDisableVertexAttribArray(linePositionHandle)
     }
 
@@ -293,6 +434,19 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             viewportHeightPx = viewportHeightPx,
         )
 
+    private fun uploadPendingWallpaper() {
+        val bitmap = pendingWallpaper ?: return
+        val generation = pendingWallpaperGeneration
+        if (generation == uploadedWallpaperGeneration && wallpaperTextureId != 0) return
+        if (wallpaperTextureId == 0) {
+            wallpaperTextureId = createTextureId()
+        }
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, wallpaperTextureId)
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        uploadedWallpaperGeneration = generation
+    }
+
     private fun uploadPendingTextures() {
         pendingTextures.forEach { snapshot ->
             val entry = uploadedTextures.getOrPut(snapshot.panelId) {
@@ -381,6 +535,22 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             varying vec2 vTexCoord;
             void main() {
                 gl_FragColor = texture2D(uTexture, vTexCoord);
+            }
+        """
+        private const val WALLPAPER_VERTEX_SHADER = TEXTURED_VERTEX_SHADER
+        private const val WALLPAPER_FRAGMENT_SHADER = """
+            precision mediump float;
+            uniform sampler2D uTexture;
+            varying vec2 vTexCoord;
+            void main() {
+                vec4 color = texture2D(uTexture, vTexCoord);
+                float vertical = smoothstep(0.0, 0.14, vTexCoord.y) *
+                    smoothstep(1.0, 0.86, vTexCoord.y);
+                float horizontal = smoothstep(0.0, 0.06, vTexCoord.x) *
+                    smoothstep(1.0, 0.94, vTexCoord.x);
+                float vignette = vertical * horizontal;
+                color.rgb *= mix(0.35, 1.0, vignette);
+                gl_FragColor = color;
             }
         """
     }

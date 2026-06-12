@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.ui.glasses
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,10 +49,8 @@ import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
-import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWraparoundLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.WraparoundPanelContainer
-import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 
 @Composable
 fun GlassesSpatialWorkspaceScreen(
@@ -121,27 +120,14 @@ fun GlassesSpatialWorkspaceScreen(
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
-    val lookYaw = WorkspaceWraparound.effectiveLookYaw(tuned)
-    val lookPitch = WorkspaceWraparound.effectiveLookPitch(tuned)
-    val (parallaxX, parallaxY) = WorkspaceWraparound.cursorNorm(cursor.x, cursor.y)
-    val (backdropYaw, backdropPitch) = WorkspaceWraparound.backdropLook(
-        cursorX = cursor.x,
-        cursorY = cursor.y,
-        lookYawDegrees = lookYaw,
-        lookPitchDegrees = lookPitch,
-    )
     val openAllApps = { GlassesSessionState.showAllAppsOverlay() }
     val allAppsHovered = cursor.hoveredLabel == AllAppsLauncher.HOVER_LABEL
 
-    Box(modifier = modifier.fillMaxSize()) {
-        WorkspaceWallpaper(
-            parallaxX = parallaxX,
-            parallaxY = parallaxY,
-            lookYawDegrees = backdropYaw,
-            lookPitchDegrees = backdropPitch,
-            modifier = Modifier.fillMaxSize(),
-        )
-
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    ) {
         WorkspaceScaledLayer(uiScale = uiScale) {
             WorkspaceWraparoundLayer(
                 appearance = tuned,
