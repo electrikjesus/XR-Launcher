@@ -90,6 +90,31 @@ class WorkspaceRepository(private val context: Context) {
         }
     }
 
+    suspend fun setPanelVisible(panelId: String, visible: Boolean) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            val updated = current.panels.map { panel ->
+                if (panel.id == panelId) panel.copy(visible = visible) else panel
+            }
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(current.copy(panels = updated))
+        }
+    }
+
+    suspend fun snapPanelToDefaultGrid(panelId: String) {
+        val bounds = WorkspaceCylinderGrid.defaultStackBounds(panelId) ?: return
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            val updated = current.panels.map { panel ->
+                if (panel.id == panelId) panel.copy(bounds = bounds) else panel
+            }
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(current.copy(panels = updated))
+        }
+    }
+
     companion object {
         private val WORKSPACE_JSON_KEY = stringPreferencesKey("workspace_json")
     }

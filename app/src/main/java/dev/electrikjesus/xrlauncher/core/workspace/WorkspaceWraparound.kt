@@ -114,16 +114,27 @@ object WorkspaceWraparound {
     )
 
     fun effectiveLookYaw(appearance: WorkspaceAppearance): Float {
-        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) return 0f
-        return (appearance.lookYawDegrees + WorkspaceLookOffset.yawDegrees)
+        val offset = WorkspaceLookOffset.yawDegrees
+        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+            return offset.coerceIn(WorkspaceAppearance.MIN_LOOK_YAW, WorkspaceAppearance.MAX_LOOK_YAW)
+        }
+        return (appearance.lookYawDegrees + offset)
             .coerceIn(WorkspaceAppearance.MIN_LOOK_YAW, WorkspaceAppearance.MAX_LOOK_YAW)
     }
 
     fun effectiveLookPitch(appearance: WorkspaceAppearance): Float {
-        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) return 0f
-        return (appearance.lookPitchDegrees + WorkspaceLookOffset.pitchDegrees)
+        val offset = WorkspaceLookOffset.pitchDegrees
+        if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+            return offset.coerceIn(WorkspaceAppearance.MIN_LOOK_PITCH, WorkspaceAppearance.MAX_LOOK_PITCH)
+        }
+        return (appearance.lookPitchDegrees + offset)
             .coerceIn(WorkspaceAppearance.MIN_LOOK_PITCH, WorkspaceAppearance.MAX_LOOK_PITCH)
     }
+
+    /** Head tracking on launcher: view follows IMU; cursor position must not pan the camera. */
+    fun headTrackingSteersLauncherView(): Boolean =
+        GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING &&
+            GlassesSessionState.launcherForeground
 }
 
 object WorkspaceLookOffset {

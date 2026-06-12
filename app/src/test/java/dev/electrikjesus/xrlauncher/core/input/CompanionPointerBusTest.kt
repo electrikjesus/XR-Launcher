@@ -155,8 +155,31 @@ class CompanionPointerBusTest {
     }
 
     @Test
-    fun applyGlassesImuSample_movesCursorWhenHeadTrackingActive() {
+    fun applyGlassesImuSample_steersLookOnLauncherForeground() {
         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        GlassesSessionState.launcherForeground = true
+        try {
+            WorkspaceLookOffset.reset()
+            CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+            CompanionPointerBus.applyGlassesImuSample(
+                gyroXDps = 0f,
+                gyroYDps = -30f,
+                gyroZDps = 0f,
+                deltaTimeSec = 0.016f,
+            )
+            assertTrue(WorkspaceLookOffset.yawDegrees > 0f)
+            assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
+        } finally {
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+            GlassesSessionState.launcherForeground = false
+            CompanionPointerBus.resetCursor()
+        }
+    }
+
+    @Test
+    fun applyGlassesImuSample_movesCursorOverOtherApps() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        GlassesSessionState.launcherForeground = false
         try {
             CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
             CompanionPointerBus.applyGlassesImuSample(
@@ -175,6 +198,7 @@ class CompanionPointerBusTest {
     @Test
     fun applyGlassesImuSample_usesSeparateYawAndPitchScales() {
         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        GlassesSessionState.launcherForeground = false
         try {
             CompanionPointerBus.setGlassesImuYawScale(0.5f)
             CompanionPointerBus.setGlassesImuPitchScale(1.5f)

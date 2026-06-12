@@ -17,6 +17,7 @@ import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -32,6 +33,7 @@ class ExternalDisplayActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         applyImmersiveFullscreen()
         syncSessionDisplayId()
+        AllAppsGridConfigStore.init(this)
 
         val displayId = display?.displayId ?: Display.DEFAULT_DISPLAY
         val subspaceDecision = SubspaceSpike.resolvePreferSubspace(this)

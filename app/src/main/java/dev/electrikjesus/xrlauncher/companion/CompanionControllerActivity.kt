@@ -19,6 +19,7 @@ import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.MotionPointerController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.companion.CompanionTouchpadScreen
@@ -35,6 +36,7 @@ class CompanionControllerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         HeadTrackingCalibrationStore.init(this)
+        AllAppsGridConfigStore.init(this)
         CompanionPointerBus.initHeadTrackingControls(this)
 
         motionController = MotionPointerController(this) { deltaX, deltaY ->

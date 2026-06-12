@@ -9,6 +9,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
 import dev.electrikjesus.xrlauncher.companion.CompanionControllerActivity
+import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
@@ -87,6 +88,14 @@ object DisplayLaunchHelper {
             context = context,
             activityClass = CompanionControllerActivity::class.java,
             clearTop = true,
+        )
+    }
+
+    /** Open Settings on the phone display even when invoked from glasses. */
+    fun openSettings(context: Context): Boolean {
+        return launchActivityOnDefaultDisplay(
+            context = context,
+            activityClass = SettingsActivity::class.java,
         )
     }
 

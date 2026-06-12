@@ -33,7 +33,7 @@ object PanelHandleBounds {
 
 object PanelHandleMetrics {
     val dragHandleMinHeight = 52.dp
-    val resizeHandleSize = 48.dp
+    val resizeHandleSize = 56.dp
 }
 
 @Composable
@@ -96,7 +96,8 @@ fun PanelResizeHandle(
     Box(
         modifier = modifier
             .size(PanelHandleMetrics.resizeHandleSize)
-            .shadow(if (isFocused) 6.dp else 4.dp, RoundedCornerShape(10.dp))
+            .padding(4.dp)
+            .shadow(if (isFocused) 8.dp else 5.dp, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFF1A1520).copy(alpha = 0.92f))
             .border(

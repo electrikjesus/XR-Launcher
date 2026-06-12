@@ -3,7 +3,6 @@ package dev.electrikjesus.xrlauncher.ui.workspace
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,6 +21,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
@@ -126,37 +126,41 @@ fun DraggableWorkspacePanelShell(
                     val scale = if (isFocused) 1.02f else 1f
                     scaleX = scale
                     scaleY = scale
-                }
-                .shadow(elevation, MaterialGlassShape),
+                },
         ) {
-            WorkspacePanelShell(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(elevation, MaterialGlassShape),
+            ) {
+                WorkspacePanelShell(
+                    panelId = panel.id,
+                    isFocused = isFocused,
+                    onPanelBoundsChanged = onPanelBoundsChanged,
+                    modifier = Modifier.fillMaxSize(),
+                    header = {
+                        PanelDragHandleBar(
+                            panelId = panel.id,
+                            title = title,
+                            isFocused = isFocused,
+                            onPanelBoundsChanged = onPanelBoundsChanged,
+                            modifier = moveDragModifier,
+                        )
+                    },
+                ) {
+                    content()
+                }
+            }
+            PanelResizeHandle(
                 panelId = panel.id,
                 isFocused = isFocused,
                 onPanelBoundsChanged = onPanelBoundsChanged,
-                modifier = Modifier.fillMaxSize(),
-                header = {
-                    PanelDragHandleBar(
-                        panelId = panel.id,
-                        title = title,
-                        isFocused = isFocused,
-                        onPanelBoundsChanged = onPanelBoundsChanged,
-                        modifier = moveDragModifier,
-                    )
-                },
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    content()
-                    PanelResizeHandle(
-                        panelId = panel.id,
-                        isFocused = isFocused,
-                        onPanelBoundsChanged = onPanelBoundsChanged,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(6.dp)
-                            .then(resizeDragModifier),
-                    )
-                }
-            }
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .zIndex(2f)
+                    .offset(x = 4.dp, y = 4.dp)
+                    .then(resizeDragModifier),
+            )
         }
     }
 }

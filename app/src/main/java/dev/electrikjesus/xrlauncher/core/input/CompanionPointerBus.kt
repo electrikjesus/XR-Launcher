@@ -165,10 +165,7 @@ object CompanionPointerBus {
         WorkspaceLookOffset.addDelta(-deltaY * scale, -deltaX * scale)
     }
 
-    /**
-     * Glasses USB HID gyro → mouse-look view pan (same path as touchpad cursor on the cylinder).
-     * Does not touch persisted look-left/right sliders or scene rotation offsets.
-     */
+    /** Glasses USB HID gyro → view look on launcher, cursor move over other apps. */
     fun applyGlassesImuSample(
         gyroXDps: Float,
         gyroYDps: Float,
@@ -187,10 +184,15 @@ object CompanionPointerBus {
         val dt = deltaTimeSec.coerceIn(0.001f, 0.05f)
         val calibration = HeadTrackingCalibrationStore.current()
         val (yawRate, pitchRate) = calibration.mapGyroRates(gyroXDps, gyroYDps, gyroZDps)
-        moveBy(
-            yawRate * dt * base * scales.yawScale,
-            pitchRate * dt * base * scales.pitchScale,
-        )
+        val yawDelta = yawRate * dt * scales.yawScale
+        val pitchDelta = pitchRate * dt * scales.pitchScale
+
+        if (GlassesSessionState.launcherForeground) {
+            // Head steers the cylinder view; touchpad moves the pointer (no cursor→camera feedback).
+            WorkspaceLookOffset.addDelta(yawDelta, -pitchDelta)
+        } else {
+            moveBy(yawDelta * base, pitchDelta * base)
+        }
     }
 
     fun setGlassesImuYawScale(value: Float) {

@@ -53,6 +53,7 @@ fun PaginatedAppGrid(
     pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     modifier: Modifier = Modifier,
     columns: Int = AllAppsGridConfig.columns,
     rows: Int = AllAppsGridConfig.rows,
@@ -137,6 +138,7 @@ fun PaginatedAppGrid(
                                             isPinned = app.componentKey() in pinnedComponentKeys,
                                             onBoundsChanged = onBoundsChanged,
                                             onLaunchApp = onLaunchApp,
+                                            onContextMenu = onAppContextMenu,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }

@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.ui.external
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -12,6 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalContext
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import androidx.compose.ui.platform.LocalDensity
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
@@ -20,9 +23,11 @@ import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
+import dev.electrikjesus.xrlauncher.ui.workspace.openAppContextMenuFromBounds
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
@@ -79,7 +84,7 @@ private fun FlatGlassesWorkspaceScreen(
     var rootWidthPx by remember { mutableFloatStateOf(1f) }
     var rootHeightPx by remember { mutableFloatStateOf(1f) }
     val panels = workspace?.panels ?: Workspace.defaultPanels()
-    val visiblePanelIds = remember(panels) { panels.filter { it.visible }.map { it.id } }
+    val pinnedKeys = workspace?.hotseatPins?.toSet() ?: emptySet()
     val hotseatApps = remember(launchableApps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
             apps = launchableApps,
@@ -92,33 +97,53 @@ private fun FlatGlassesWorkspaceScreen(
         rootWidthPx = with(density) { maxWidth.toPx() }
         rootHeightPx = with(density) { maxHeight.toPx() }
 
-        LauncherWorkspacePointerEffects(
-            apps = launchableApps,
-            itemBounds = itemBounds,
-            rootWidthPx = rootWidthPx,
-            rootHeightPx = rootHeightPx,
-            onToggleHotseatPin = onToggleHotseatPin,
-        )
-
-        WorkspacePanelFocusEffects(
-            panelIds = visiblePanelIds,
-            panelBounds = panelBounds,
-            rootWidthPx = rootWidthPx,
-            rootHeightPx = rootHeightPx,
-        )
+        val onAppContextMenu = { app: LaunchableApp, bounds: Rect ->
+            openAppContextMenuFromBounds(
+                app = app,
+                bounds = bounds,
+                isPinned = app.componentKey() in pinnedKeys,
+                rootWidthPx = rootWidthPx,
+                rootHeightPx = rootHeightPx,
+            )
+        }
 
         val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
+        val context = LocalContext.current
 
-        GlassesSpatialWorkspaceScreen(
-            launchableApps = launchableApps,
-            hotseatApps = hotseatApps,
-            pinnedComponentKeys = workspace?.hotseatPins?.toSet() ?: emptySet(),
-            panels = panels,
-            appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
-            onBoundsChanged = { key, rect -> itemBounds[key] = rect },
-            onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
-            onPanelsChange = { updatedPanels -> panelSaver.save(updatedPanels) },
-            onLaunchApp = onLaunchApp,
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            GlassesSpatialWorkspaceScreen(
+                launchableApps = launchableApps,
+                hotseatApps = hotseatApps,
+                pinnedComponentKeys = pinnedKeys,
+                panels = panels,
+                appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
+                onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+                onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
+                onPanelsChange = { updatedPanels -> panelSaver.save(updatedPanels) },
+                onLaunchApp = onLaunchApp,
+                onOpenSettings = { DisplayLaunchHelper.openSettings(context) },
+                onAppContextMenu = onAppContextMenu,
+            )
+
+            LauncherWorkspaceInteractionLayer(
+                launchableApps = launchableApps,
+                panels = panels,
+                pinnedComponentKeys = pinnedKeys,
+                itemBounds = itemBounds,
+                panelBounds = panelBounds,
+                rootWidthPx = rootWidthPx,
+                rootHeightPx = rootHeightPx,
+                workspaceRepository = workspaceRepository,
+                onLaunchApp = onLaunchApp,
+                onToggleHotseatPin = onToggleHotseatPin,
+                onPanelBoundsChanged = { panelId, bounds ->
+                    panelSaver.save(
+                        panels.map { panel ->
+                            if (panel.id == panelId) panel.copy(bounds = bounds) else panel
+                        },
+                    )
+                },
+            )
+        }
     }
 }

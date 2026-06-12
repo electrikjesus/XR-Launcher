@@ -15,6 +15,7 @@ fun WorkspaceHotseatRow(
     pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
     allAppsHovered: Boolean = false,
     modifier: Modifier = Modifier,
@@ -30,6 +31,7 @@ fun WorkspaceHotseatRow(
                 isPinned = app.componentKey() in pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = onLaunchApp,
+                onContextMenu = onAppContextMenu,
                 modifier = Modifier.weight(1f),
             )
         }

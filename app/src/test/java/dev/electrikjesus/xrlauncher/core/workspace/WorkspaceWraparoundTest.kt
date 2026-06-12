@@ -134,13 +134,13 @@ class WorkspaceWraparoundTest {
     }
 
     @Test
-    fun effectiveLook_isZeroWhenGlassesHeadTrackingActive() {
+    fun effectiveLook_usesLookOffsetOnlyWhenGlassesHeadTrackingActive() {
         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
         WorkspaceLookOffset.setOffset(12f, 8f)
         try {
             val appearance = WorkspaceAppearance(lookYawDegrees = 20f, lookPitchDegrees = 5f)
-            assertEquals(0f, WorkspaceWraparound.effectiveLookYaw(appearance), 0.001f)
-            assertEquals(0f, WorkspaceWraparound.effectiveLookPitch(appearance), 0.001f)
+            assertEquals(12f, WorkspaceWraparound.effectiveLookYaw(appearance), 0.001f)
+            assertEquals(8f, WorkspaceWraparound.effectiveLookPitch(appearance), 0.001f)
         } finally {
             WorkspaceLookOffset.reset()
             GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION

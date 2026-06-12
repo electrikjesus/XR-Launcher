@@ -38,6 +38,7 @@ fun WorkspaceAllAppsOverlay(
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: (LaunchableApp) -> Unit,
     onDismiss: () -> Unit,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -106,6 +107,7 @@ fun WorkspaceAllAppsOverlay(
                         onLaunchApp(app)
                         onDismiss()
                     },
+                    onAppContextMenu = onAppContextMenu,
                     useSharedPagination = true,
                     modifier = Modifier
                         .weight(1f)

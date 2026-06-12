@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
-import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 
@@ -37,6 +37,7 @@ fun WorkspaceAppDrawerPanel(
     pinnedComponentKeys: Set<String>,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     modifier: Modifier = Modifier,
     useDarkTheme: Boolean = true,
     useSharedPagination: Boolean = false,
@@ -45,6 +46,7 @@ fun WorkspaceAppDrawerPanel(
     val accentColor = Color(0xFF03DAC5)
     var localPageIndex by remember { mutableIntStateOf(0) }
     val sharedPageIndex by AllAppsPaginationState.pageIndexFlow.collectAsState(initial = 0)
+    val gridDimensions by AllAppsGridConfigStore.dimensions.collectAsState()
     val pageIndex = if (useSharedPagination) sharedPageIndex else localPageIndex
 
     LaunchedEffect(searchQuery) {
@@ -55,9 +57,9 @@ fun WorkspaceAppDrawerPanel(
         }
     }
 
-    LaunchedEffect(apps.size, useSharedPagination) {
+    LaunchedEffect(apps.size, gridDimensions.pageSize, useSharedPagination) {
         if (useSharedPagination) {
-            AllAppsPaginationState.updatePageCount(apps.size, AllAppsGridConfig.pageSize)
+            AllAppsPaginationState.updatePageCount(apps.size, gridDimensions.pageSize)
         }
     }
 
@@ -104,6 +106,9 @@ fun WorkspaceAppDrawerPanel(
             pinnedComponentKeys = pinnedComponentKeys,
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
+            onAppContextMenu = onAppContextMenu,
+            columns = gridDimensions.columns,
+            rows = gridDimensions.rows,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),

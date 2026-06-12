@@ -61,6 +61,8 @@ fun GlassesSpatialWorkspaceScreen(
     onPanelBoundsChanged: (String, Rect) -> Unit = { _, _ -> },
     onPanelsChange: (List<PanelState>) -> Unit = {},
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
+    onOpenSettings: () -> Unit = {},
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
     modifier: Modifier = Modifier,
 ) {
@@ -139,6 +141,10 @@ fun GlassesSpatialWorkspaceScreen(
                                 vertical = if (useFreeform) 8.dp else 16.dp,
                             ),
                     ) {
+                        GlassesWorkspaceTitleBar(
+                            onOpenSettings = onOpenSettings,
+                            onBoundsChanged = onBoundsChanged,
+                        )
                         WorkspaceLayoutPresetBar(
                             activePreset = activePreset,
                             onPresetSelected = { preset ->
@@ -161,6 +167,7 @@ fun GlassesSpatialWorkspaceScreen(
                                 onPanelFrameChanged = ::updatePanelBounds,
                                 onLaunchApp = onLaunchApp,
                                 onOpenAllApps = openAllApps,
+                                onAppContextMenu = onAppContextMenu,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -182,6 +189,7 @@ fun GlassesSpatialWorkspaceScreen(
                                 onPanelBoundsChanged = onPanelBoundsChanged,
                                 onLaunchApp = onLaunchApp,
                                 onOpenAllApps = openAllApps,
+                                onAppContextMenu = onAppContextMenu,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -219,6 +227,7 @@ fun GlassesSpatialWorkspaceScreen(
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = onLaunchApp,
                 onDismiss = { GlassesSessionState.hideAllAppsOverlay() },
+                onAppContextMenu = onAppContextMenu,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -274,6 +283,7 @@ private fun GlassesPanelLayout(
     onBoundsChanged: (String, Rect) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
@@ -350,6 +360,7 @@ private fun GlassesPanelLayout(
                                 pinnedComponentKeys = pinnedComponentKeys,
                                 onBoundsChanged = onBoundsChanged,
                                 onLaunchApp = onLaunchApp,
+                                onAppContextMenu = onAppContextMenu,
                             )
                         }
                     }
@@ -380,6 +391,7 @@ private fun GlassesPanelLayout(
                                 onBoundsChanged = onBoundsChanged,
                                 onLaunchApp = onLaunchApp,
                                 onOpenAllApps = onOpenAllApps,
+                                onAppContextMenu = onAppContextMenu,
                                 allAppsHovered = allAppsHovered,
                             )
                         }
@@ -428,6 +440,7 @@ private fun FreeformGlassesPanelLayout(
     onPanelBoundsChanged: (String, Rect) -> Unit,
     onPanelFrameChanged: (String, PanelBounds) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
@@ -465,6 +478,7 @@ private fun FreeformGlassesPanelLayout(
                     onBoundsChanged = onBoundsChanged,
                     onLaunchApp = onLaunchApp,
                     onOpenAllApps = onOpenAllApps,
+                    onAppContextMenu = onAppContextMenu,
                     allAppsHovered = allAppsHovered,
                 )
             }
@@ -483,6 +497,7 @@ private fun PanelBody(
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: ((LaunchableApp) -> Unit)?,
+    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
     onOpenAllApps: (() -> Unit)? = null,
     allAppsHovered: Boolean = false,
 ) {
@@ -496,6 +511,7 @@ private fun PanelBody(
             pinnedComponentKeys = pinnedComponentKeys,
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
+            onAppContextMenu = onAppContextMenu,
         )
         PanelKind.HOTSEAT -> WorkspaceHotseatRow(
             apps = hotseatApps,
@@ -503,6 +519,7 @@ private fun PanelBody(
             pinnedComponentKeys = pinnedComponentKeys,
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
+            onAppContextMenu = onAppContextMenu,
             onOpenAllApps = onOpenAllApps,
             allAppsHovered = allAppsHovered,
         )

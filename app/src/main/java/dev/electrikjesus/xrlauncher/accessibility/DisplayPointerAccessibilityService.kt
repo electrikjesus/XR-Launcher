@@ -7,6 +7,7 @@ import android.hardware.display.DisplayManager
 import android.util.DisplayMetrics
 import android.util.Log
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -29,7 +30,9 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         DisplayPointerInjector.service = this
-        overlayManager = DisplayCursorOverlayManager(this)
+        overlayManager = DisplayCursorOverlayManager(this) {
+            DisplayLaunchHelper.showLauncherOnGlasses(this)
+        }
         if (GlassesSessionState.secondaryDisplayId != null) {
             GlassesSessionState.controlMode = GlassesControlMode.DESKTOP
             CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
@@ -38,6 +41,11 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         serviceScope.launch {
             CompanionPointerBus.cursor.collect { cursor ->
                 syncOverlay(cursor.x, cursor.y, cursor.isPressed)
+            }
+        }
+        serviceScope.launch {
+            GlassesSessionState.launcherForegroundFlow.collect { foreground ->
+                overlayManager?.setLauncherForeground(foreground)
             }
         }
         Log.d(TAG, "Display pointer service connected")

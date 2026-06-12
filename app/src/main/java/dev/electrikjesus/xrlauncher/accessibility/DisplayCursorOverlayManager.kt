@@ -5,24 +5,33 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.TextView
+import dev.electrikjesus.xrlauncher.R
 
 /**
- * Draws the companion cursor on a secondary display via [WindowManager.TYPE_ACCESSIBILITY_OVERLAY].
- * Stays visible over Settings, Play Store, etc. — not tied to [ExternalDisplayActivity].
+ * Draws the companion cursor and a return-to-launcher bubble on the glasses display.
  */
 class DisplayCursorOverlayManager(
     private val context: Context,
+    private val onReturnToLauncher: () -> Unit,
 ) {
-    private var overlayView: CursorOverlayView? = null
+    private var overlayRoot: FrameLayout? = null
+    private var cursorView: CursorOverlayView? = null
+    private var bubbleView: LauncherReturnBubbleView? = null
     private var windowManager: WindowManager? = null
     private var attachedDisplayId: Int? = null
+    private var launcherForeground = true
 
     fun attach(displayId: Int) {
-        if (attachedDisplayId == displayId && overlayView != null) return
+        if (attachedDisplayId == displayId && overlayRoot != null) return
         detach()
         val displayManager = context.getSystemService(DisplayManager::class.java)
         val display = displayManager.getDisplay(displayId)
@@ -32,21 +41,55 @@ class DisplayCursorOverlayManager(
         }
         val displayContext = context.createDisplayContext(display)
         val wm = displayContext.getSystemService(WindowManager::class.java)
-        val view = CursorOverlayView(displayContext)
-        wm.addView(view, overlayLayoutParams())
-        overlayView = view
+        val root = FrameLayout(displayContext)
+        val cursor = CursorOverlayView(displayContext)
+        val bubble = LauncherReturnBubbleView(displayContext) {
+            onReturnToLauncher()
+        }
+        root.addView(
+            cursor,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        root.addView(
+            bubble,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.END,
+            ).apply {
+                val margin = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    20f,
+                    displayContext.resources.displayMetrics,
+                ).toInt()
+                setMargins(margin, margin, margin, margin)
+            },
+        )
+        wm.addView(root, overlayLayoutParams())
+        overlayRoot = root
+        cursorView = cursor
+        bubbleView = bubble
         windowManager = wm
         attachedDisplayId = displayId
+        bubble.visibility = if (launcherForeground) View.GONE else View.VISIBLE
         Log.d(TAG, "Cursor overlay attached on display $displayId")
     }
 
     fun update(normalizedX: Float, normalizedY: Float, pressed: Boolean) {
-        overlayView?.setCursor(normalizedX, normalizedY, pressed)
+        cursorView?.setCursor(normalizedX, normalizedY, pressed)
+    }
+
+    fun setLauncherForeground(foreground: Boolean) {
+        launcherForeground = foreground
+        bubbleView?.visibility = if (foreground) View.GONE else View.VISIBLE
     }
 
     fun detach() {
         val wm = windowManager
-        val view = overlayView
+        val view = overlayRoot
         if (wm != null && view != null) {
             try {
                 wm.removeView(view)
@@ -54,7 +97,9 @@ class DisplayCursorOverlayManager(
                 Log.w(TAG, "Overlay already removed", e)
             }
         }
-        overlayView = null
+        overlayRoot = null
+        cursorView = null
+        bubbleView = null
         windowManager = null
         attachedDisplayId = null
     }
@@ -65,7 +110,6 @@ class DisplayCursorOverlayManager(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -83,6 +127,10 @@ class DisplayCursorOverlayManager(
             style = Paint.Style.STROKE
             strokeWidth = 4f
             color = Color.WHITE
+        }
+
+        init {
+            isClickable = false
         }
 
         fun setCursor(x: Float, y: Float, isPressed: Boolean) {
@@ -108,6 +156,44 @@ class DisplayCursorOverlayManager(
             ringPaint.alpha = (0.55f * 255).toInt()
             canvas.drawCircle(cx, cy, radius, fillPaint)
             canvas.drawCircle(cx, cy, radius + 1.5f, ringPaint)
+        }
+    }
+
+    private class LauncherReturnBubbleView(
+        context: Context,
+        onClick: () -> Unit,
+    ) : FrameLayout(context) {
+        init {
+            isClickable = true
+            isFocusable = true
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#CC1A1520"))
+                setStroke(2, Color.parseColor("#03DAC5"))
+            }
+            background = bg
+            val size = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                56f,
+                resources.displayMetrics,
+            ).toInt()
+            minimumWidth = size
+            minimumHeight = size
+            val label = TextView(context).apply {
+                text = context.getString(R.string.launcher_return_bubble_label)
+                setTextColor(Color.parseColor("#03DAC5"))
+                textSize = 11f
+                gravity = Gravity.CENTER
+            }
+            addView(
+                label,
+                LayoutParams(
+                    LayoutParams.MATCH_PARENT,
+                    LayoutParams.MATCH_PARENT,
+                ),
+            )
+            setOnClickListener { onClick() }
+            elevation = 12f
         }
     }
 

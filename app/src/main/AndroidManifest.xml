@@ -76,6 +76,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.XRLauncher" />
+
         <service
             android:name=".accessibility.DisplayPointerAccessibilityService"
             android:exported="false"

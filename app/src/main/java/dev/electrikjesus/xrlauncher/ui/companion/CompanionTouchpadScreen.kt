@@ -12,20 +12,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -51,22 +51,18 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
-import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
-import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.ui.text.style.TextOverflow
-import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
-import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.ui.workspace.CompanionAllAppsPageControls
 import kotlinx.coroutines.launch
 
 private enum class CompanionTab(val labelRes: Int) {
     Display(R.string.companion_tab_display),
     Input(R.string.companion_tab_input),
-    Workspace(R.string.companion_tab_workspace),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,14 +77,10 @@ fun CompanionTouchpadScreen(
     modifier: Modifier = Modifier,
 ) {
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
-    val appearance = workspace?.appearance?.clamped() ?: WorkspaceAppearance.default()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val motionEnabled by CompanionPointerBus.motionControlEnabled.collectAsState()
-    val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
-    val touchpadSensitivity by CompanionPointerBus.touchpadSensitivity.collectAsState()
-    val glassesImuMovementScales by CompanionPointerBus.glassesImuMovementScales.collectAsState()
     val xrInputMode by GlassesSessionState.xrInputModeFlow.collectAsState()
     val headTrackingState by RayNeoHeadTrackingController.state.collectAsState()
     val headTrackingError by RayNeoHeadTrackingController.lastError.collectAsState()
@@ -126,6 +118,20 @@ fun CompanionTouchpadScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
+                actions = {
+                    IconButton(
+                        onClick = {
+                            context.startActivity(
+                                android.content.Intent(context, SettingsActivity::class.java),
+                            )
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.settings_open),
+                        )
+                    }
+                },
             )
         },
     ) { padding ->
@@ -171,7 +177,6 @@ fun CompanionTouchpadScreen(
                                     imageVector = when (tab) {
                                         CompanionTab.Display -> Icons.Default.TouchApp
                                         CompanionTab.Input -> Icons.Default.SettingsInputComponent
-                                        CompanionTab.Workspace -> Icons.Default.Dashboard
                                     },
                                     contentDescription = null,
                                 )
@@ -221,106 +226,36 @@ fun CompanionTouchpadScreen(
                                 apps = apps,
                                 onLaunchAppOnGlasses = onLaunchAppOnGlasses,
                                 allAppsOverlayVisible = allAppsOverlayVisible,
+                                cursorHoveredLabel = cursor.hoveredLabel,
+                                focusedPanelId = focusedPanelId,
+                                launcherForeground = launcherForeground,
                             )
                             CompanionTab.Input -> InputTabContent(
                                 xrInputMode = xrInputMode,
                                 rayNeoUsbAttached = rayNeoUsbAttached,
                                 headTrackingState = headTrackingState,
                                 headTrackingError = headTrackingError,
-                                glassesImuMovementScales = glassesImuMovementScales,
                                 motionAvailable = motionAvailable,
                                 motionEnabled = motionEnabled,
-                                motionSensitivity = motionSensitivity,
-                                touchpadSensitivity = touchpadSensitivity,
                                 isCalibrating = isCalibrating,
                                 onCalibrate = onCalibrate,
                                 onXrInputModeChange = { mode ->
                                     GlassesSessionState.xrInputMode = mode
                                     if (mode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
                                         CompanionPointerBus.recenterCursor()
-                                        scope.launch {
-                                            workspaceRepository.updateAppearance(
-                                                appearance.copy(
-                                                    lookYawDegrees = 0f,
-                                                    lookPitchDegrees = 0f,
-                                                ),
-                                            )
+                                        val appearance = workspace?.appearance?.clamped()
+                                        if (appearance != null) {
+                                            scope.launch {
+                                                workspaceRepository.updateAppearance(
+                                                    appearance.copy(
+                                                        lookYawDegrees = 0f,
+                                                        lookPitchDegrees = 0f,
+                                                    ),
+                                                )
+                                            }
                                         }
                                     }
                                 },
-                            )
-                            CompanionTab.Workspace -> WorkspaceTabContent(
-                                appearance = appearance,
-                                headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
-                                onUiScaleChange = { scale ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(uiScale = scale),
-                                        )
-                                    }
-                                },
-                                onPanelGapChange = { gap ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(panelGapDp = gap),
-                                        )
-                                    }
-                                },
-                                onWrapCurvatureChange = { curvature ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(wrapCurvature = curvature),
-                                        )
-                                    }
-                                },
-                                onWorkspaceWidthChange = { width ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(workspaceWidth = width),
-                                        )
-                                    }
-                                },
-                                onWorkspaceHeightChange = { height ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(workspaceHeight = height),
-                                        )
-                                    }
-                                },
-                                onLookYawChange = { yaw ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(lookYawDegrees = yaw),
-                                        )
-                                    }
-                                },
-                                onLookPitchChange = { pitch ->
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(lookPitchDegrees = pitch),
-                                        )
-                                    }
-                                },
-                                onRecenterLook = {
-                                    WorkspaceLookOffset.reset()
-                                    scope.launch {
-                                        workspaceRepository.updateAppearance(
-                                            appearance.copy(
-                                                lookYawDegrees = 0f,
-                                                lookPitchDegrees = 0f,
-                                            ),
-                                        )
-                                    }
-                                },
-                                onResetAppearance = {
-                                    WorkspaceLookOffset.reset()
-                                    scope.launch {
-                                        workspaceRepository.resetLayoutDefaults()
-                                    }
-                                },
-                                cursorHoveredLabel = cursor.hoveredLabel,
-                                focusedPanelId = focusedPanelId,
-                                launcherForeground = launcherForeground,
                             )
                         }
                     }
@@ -414,6 +349,9 @@ private fun DisplayTabContent(
     apps: List<LaunchableApp>,
     onLaunchAppOnGlasses: (LaunchableApp) -> Unit,
     allAppsOverlayVisible: Boolean,
+    cursorHoveredLabel: String?,
+    focusedPanelId: String?,
+    launcherForeground: Boolean,
 ) {
     if (!desktopPointerReady) {
         OutlinedButton(
@@ -464,6 +402,12 @@ private fun DisplayTabContent(
                 .padding(top = 8.dp),
         )
     }
+
+    CompanionWorkspaceLiveControls(
+        cursorHoveredLabel = cursorHoveredLabel,
+        focusedPanelId = focusedPanelId,
+        launcherForeground = launcherForeground,
+    )
 }
 
 @Composable
@@ -472,11 +416,8 @@ private fun InputTabContent(
     rayNeoUsbAttached: Boolean,
     headTrackingState: RayNeoHeadTrackingState,
     headTrackingError: String?,
-    glassesImuMovementScales: HeadTrackingMovementScales,
     motionAvailable: Boolean,
     motionEnabled: Boolean,
-    motionSensitivity: Float,
-    touchpadSensitivity: Float,
     isCalibrating: Boolean,
     onCalibrate: () -> Unit,
     onXrInputModeChange: (GlassesXrInputMode) -> Unit,
@@ -527,48 +468,11 @@ private fun InputTabContent(
             modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            text = stringResource(R.string.xr_head_tracking_movement_scale_hint),
+            text = stringResource(R.string.settings_advanced_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
         )
-        Text(
-            text = stringResource(
-                R.string.xr_head_tracking_yaw_scale,
-                (glassesImuMovementScales.yawScale * 100).toInt(),
-            ),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        Slider(
-            value = glassesImuMovementScales.yawScale,
-            onValueChange = { CompanionPointerBus.setGlassesImuYawScale(it) },
-            valueRange = HeadTrackingSensitivityStore.MIN..HeadTrackingSensitivityStore.MAX,
-        )
-        Text(
-            text = stringResource(
-                R.string.xr_head_tracking_pitch_scale,
-                (glassesImuMovementScales.pitchScale * 100).toInt(),
-            ),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Slider(
-            value = glassesImuMovementScales.pitchScale,
-            onValueChange = { CompanionPointerBus.setGlassesImuPitchScale(it) },
-            valueRange = HeadTrackingSensitivityStore.MIN..HeadTrackingSensitivityStore.MAX,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedButton(
-                onClick = { CompanionPointerBus.resetGlassesImuMovementScales() },
-                modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Text(stringResource(R.string.xr_head_tracking_scale_reset))
-            }
-        }
         OutlinedButton(
             onClick = { CompanionPointerBus.recenterHeadLook() },
             modifier = Modifier.fillMaxWidth(),
@@ -611,15 +515,6 @@ private fun InputTabContent(
     }
 
     if (motionEnabled) {
-        Text(
-            text = stringResource(R.string.motion_sensitivity),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        Slider(
-            value = motionSensitivity,
-            onValueChange = { CompanionPointerBus.setMotionSensitivity(it) },
-            valueRange = 0.25f..3f,
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -647,15 +542,6 @@ private fun InputTabContent(
             }
         }
     } else {
-        Text(
-            text = stringResource(R.string.touchpad_sensitivity),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        Slider(
-            value = touchpadSensitivity,
-            onValueChange = { CompanionPointerBus.setTouchpadSensitivity(it) },
-            valueRange = 0.25f..3f,
-        )
         OutlinedButton(
             onClick = { CompanionPointerBus.recenterCursor() },
             modifier = Modifier.fillMaxWidth(),
@@ -664,6 +550,13 @@ private fun InputTabContent(
             Text(stringResource(R.string.recenter))
         }
     }
+
+    Text(
+        text = stringResource(R.string.settings_advanced_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp),
+    )
 }
 
 @Composable
@@ -697,154 +590,11 @@ private fun XrInputModeOption(
 }
 
 @Composable
-private fun WorkspaceTabContent(
-    appearance: WorkspaceAppearance,
-    headTrackingActive: Boolean,
-    onUiScaleChange: (Float) -> Unit,
-    onPanelGapChange: (Float) -> Unit,
-    onWrapCurvatureChange: (Float) -> Unit,
-    onWorkspaceWidthChange: (Float) -> Unit,
-    onWorkspaceHeightChange: (Float) -> Unit,
-    onLookYawChange: (Float) -> Unit,
-    onLookPitchChange: (Float) -> Unit,
-    onRecenterLook: () -> Unit,
-    onResetAppearance: () -> Unit,
+private fun CompanionWorkspaceLiveControls(
     cursorHoveredLabel: String?,
     focusedPanelId: String?,
     launcherForeground: Boolean,
 ) {
-    Text(
-        text = stringResource(R.string.workspace_appearance_title),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-    )
-    Text(
-        text = stringResource(R.string.workspace_ui_scale_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        text = stringResource(
-            R.string.workspace_ui_scale,
-        ) + " · ${(appearance.uiScale * 100).toInt()}%",
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Slider(
-        value = appearance.uiScale,
-        onValueChange = onUiScaleChange,
-        valueRange = WorkspaceAppearance.MIN_UI_SCALE..WorkspaceAppearance.MAX_UI_SCALE,
-    )
-    Text(
-        text = stringResource(R.string.workspace_panel_gap_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp),
-    )
-    Text(
-        text = stringResource(R.string.workspace_panel_gap) +
-            " · ${appearance.panelGapDp.toInt()}dp",
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Slider(
-        value = appearance.panelGapDp,
-        onValueChange = onPanelGapChange,
-        valueRange = WorkspaceAppearance.MIN_PANEL_GAP_DP..WorkspaceAppearance.MAX_PANEL_GAP_DP,
-    )
-
-    Text(
-        text = stringResource(R.string.workspace_wrap_section),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp),
-    )
-    Text(
-        text = stringResource(R.string.workspace_wrap_curvature_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        text = stringResource(R.string.workspace_wrap_curvature) +
-            " · ${(appearance.wrapCurvature * 100).toInt()}%",
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Slider(
-        value = appearance.wrapCurvature,
-        onValueChange = onWrapCurvatureChange,
-        valueRange = WorkspaceAppearance.MIN_WRAP_CURVATURE..WorkspaceAppearance.MAX_WRAP_CURVATURE,
-    )
-    Text(
-        text = stringResource(R.string.workspace_span_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        text = stringResource(R.string.workspace_span_width) +
-            " · ${(appearance.workspaceWidth * 100).toInt()}%",
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Slider(
-        value = appearance.workspaceWidth,
-        onValueChange = onWorkspaceWidthChange,
-        valueRange = WorkspaceAppearance.MIN_WORKSPACE_SPAN..WorkspaceAppearance.MAX_WORKSPACE_SPAN,
-    )
-    Text(
-        text = stringResource(R.string.workspace_span_height) +
-            " · ${(appearance.workspaceHeight * 100).toInt()}%",
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Slider(
-        value = appearance.workspaceHeight,
-        onValueChange = onWorkspaceHeightChange,
-        valueRange = WorkspaceAppearance.MIN_WORKSPACE_SPAN..WorkspaceAppearance.MAX_WORKSPACE_SPAN,
-    )
-
-    Text(
-        text = if (headTrackingActive) {
-            stringResource(R.string.workspace_look_head_tracking_hint)
-        } else {
-            stringResource(R.string.workspace_look_hint)
-        },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp),
-    )
-    if (!headTrackingActive) {
-        Text(
-            text = stringResource(R.string.workspace_look_yaw) +
-                " · ${appearance.lookYawDegrees.toInt()}°",
-            style = MaterialTheme.typography.labelLarge,
-        )
-        Slider(
-            value = appearance.lookYawDegrees,
-            onValueChange = onLookYawChange,
-            valueRange = WorkspaceAppearance.MIN_LOOK_YAW..WorkspaceAppearance.MAX_LOOK_YAW,
-        )
-        Text(
-            text = stringResource(R.string.workspace_look_pitch) +
-                " · ${appearance.lookPitchDegrees.toInt()}°",
-            style = MaterialTheme.typography.labelLarge,
-        )
-        Slider(
-            value = appearance.lookPitchDegrees,
-            onValueChange = onLookPitchChange,
-            valueRange = WorkspaceAppearance.MIN_LOOK_PITCH..WorkspaceAppearance.MAX_LOOK_PITCH,
-        )
-        OutlinedButton(
-            onClick = onRecenterLook,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-        ) {
-            Text(stringResource(R.string.workspace_look_recenter))
-        }
-    }
-    OutlinedButton(
-        onClick = onResetAppearance,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Text(stringResource(R.string.workspace_appearance_reset))
-    }
-
     if (cursorHoveredLabel != null) {
         Text(
             text = stringResource(R.string.cursor_over, cursorHoveredLabel),

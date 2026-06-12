@@ -273,6 +273,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     private fun drawWallpaperCylinder() {
         if (wallpaperTextureId == 0) return
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
         GLES20.glUseProgram(wallpaperProgram)
         GLES20.glUniformMatrix4fv(wallpaperMvpHandle, 1, false, mvpMatrix, 0)
@@ -306,6 +307,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glDisableVertexAttribArray(wallpaperPositionHandle)
         GLES20.glDisableVertexAttribArray(wallpaperTexCoordHandle)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
     }
 
     private fun drawCylinderGuideLine() {
@@ -450,6 +452,10 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, wallpaperTextureId)
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
         uploadedWallpaperGeneration = generation
     }
@@ -556,7 +562,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 float horizontal = smoothstep(0.0, 0.06, vTexCoord.x) *
                     smoothstep(1.0, 0.94, vTexCoord.x);
                 float vignette = vertical * horizontal;
-                color.rgb *= mix(0.35, 1.0, vignette);
+                color.rgb *= mix(0.55, 1.0, vignette);
                 gl_FragColor = color;
             }
         """

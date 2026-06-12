@@ -545,11 +545,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 | # | Workstream | Decision | Status |
 |---|------------|----------|--------|
-| 1 | **Wallpaper** | Map device wallpaper onto the **inner cylinder** in GLES; vertical vignette softens top/bottom edges | ☐ |
-| 2 | **All Apps pagination** | Default **5×5** grid per page; page size configurable in Settings; prev/next + bottom page buttons; companion page controls when overlay open | ☑ (grid size in Settings ☐) |
+| 1 | **Wallpaper** | Map device wallpaper onto the **inner cylinder** in GLES; vertical vignette softens top/bottom edges | ☑ |
+| 2 | **All Apps pagination** | Default **5×5** grid per page; page size configurable in Settings; prev/next + bottom page buttons; companion page controls when overlay open | ☑ |
 | 3 | **Panel handles** | Larger drag/resize affordances (48dp+) for companion pointer | ☑ |
 | 4 | **Grid layout** | **Freeform with snap** to cylinder grid; presets stay; shared grid for Compose + GL guides; widget move handles | ☑ (STANDARD preset uses grid bounds; legacy null-bounds stack still supported) |
-| 5 | **Settings activity** | Move rarely-changed workspace/options to dedicated Settings activity; hamburger in glasses title bar | ☐ |
+| 5 | **Settings activity** | Move rarely-changed workspace/options to dedicated Settings activity; hamburger in glasses title bar | ☑ |
 
 **Implementation order:** 1 → 2 → 3 → 4a (grid helper) → 4b (widget drag) → 5 (can parallelize after 2).
 
