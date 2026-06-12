@@ -2,11 +2,12 @@ package dev.electrikjesus.xrlauncher.ui.workspace
 
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -66,6 +66,44 @@ fun DraggableWorkspacePanelShell(
     val centerX = dragBounds.x + dragBounds.width / 2f
     val centerY = dragBounds.y + dragBounds.height / 2f
 
+    val moveDragModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
+        detectDragGestures(
+            onDragStart = { isDragging.set(true) },
+            onDragEnd = {
+                isDragging.set(false)
+                onBoundsChanged(dragBounds)
+            },
+            onDragCancel = {
+                isDragging.set(false)
+                dragBounds = bounds
+            },
+        ) { _, dragAmount ->
+            dragBounds = dragBounds.copy(
+                x = dragBounds.x + dragAmount.x / containerWidthPx,
+                y = dragBounds.y + dragAmount.y / containerHeightPx,
+            ).clamp()
+        }
+    }
+
+    val resizeDragModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
+        detectDragGestures(
+            onDragStart = { isDragging.set(true) },
+            onDragEnd = {
+                isDragging.set(false)
+                onBoundsChanged(dragBounds)
+            },
+            onDragCancel = {
+                isDragging.set(false)
+                dragBounds = bounds
+            },
+        ) { _, dragAmount ->
+            dragBounds = dragBounds.copy(
+                width = dragBounds.width + dragAmount.x / containerWidthPx,
+                height = dragBounds.height + dragAmount.y / containerHeightPx,
+            ).clamp()
+        }
+    }
+
     WraparoundPanelContainer(
         panelId = panel.id,
         centerXNorm = centerX,
@@ -93,55 +131,29 @@ fun DraggableWorkspacePanelShell(
         ) {
             WorkspacePanelShell(
                 panelId = panel.id,
-                title = title,
                 isFocused = isFocused,
                 onPanelBoundsChanged = onPanelBoundsChanged,
-                titleBarModifier = Modifier.pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                    detectDragGestures(
-                        onDragStart = { isDragging.set(true) },
-                        onDragEnd = {
-                            isDragging.set(false)
-                            onBoundsChanged(dragBounds)
-                        },
-                        onDragCancel = {
-                            isDragging.set(false)
-                            dragBounds = bounds
-                        },
-                    ) { _, dragAmount ->
-                        dragBounds = dragBounds.copy(
-                            x = dragBounds.x + dragAmount.x / containerWidthPx,
-                            y = dragBounds.y + dragAmount.y / containerHeightPx,
-                        ).clamp()
-                    }
-                },
                 modifier = Modifier.fillMaxSize(),
+                header = {
+                    PanelDragHandleBar(
+                        panelId = panel.id,
+                        title = title,
+                        isFocused = isFocused,
+                        onPanelBoundsChanged = onPanelBoundsChanged,
+                        modifier = moveDragModifier,
+                    )
+                },
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     content()
-                    Box(
+                    PanelResizeHandle(
+                        panelId = panel.id,
+                        isFocused = isFocused,
+                        onPanelBoundsChanged = onPanelBoundsChanged,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(22.dp)
-                            .shadow(4.dp, CircleShape)
-                            .background(Color(0xFF03DAC5).copy(alpha = 0.85f), CircleShape)
-                            .pointerInput(panel.id, containerWidthPx, containerHeightPx) {
-                                detectDragGestures(
-                                    onDragStart = { isDragging.set(true) },
-                                    onDragEnd = {
-                                        isDragging.set(false)
-                                        onBoundsChanged(dragBounds)
-                                    },
-                                    onDragCancel = {
-                                        isDragging.set(false)
-                                        dragBounds = bounds
-                                    },
-                                ) { _, dragAmount ->
-                                    dragBounds = dragBounds.copy(
-                                        width = dragBounds.width + dragAmount.x / containerWidthPx,
-                                        height = dragBounds.height + dragAmount.y / containerHeightPx,
-                                    ).clamp()
-                                }
-                            },
+                            .padding(6.dp)
+                            .then(resizeDragModifier),
                     )
                 }
             }

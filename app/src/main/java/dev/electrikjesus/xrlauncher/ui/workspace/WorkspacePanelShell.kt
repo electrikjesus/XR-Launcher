@@ -20,11 +20,11 @@ private val GlassPanelShape = RoundedCornerShape(24.dp)
 @Composable
 fun WorkspacePanelShell(
     panelId: String,
-    title: String,
     isFocused: Boolean,
     onPanelBoundsChanged: (String, Rect) -> Unit,
     modifier: Modifier = Modifier,
-    titleBarModifier: Modifier = Modifier,
+    title: String? = null,
+    header: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val focusColor = Color(0xFF03DAC5)
@@ -45,14 +45,21 @@ fun WorkspacePanelShell(
             color = borderColor,
         ),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = if (isFocused) focusColor else Color.White.copy(alpha = 0.65f),
-                modifier = titleBarModifier.padding(bottom = 6.dp),
-            )
-            content()
+        Column {
+            when {
+                header != null -> header()
+                title != null -> {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (isFocused) focusColor else Color.White.copy(alpha = 0.65f),
+                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 6.dp),
+                    )
+                }
+            }
+            Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                content()
+            }
         }
     }
 }
