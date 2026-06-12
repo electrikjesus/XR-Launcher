@@ -19,6 +19,7 @@ data class PanelState(
     val id: String,
     val kind: PanelKind,
     val visible: Boolean = true,
+    val bounds: PanelBounds? = null,
 )
 
 data class Workspace(

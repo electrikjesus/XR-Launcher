@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -20,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun ExternalDisplayWorkspaceScreen(
@@ -78,6 +80,7 @@ private fun FlatGlassesWorkspaceScreen(
         val density = LocalDensity.current
         rootWidthPx = with(density) { maxWidth.toPx() }
         rootHeightPx = with(density) { maxHeight.toPx() }
+        val scope = rememberCoroutineScope()
 
         LauncherWorkspacePointerEffects(
             apps = apps,
@@ -101,6 +104,9 @@ private fun FlatGlassesWorkspaceScreen(
             panels = panels,
             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
             onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
+            onPanelsChange = { updatedPanels ->
+                scope.launch { workspaceRepository.updatePanels(updatedPanels) }
+            },
             onLaunchApp = onLaunchApp,
         )
     }

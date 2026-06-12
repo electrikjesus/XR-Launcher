@@ -38,6 +38,11 @@ import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerItem
 import dev.electrikjesus.xrlauncher.core.launcher.AppDrawerLayout
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import androidx.compose.foundation.layout.BoxWithConstraints
+import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
+import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
+import dev.electrikjesus.xrlauncher.ui.workspace.DraggableWorkspacePanelShell
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
@@ -57,6 +62,7 @@ fun GlassesSpatialWorkspaceScreen(
     panels: List<PanelState> = Workspace.defaultPanels(),
     onBoundsChanged: (String, Rect) -> Unit,
     onPanelBoundsChanged: (String, Rect) -> Unit = { _, _ -> },
+    onPanelsChange: (List<PanelState>) -> Unit = {},
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -72,6 +78,16 @@ fun GlassesSpatialWorkspaceScreen(
     }
     val visiblePanels = remember(panels) { panels.filter { it.visible } }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
+    val useFreeform = remember(panels) { WorkspaceLayoutPresets.usesFreeformLayout(panels) }
+    var activePreset by remember { mutableStateOf<LayoutPreset?>(if (useFreeform) null else LayoutPreset.STANDARD) }
+
+    fun updatePanelBounds(panelId: String, bounds: PanelBounds) {
+        onPanelsChange(
+            panels.map { panel ->
+                if (panel.id == panelId) panel.copy(bounds = bounds.clamp()) else panel
+            },
+        )
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         val parallaxX = (cursor.x - 0.5f) * 2f
@@ -101,20 +117,46 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             }
 
-            GlassesPanelLayout(
-                panels = visiblePanels,
-                focusedPanelId = focusedPanelId,
-                hotseatApps = hotseatApps,
-                pinnedComponentKeys = pinnedComponentKeys,
-                searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
-                drawerItems = drawerItems,
-                hoveredLabel = cursor.hoveredLabel,
-                onBoundsChanged = onBoundsChanged,
-                onPanelBoundsChanged = onPanelBoundsChanged,
-                onLaunchApp = onLaunchApp,
-                modifier = Modifier.weight(1f),
+            WorkspaceLayoutPresetBar(
+                activePreset = activePreset,
+                onPresetSelected = { preset ->
+                    activePreset = preset
+                    onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
+                },
             )
+
+            if (useFreeform) {
+                FreeformGlassesPanelLayout(
+                    panels = visiblePanels,
+                    focusedPanelId = focusedPanelId,
+                    hotseatApps = hotseatApps,
+                    pinnedComponentKeys = pinnedComponentKeys,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    drawerItems = drawerItems,
+                    hoveredLabel = cursor.hoveredLabel,
+                    onBoundsChanged = onBoundsChanged,
+                    onPanelBoundsChanged = onPanelBoundsChanged,
+                    onPanelFrameChanged = ::updatePanelBounds,
+                    onLaunchApp = onLaunchApp,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                GlassesPanelLayout(
+                    panels = visiblePanels,
+                    focusedPanelId = focusedPanelId,
+                    hotseatApps = hotseatApps,
+                    pinnedComponentKeys = pinnedComponentKeys,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    drawerItems = drawerItems,
+                    hoveredLabel = cursor.hoveredLabel,
+                    onBoundsChanged = onBoundsChanged,
+                    onPanelBoundsChanged = onPanelBoundsChanged,
+                    onLaunchApp = onLaunchApp,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         if (showInAppCursor) {
@@ -221,6 +263,86 @@ private fun GlassesPanelLayout(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FreeformGlassesPanelLayout(
+    panels: List<PanelState>,
+    focusedPanelId: String?,
+    hotseatApps: List<LaunchableApp>,
+    pinnedComponentKeys: Set<String>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    drawerItems: List<AppDrawerItem>,
+    hoveredLabel: String?,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onPanelBoundsChanged: (String, Rect) -> Unit,
+    onPanelFrameChanged: (String, PanelBounds) -> Unit,
+    onLaunchApp: ((LaunchableApp) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val containerWidthPx = with(density) { maxWidth.toPx() }
+        val containerHeightPx = with(density) { maxHeight.toPx() }
+        panels.filter { it.bounds != null }.forEach { panel ->
+            DraggableWorkspacePanelShell(
+                panel = panel,
+                title = panelTitle(panel),
+                isFocused = focusedPanelId == panel.id,
+                containerWidthPx = containerWidthPx,
+                containerHeightPx = containerHeightPx,
+                onBoundsChanged = { bounds -> onPanelFrameChanged(panel.id, bounds) },
+                onPanelBoundsChanged = onPanelBoundsChanged,
+            ) {
+                PanelBody(
+                    panel = panel,
+                    hotseatApps = hotseatApps,
+                    pinnedComponentKeys = pinnedComponentKeys,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    drawerItems = drawerItems,
+                    hoveredLabel = hoveredLabel,
+                    onBoundsChanged = onBoundsChanged,
+                    onLaunchApp = onLaunchApp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PanelBody(
+    panel: PanelState,
+    hotseatApps: List<LaunchableApp>,
+    pinnedComponentKeys: Set<String>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    drawerItems: List<AppDrawerItem>,
+    hoveredLabel: String?,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onLaunchApp: ((LaunchableApp) -> Unit)?,
+) {
+    when (panel.kind) {
+        PanelKind.WIDGET -> WidgetPanelById(widgetId = panel.id)
+        PanelKind.APP_DRAWER -> AppDrawerPanel(
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            drawerItems = drawerItems,
+            hoveredLabel = hoveredLabel,
+            pinnedComponentKeys = pinnedComponentKeys,
+            onBoundsChanged = onBoundsChanged,
+            onLaunchApp = onLaunchApp,
+        )
+        PanelKind.HOTSEAT -> HotseatRow(
+            apps = hotseatApps,
+            hoveredLabel = hoveredLabel,
+            pinnedComponentKeys = pinnedComponentKeys,
+            onBoundsChanged = onBoundsChanged,
+            onLaunchApp = onLaunchApp,
+        )
+        PanelKind.EMPTY_SLOT -> EmptySlotPanel()
     }
 }
 

@@ -22,6 +22,7 @@ fun WorkspacePanelShell(
     isFocused: Boolean,
     onPanelBoundsChanged: (String, Rect) -> Unit,
     modifier: Modifier = Modifier,
+    titleBarModifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val focusColor = Color(0xFF03DAC5)
@@ -42,7 +43,7 @@ fun WorkspacePanelShell(
             text = title,
             style = MaterialTheme.typography.labelLarge,
             color = if (isFocused) focusColor else Color.White.copy(alpha = 0.55f),
-            modifier = Modifier.padding(bottom = 4.dp),
+            modifier = titleBarModifier.padding(bottom = 4.dp),
         )
         content()
     }

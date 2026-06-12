@@ -46,8 +46,12 @@
     <string name="workspace_panel_hotseat">Hotseat</string>
     <string name="workspace_panel_clock">Clock</string>
     <string name="workspace_panel_calendar">Calendar</string>
-    <string name="workspace_focus_next">Next panel</string>
+    <string name="layout_preset_standard">Standard</string>
+    <string name="layout_preset_single">Single</string>
+    <string name="layout_preset_dual">Dual</string>
+    <string name="layout_preset_triptych">Triptych</string>
     <string name="workspace_focused_panel">Focused: %1$s</string>
+    <string name="workspace_focus_next">Next panel</string>
     <string name="workspace_panel_drawer">Apps</string>
     <string name="workspace_panel_status">Status</string>
     <string name="external_display_detected">External display detected</string>
