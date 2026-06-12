@@ -4,7 +4,15 @@ Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** 
 
 ## Status
 
-Planning phase. See **[docs/PLAN.md](docs/PLAN.md)** for phases, tasks, rules, and Git workflow.
+Planning phase — **Phase 1 MVP in progress** (builds; manual device testing pending). See **[docs/PLAN.md](docs/PLAN.md)** for phases, tasks, rules, and Git workflow.
+
+## Build
+
+```bash
+./gradlew build testDebugUnitTest
+```
+
+Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 ## Development workflow
 

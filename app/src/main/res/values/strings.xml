@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">XR Launcher</string>
+    <string name="search_apps">Search apps</string>
+    <string name="spatial_workspace">Spatial workspace</string>
+    <string name="open_on_glasses">Open on glasses</string>
+    <string name="use_as_controller">Use as controller</string>
+    <string name="connect_glasses">Connect glasses</string>
+    <string name="companion_touchpad">Companion touchpad</string>
+    <string name="companion_hint">Drag to move pointer · Tap to click</string>
+    <string name="no_apps_found">No apps found</string>
+    <string name="workspace_panel_drawer">Apps</string>
+    <string name="workspace_panel_status">Status</string>
+    <string name="external_display_detected">External display detected</string>
+    <string name="glasses_workspace">Glasses workspace</string>
+</resources>

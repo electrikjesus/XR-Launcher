@@ -247,8 +247,8 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 | # | Task | Done |
 |---|------|------|
-| 0.1 | Initialize empty Android Studio project (Kotlin, Compose, minSdk 34, Git). Include `./gradlew build` + empty test source sets. | ☐ |
-| 0.2 | Add Jetpack XR SDK + Glimmer dependencies; confirm build on API 34 emulator. | ☐ |
+| 0.1 | Initialize empty Android Studio project (Kotlin, Compose, minSdk 34, Git). Include `./gradlew build` + empty test source sets. | ☑ |
+| 0.2 | Add Jetpack XR SDK + Glimmer dependencies; confirm build on API 34 emulator. | ☑ |
 | 0.3 | Connect RayNeo; log all `DisplayManager` displays (id, name, size, modes). | ☐ |
 | 0.4 | Document 2D vs 3D mode resolutions and aspect ratios. | ☐ |
 | 0.5 | Test `ProjectedContext.isProjectedDeviceConnected` (pass/fail — record result). | ☐ |
@@ -269,19 +269,19 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 
 | # | Task | Done |
 |---|------|------|
-| 1.1 | Create `MainActivity` with `HOME` + `LAUNCHER` intent filters (single HOME entry). | ☐ |
-| 1.2 | Implement `CapabilityDetector`: tier enum, glasses-connected flow, `WindowSizeClass`. | ☐ |
-| 1.3 | **Tier 0:** 3D spatial shell on Expanded — `Subspace` / spatial panels, empty workspace scene. | ☐ |
-| 1.4 | **Tier 0:** Mouse + touch navigation — orbit/pan workspace, click to focus panel (stub panels OK). | ☐ |
-| 1.5 | **Tier 0c:** Compact phone layout — app drawer, search/filter, tap to launch on phone display. | ☐ |
-| 1.6 | Implement app list via launcher intent query (no `QUERY_ALL_PACKAGES`). | ☐ |
-| 1.7 | **Companion:** `CompanionControllerActivity` — touchpad surface, pointer events to workspace session. | ☐ |
-| 1.8 | Create `GlassesLauncherActivity`: `requiredDisplayCategory=XR_PROJECTED`, black root. | ☐ |
-| 1.9 | Register `XR_PROJECTED_LAUNCHER` on glasses activity; `HOME` stays on `MainActivity` only. | ☐ |
-| 1.10 | Implement `AppLauncher.launchOnGlasses(component)` with display-id targeting. | ☐ |
-| 1.11 | “Connect glasses” / “Open XR workspace” + “Use as controller” affordances on phone shell. | ☐ |
-| 1.12 | Basic spatial app picker panel in glasses workspace (Tier 1/2). | ☐ |
-| 1.13 | Mode switch: glasses connect → offer XR workspace; disconnect → return to Tier 0/0c. | ☐ |
+| 1.1 | Create `MainActivity` with `HOME` + `LAUNCHER` intent filters (single HOME entry). | ☑ |
+| 1.2 | Implement `CapabilityDetector`: tier enum, glasses-connected flow, `WindowSizeClass`. | ☑ |
+| 1.3 | **Tier 0:** 3D spatial shell on Expanded — `Subspace` / spatial panels, empty workspace scene. | ☑ |
+| 1.4 | **Tier 0:** Mouse + touch navigation — orbit/pan workspace, click to focus panel (stub panels OK). | ☑ |
+| 1.5 | **Tier 0c:** Compact phone layout — app drawer, search/filter, tap to launch on phone display. | ☑ |
+| 1.6 | Implement app list via launcher intent query (no `QUERY_ALL_PACKAGES`). | ☑ |
+| 1.7 | **Companion:** `CompanionControllerActivity` — touchpad surface, pointer events to workspace session. | ☑ |
+| 1.8 | Create `GlassesLauncherActivity`: `requiredDisplayCategory=XR_PROJECTED`, black root. | ☑ |
+| 1.9 | Register `XR_PROJECTED_LAUNCHER` on glasses activity; `HOME` stays on `MainActivity` only. | ☑ |
+| 1.10 | Implement `AppLauncher.launchOnGlasses(component)` with display-id targeting. | ☑ |
+| 1.11 | “Connect glasses” / “Open XR workspace” + “Use as controller” affordances on phone shell. | ☑ |
+| 1.12 | Basic spatial app picker panel in glasses workspace (Tier 1/2). | ☑ |
+| 1.13 | Mode switch: glasses connect → offer XR workspace; disconnect → return to Tier 0/0c. | ☑ |
 | 1.14 | Manual test: 3D workspace on tablet + companion touchpad from phone + 5 app launches on glasses. | ☐ |
 
 ---
