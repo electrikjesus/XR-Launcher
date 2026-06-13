@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher.ui.external
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -10,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
@@ -19,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceTitleBar
 import dev.electrikjesus.xrlauncher.ui.glasses.WorkspaceLayoutPresetBar
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
+import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsPageControls
 
 /** Opens context menus on right-click; left-click launches and dismisses menus on launcher. */
 @Composable
@@ -47,8 +50,8 @@ fun LauncherWorkspacePointerEffects(
     val currentOnOpenAllApps = rememberUpdatedState(onOpenAllApps)
     val currentOnLayoutPresetSelected = rememberUpdatedState(onLayoutPresetSelected)
 
-    LaunchedEffect(Unit) {
-        CompanionPointerBus.clicks.collect { click ->
+    DisposableEffect(Unit) {
+        val listener: (dev.electrikjesus.xrlauncher.core.input.PointerClick) -> Unit = { click ->
             val rootW = currentRootWidthPx.value
             val rootH = currentRootHeightPx.value
             val point = Offset(click.x * rootW, click.y * rootH)
@@ -62,17 +65,26 @@ fun LauncherWorkspacePointerEffects(
                     itemBounds = currentItemBounds.value,
                     panelBounds = currentPanelBounds.value,
                 )
-                PointerButton.LEFT -> handleLeftClick(
-                    point = point,
-                    itemBounds = currentItemBounds.value,
-                    onLaunchApp = currentOnLaunchApp.value,
-                    onOpenSettings = currentOnOpenSettings.value,
-                    onOpenAllApps = currentOnOpenAllApps.value,
-                    onLayoutPresetSelected = currentOnLayoutPresetSelected.value,
-                    apps = currentApps.value,
-                )
+                PointerButton.LEFT -> {
+                    Log.d(
+                        LOG_TAG,
+                        "left-click norm=(${click.x}, ${click.y}) px=(${point.x}, ${point.y}) " +
+                            "root=${rootW.toInt()}x${rootH.toInt()} bounds=${currentItemBounds.value.size}",
+                    )
+                    handleLeftClick(
+                        point = point,
+                        itemBounds = currentItemBounds.value,
+                        onLaunchApp = currentOnLaunchApp.value,
+                        onOpenSettings = currentOnOpenSettings.value,
+                        onOpenAllApps = currentOnOpenAllApps.value,
+                        onLayoutPresetSelected = currentOnLayoutPresetSelected.value,
+                        apps = currentApps.value,
+                    )
+                }
             }
         }
+        CompanionPointerBus.addClickListener(listener)
+        onDispose { CompanionPointerBus.removeClickListener(listener) }
     }
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
@@ -80,19 +92,37 @@ fun LauncherWorkspacePointerEffects(
         val point = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
+            itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ->
+                GlassesWorkspaceTitleBar.HOVER_LABEL
+            itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true ->
+                AllAppsLauncher.HOVER_LABEL
+            itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true ->
+                PAGE_PREV_HOVER
+            itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true ->
+                PAGE_NEXT_HOVER
+            paginationPageHoverLabel(point, itemBounds) != null ->
+                paginationPageHoverLabel(point, itemBounds)
+            layoutPresetHoverLabel(point, itemBounds) != null ->
+                layoutPresetHoverLabel(point, itemBounds)
             findAppAt(point, itemBounds, apps)?.label != null ->
                 findAppAt(point, itemBounds, apps)?.label
-            itemBounds[AllAppsLauncher.BOUNDS_KEY]?.contains(point) == true ->
-                AllAppsLauncher.HOVER_LABEL
-            itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.contains(point) == true ->
-                GlassesWorkspaceTitleBar.HOVER_LABEL
             findPanelAt(point, panelBounds, panels)?.let { panelTitle(it) } != null ->
                 findPanelAt(point, panelBounds, panels)?.let { panelTitle(it) }
             else -> null
         }
+        if (hoverLabel != lastLoggedHoverLabel) {
+            Log.d(
+                LOG_TAG,
+                "hover label=$hoverLabel norm=(${cursor.x}, ${cursor.y}) px=(${point.x}, ${point.y}) " +
+                    "pageCount=${AllAppsPaginationState.pageCountFlow.value}",
+            )
+            lastLoggedHoverLabel = hoverLabel
+        }
         CompanionPointerBus.setHoveredLabel(hoverLabel)
     }
 }
+
+private var lastLoggedHoverLabel: String? = null
 
 private fun findAppAt(
     point: Offset,
@@ -100,7 +130,7 @@ private fun findAppAt(
     apps: List<LaunchableApp>,
 ): LaunchableApp? {
     val key = itemBounds.entries
-        .filter { (id, rect) -> !id.startsWith("__") && rect.contains(point) }
+        .filter { (id, rect) -> !id.startsWith("__") && rect.containsWithSlop(point, APP_HIT_SLOP_PX) }
         .minByOrNull { (_, rect) -> rect.width * rect.height }
         ?.key
         ?: return null
@@ -163,26 +193,108 @@ private fun handleLeftClick(
     apps: List<LaunchableApp>,
 ) {
     if (LauncherContextMenuState.isOpen) {
+        Log.d(LOG_TAG, "left-click dismiss context menu")
         LauncherContextMenuState.dismiss()
         return
     }
-    findAppAt(point, itemBounds, apps)?.let { app ->
-        onLaunchApp(app)
-        return
-    }
-    if (itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.contains(point) == true) {
+    if (itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true) {
+        Log.d(LOG_TAG, "left-click hit settings")
         onOpenSettings()
         return
     }
-    if (itemBounds[AllAppsLauncher.BOUNDS_KEY]?.contains(point) == true) {
+    if (itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true) {
+        Log.d(LOG_TAG, "left-click hit all-apps launcher")
         onOpenAllApps()
         return
     }
+    if (handlePaginationClick(point, itemBounds)) return
     LayoutPreset.entries.firstOrNull { preset ->
-        itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.contains(point) == true
+        itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
     }?.let { preset ->
+        Log.d(LOG_TAG, "left-click hit layout preset=$preset")
         onLayoutPresetSelected(preset)
+        return
     }
+    findAppAt(point, itemBounds, apps)?.let { app ->
+        Log.d(LOG_TAG, "left-click hit app=${app.label}")
+        onLaunchApp(app)
+        return
+    }
+    logClickMiss(point, itemBounds)
+}
+
+private fun handlePaginationClick(point: Offset, itemBounds: Map<String, Rect>): Boolean {
+    when {
+        itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true -> {
+            Log.d(LOG_TAG, "left-click hit pagination prev")
+            AllAppsPaginationState.prevPage()
+            return true
+        }
+        itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true -> {
+            Log.d(LOG_TAG, "left-click hit pagination next")
+            AllAppsPaginationState.nextPage()
+            return true
+        }
+        else -> {
+            val pageCount = AllAppsPaginationState.pageCountFlow.value
+            for (page in 0 until pageCount) {
+                if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
+                    Log.d(LOG_TAG, "left-click hit pagination page=$page")
+                    AllAppsPaginationState.goToPage(page)
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
+private fun Rect.containsWithSlop(point: Offset, slopPx: Float = CONTROL_HIT_SLOP_PX): Boolean =
+    point.x >= left - slopPx && point.x <= right + slopPx &&
+        point.y >= top - slopPx && point.y <= bottom + slopPx
+
+private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {
+    val paginationKeys = buildList {
+        add(AllAppsPageControls.PREV_KEY)
+        add(AllAppsPageControls.NEXT_KEY)
+        repeat(AllAppsPaginationState.pageCountFlow.value) { add(AllAppsPageControls.pageKey(it)) }
+    }
+    val nearest = (itemBounds.keys.filter { it in paginationKeys } + LayoutPreset.entries.map {
+        WorkspaceLayoutPresetBar.boundsKey(it)
+    }).mapNotNull { key ->
+        itemBounds[key]?.let { rect -> key to rect }
+    }.minByOrNull { (_, rect) ->
+        val cx = rect.center.x
+        val cy = rect.center.y
+        (point.x - cx) * (point.x - cx) + (point.y - cy) * (point.y - cy)
+    }
+    Log.d(
+        LOG_TAG,
+        "left-click miss px=(${point.x}, ${point.y}) nearest=${nearest?.first} " +
+            "rect=${nearest?.second} paginationKeys=${paginationKeys.filter { itemBounds.containsKey(it) }}",
+    )
+}
+
+private fun layoutPresetHoverLabel(point: Offset, itemBounds: Map<String, Rect>): String? =
+    LayoutPreset.entries.firstOrNull { preset ->
+        itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
+    }?.let { presetHoverName(it) }
+
+private fun paginationPageHoverLabel(point: Offset, itemBounds: Map<String, Rect>): String? {
+    val pageCount = AllAppsPaginationState.pageCountFlow.value
+    for (page in 0 until pageCount) {
+        if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
+            return "Page ${page + 1}"
+        }
+    }
+    return null
+}
+
+private fun presetHoverName(preset: LayoutPreset): String = when (preset) {
+    LayoutPreset.STANDARD -> "Standard layout"
+    LayoutPreset.SINGLE -> "Single layout"
+    LayoutPreset.DUAL -> "Dual layout"
+    LayoutPreset.TRIPTYCH -> "Triptych layout"
 }
 
 private fun panelTitle(panel: PanelState): String = when (panel.id) {
@@ -199,3 +311,8 @@ private fun panelTitle(panel: PanelState): String = when (panel.id) {
 }
 
 private const val LOG_TAG = "XRLauncher/Pointer"
+private const val PAGE_PREV_HOVER = "Previous page"
+private const val PAGE_NEXT_HOVER = "Next page"
+/** Extra pixels around chrome controls — compensates for cursor/visual offset on glasses. */
+private const val CONTROL_HIT_SLOP_PX = 16f
+private const val APP_HIT_SLOP_PX = 8f
