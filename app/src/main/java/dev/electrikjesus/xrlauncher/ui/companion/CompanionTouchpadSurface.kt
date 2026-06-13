@@ -5,12 +5,17 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
@@ -39,6 +45,9 @@ import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.input.PointerEvent
 import kotlin.math.roundToInt
 
+private val PointerButtonMinHeight = 56.dp
+private val PointerButtonContentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)
+
 @Composable
 fun CompanionTouchpadSurface(
     motionEnabled: Boolean,
@@ -49,6 +58,7 @@ fun CompanionTouchpadSurface(
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val cursorStyle = CursorStyles.forPointerReady(desktopPointerReady)
+    val haptic = LocalHapticFeedback.current
 
     Surface(
         modifier = modifier,
@@ -69,7 +79,13 @@ fun CompanionTouchpadSurface(
                         ),
                     ),
                 )
-                .pointerInput(motionEnabled, desktopPointerReady, touchpadClickSuppressed, headTrackingActive) {
+                .pointerInput(
+                    motionEnabled,
+                    desktopPointerReady,
+                    touchpadClickSuppressed,
+                    headTrackingActive,
+                    haptic,
+                ) {
                     val useDesktopGestures = desktopPointerReady && !headTrackingActive
                     var lastTapTime = 0L
                     var lastTapPos = Offset.Zero
@@ -99,6 +115,7 @@ fun CompanionTouchpadSurface(
                                             if (isSecondTap) {
                                                 lastTapTime = 0L
                                                 CompanionPointerBus.click(PointerButton.LEFT)
+                                                CompanionPointerHaptics.leftClick(haptic)
                                             } else {
                                                 lastTapTime = now
                                                 lastTapPos = down.position
@@ -107,7 +124,10 @@ fun CompanionTouchpadSurface(
                                             lastTapTime = 0L
                                         }
                                     }
-                                    tapToClick && !dragging -> CompanionPointerBus.click(PointerButton.LEFT)
+                                    tapToClick && !dragging -> {
+                                        CompanionPointerBus.click(PointerButton.LEFT)
+                                        CompanionPointerHaptics.leftClick(haptic)
+                                    }
                                 }
                                 break
                             }
@@ -206,33 +226,60 @@ fun CompanionPointerButtonsRow(
     headTrackingActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     androidx.compose.foundation.layout.Row(
         modifier = modifier,
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         val useHoldLeft = desktopPointerReady && !headTrackingActive
         if (useHoldLeft) {
             HoldablePointerButton(
                 label = stringResource(R.string.left_click),
-                modifier = Modifier.weight(1f),
-                onPress = { CompanionPointerBus.beginLeftButton() },
-                onRelease = { CompanionPointerBus.endLeftButton() },
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = PointerButtonMinHeight),
+                onPress = {
+                    CompanionPointerHaptics.pressDown(haptic)
+                    CompanionPointerBus.beginLeftButton()
+                },
+                onRelease = {
+                    CompanionPointerBus.endLeftButton()
+                    CompanionPointerHaptics.leftClick(haptic)
+                },
             )
         } else {
-            androidx.compose.material3.Button(
-                onClick = { CompanionPointerBus.click(PointerButton.LEFT) },
-                modifier = Modifier.weight(1f),
+            Button(
+                onClick = {
+                    CompanionPointerHaptics.leftClick(haptic)
+                    CompanionPointerBus.click(PointerButton.LEFT)
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = PointerButtonMinHeight),
                 shape = MaterialTheme.shapes.large,
+                contentPadding = PointerButtonContentPadding,
             ) {
-                Text(stringResource(R.string.left_click))
+                Text(
+                    text = stringResource(R.string.left_click),
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         }
-        androidx.compose.material3.FilledTonalButton(
-            onClick = { CompanionPointerBus.click(PointerButton.RIGHT) },
-            modifier = Modifier.weight(1f),
+        FilledTonalButton(
+            onClick = {
+                CompanionPointerHaptics.rightClick(haptic)
+                CompanionPointerBus.click(PointerButton.RIGHT)
+            },
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = PointerButtonMinHeight),
             shape = MaterialTheme.shapes.large,
+            contentPadding = PointerButtonContentPadding,
         ) {
-            Text(stringResource(R.string.right_click))
+            Text(
+                text = stringResource(R.string.right_click),
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }
@@ -248,7 +295,7 @@ private fun HoldablePointerButton(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.primary)
-            .pointerInput(Unit) {
+            .pointerInput(onPress, onRelease) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     onPress()
@@ -264,13 +311,13 @@ private fun HoldablePointerButton(
                     }
                 }
             }
-            .padding(vertical = 14.dp),
+            .padding(PointerButtonContentPadding),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
         )
     }
 }
