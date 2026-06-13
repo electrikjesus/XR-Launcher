@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher.ui.external
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +33,8 @@ fun PanelHandlePointerEffects(
     rootHeightPx: Float,
     onPanelBoundsChanged: (String, PanelBounds) -> Unit,
 ) {
-    if (!GlassesSessionState.launcherForeground) return
+    val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
+    if (!launcherForeground) return
 
     var activeInteraction by remember { mutableStateOf<PanelHandleInteraction?>(null) }
     var pressAnchor by remember { mutableStateOf<Offset?>(null) }

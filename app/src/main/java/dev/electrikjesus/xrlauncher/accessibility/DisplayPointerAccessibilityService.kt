@@ -167,17 +167,7 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         val imeVisible = windows?.any { window ->
             window.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD
         } == true
-        val displayId = GlassesSessionState.secondaryDisplayId
-        val popupLikelyOpen = if (displayId != null) {
-            val appWindowsOnDisplay = windows?.count { window ->
-                window.displayId == displayId &&
-                    window.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION
-            } ?: 0
-            appWindowsOnDisplay > 1
-        } else {
-            false
-        }
-        CompanionPointerBus.setTextEntryActive(imeVisible || popupLikelyOpen)
+        CompanionPointerBus.setTextEntryActive(imeVisible)
     }
 
     companion object {

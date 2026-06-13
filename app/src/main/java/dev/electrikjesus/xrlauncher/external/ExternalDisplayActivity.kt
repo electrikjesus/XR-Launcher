@@ -47,6 +47,7 @@ class ExternalDisplayActivity : ComponentActivity() {
         applyImmersiveFullscreen()
         syncSessionDisplayId()
         AllAppsGridConfigStore.init(this)
+        GlassesSessionState.onLauncherRootSized = { window.decorView.post { updateInjectFrame() } }
 
         val displayId = display?.displayId ?: Display.DEFAULT_DISPLAY
         val subspaceDecision = SubspaceSpike.resolvePreferSubspace(this)
@@ -102,9 +103,14 @@ class ExternalDisplayActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        GlassesSessionState.markLauncherForeground()
+    }
+
     override fun onResume() {
         super.onResume()
-        GlassesSessionState.launcherForeground = true
+        GlassesSessionState.markLauncherForeground()
         syncSessionDisplayId()
         window.decorView.post { updateInjectFrame() }
         if (isDebugBuild()) {
@@ -119,7 +125,8 @@ class ExternalDisplayActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        GlassesSessionState.launcherForeground = false
+        // Do not clear launcherForeground here — on dual-display, the phone companion can
+        // take focus (onStop) while the launcher stays visible on the glasses display.
         super.onStop()
     }
 
@@ -140,6 +147,7 @@ class ExternalDisplayActivity : ComponentActivity() {
         if (now - lastLaunchAtMs < LAUNCH_DEBOUNCE_MS) return
         lastLaunchAtMs = now
         Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
+        GlassesSessionState.markLauncherBackgrounded()
         launchCoordinator.launchFromGlasses(
             app = app,
             displayId = displayId,
@@ -178,6 +186,8 @@ class ExternalDisplayActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        GlassesSessionState.onLauncherRootSized = null
+        GlassesSessionState.clearLauncherSession()
         launchCoordinator.embedRegistry?.disposeAll()
         GlassesSessionState.panelEmbedRegistry = null
         super.onDestroy()

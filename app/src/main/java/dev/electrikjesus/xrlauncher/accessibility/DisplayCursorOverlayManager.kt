@@ -15,6 +15,8 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import dev.electrikjesus.xrlauncher.R
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 
 /**
  * Draws the companion cursor (passthrough overlay) and an optional return-to-launcher bubble.
@@ -64,7 +66,14 @@ class DisplayCursorOverlayManager(
     }
 
     fun update(normalizedX: Float, normalizedY: Float, pressed: Boolean) {
-        cursorView?.setCursor(normalizedX, normalizedY, pressed)
+        cursorView?.setCursor(
+            x = normalizedX,
+            y = normalizedY,
+            isPressed = pressed,
+            injectFrame = GlassesSessionState.launcherInjectFrame,
+            mapViaLauncherFrame = GlassesSessionState.launcherForeground &&
+                !GlassesSessionState.launcherBackgrounded,
+        )
     }
 
     fun setLauncherForeground(foreground: Boolean) {
@@ -170,18 +179,36 @@ class DisplayCursorOverlayManager(
             color = Color.WHITE
         }
 
-        fun setCursor(x: Float, y: Float, isPressed: Boolean) {
+        fun setCursor(
+            x: Float,
+            y: Float,
+            isPressed: Boolean,
+            injectFrame: LauncherInjectFrame,
+            mapViaLauncherFrame: Boolean,
+        ) {
             normalizedX = x.coerceIn(0f, 1f)
             normalizedY = y.coerceIn(0f, 1f)
             pressed = isPressed
+            frame = injectFrame
+            useLauncherFrame = mapViaLauncherFrame && injectFrame.isValid()
             invalidate()
+        }
+
+        private var frame = LauncherInjectFrame()
+        private var useLauncherFrame = false
+
+        fun setCursor(x: Float, y: Float, isPressed: Boolean) {
+            setCursor(x, y, isPressed, LauncherInjectFrame(), mapViaLauncherFrame = false)
         }
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
             if (width <= 0 || height <= 0) return
-            val cx = normalizedX * width
-            val cy = normalizedY * height
+            val (cx, cy) = if (useLauncherFrame) {
+                frame.toDisplayPixels(normalizedX, normalizedY)
+            } else {
+                Pair(normalizedX * width, normalizedY * height)
+            }
             val radius = (width.coerceAtMost(height) * 0.009f).coerceIn(6f, 14f)
             val fillAlpha = if (pressed) 0.65f else 0.45f
             fillPaint.color = if (pressed) {

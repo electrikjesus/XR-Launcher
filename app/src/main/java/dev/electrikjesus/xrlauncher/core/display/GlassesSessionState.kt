@@ -43,8 +43,34 @@ object GlassesSessionState {
             _launcherForeground.value = value
         }
 
+    /**
+     * True after [ExternalDisplayActivity] moves to back for a full-window app launch.
+     * Unlike [launcherForeground], this is not cleared on activity [onStop] — the phone
+     * companion can steal focus while the launcher remains visible on the glasses display.
+     */
+    var launcherBackgrounded: Boolean = false
+        private set
+
+    fun markLauncherForeground() {
+        launcherBackgrounded = false
+        launcherForeground = true
+    }
+
+    fun markLauncherBackgrounded() {
+        launcherBackgrounded = true
+        launcherForeground = false
+    }
+
+    fun clearLauncherSession() {
+        launcherBackgrounded = false
+        launcherForeground = false
+    }
+
     /** Launcher activity bounds on the glasses display — used to aim inject gestures. */
     var launcherInjectFrame: LauncherInjectFrame = LauncherInjectFrame()
+
+    /** Invoked when Compose reports a stable root size — refreshes [launcherInjectFrame]. */
+    var onLauncherRootSized: (() -> Unit)? = null
 
     /** When true, external display uses Jetpack XR `Subspace` shell (Tier 2 / spatial API). */
     var preferSubspaceShell: Boolean = false
@@ -103,7 +129,7 @@ object GlassesSessionState {
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
-        launcherForeground = false
+        clearLauncherSession()
         launcherInjectFrame = LauncherInjectFrame()
         preferSubspaceShell = false
         subspaceDecision = SubspaceSpike.Decision(

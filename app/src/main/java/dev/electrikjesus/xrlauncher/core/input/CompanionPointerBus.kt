@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import java.util.concurrent.CopyOnWriteArrayList
+import android.util.Log
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
@@ -71,11 +75,26 @@ object CompanionPointerBus {
     private var leftButtonInGesture = false
     private var touchpadInGesture = false
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pressResetRunnable: Runnable? = null
+    private const val PRESS_FLASH_MS = 100L
+
     private val _events = MutableSharedFlow<PointerEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<PointerEvent> = _events.asSharedFlow()
 
     private val _clicks = MutableSharedFlow<PointerClick>(extraBufferCapacity = 64)
     val clicks: SharedFlow<PointerClick> = _clicks.asSharedFlow()
+
+    private val clickListeners = CopyOnWriteArrayList<(PointerClick) -> Unit>()
+
+    /** Synchronous click delivery — survives SharedFlow subscriber timing gaps. */
+    fun addClickListener(listener: (PointerClick) -> Unit) {
+        clickListeners.add(listener)
+    }
+
+    fun removeClickListener(listener: (PointerClick) -> Unit) {
+        clickListeners.remove(listener)
+    }
 
     private val _camera = MutableStateFlow(WorkspaceCameraState())
     val camera: StateFlow<WorkspaceCameraState> = _camera.asStateFlow()
@@ -239,10 +258,7 @@ object CompanionPointerBus {
     fun click(button: PointerButton) {
         val current = _cursor.value
         when (button) {
-            PointerButton.LEFT -> {
-                deliverLeftClick(current.x, current.y)
-                flashPressed()
-            }
+            PointerButton.LEFT -> deliverLeftClick(current.x, current.y)
             PointerButton.RIGHT -> deliverRightClick(current.x, current.y)
         }
     }
@@ -313,16 +329,23 @@ object CompanionPointerBus {
         GlassesSessionState.secondaryDisplayId != null &&
             DisplayPointerInjector.isAvailable
 
-    /** Inject OS gestures when accessibility service is active and launcher is backgrounded. */
+    /** Inject OS gestures when accessibility is active and launcher was explicitly backgrounded. */
     private fun shouldInjectPointerOnGlasses(): Boolean =
-        pointerInjectionAvailable() && !GlassesSessionState.launcherForeground
+        pointerInjectionAvailable() && GlassesSessionState.launcherBackgrounded
 
     private fun deliverLeftClick(x: Float, y: Float) {
-        if (shouldInjectPointerOnGlasses()) {
+        val inject = shouldInjectPointerOnGlasses()
+        Log.d(
+            POINTER_LOG_TAG,
+            "deliverLeftClick norm=($x,$y) inject=$inject foreground=${GlassesSessionState.launcherForeground} " +
+                "backgrounded=${GlassesSessionState.launcherBackgrounded} listeners=${clickListeners.size}",
+        )
+        if (inject) {
             injectClickAt(x, y, PointerButton.LEFT)
         } else {
             emitClick(PointerClick(button = PointerButton.LEFT, x = x, y = y))
         }
+        pulsePressed()
     }
 
     private fun deliverRightClick(x: Float, y: Float) {
@@ -331,6 +354,7 @@ object CompanionPointerBus {
         } else {
             emitClick(PointerClick(button = PointerButton.RIGHT, x = x, y = y))
         }
+        pulsePressed()
     }
 
     private fun injectClickAt(x: Float, y: Float, button: PointerButton) {
@@ -338,10 +362,15 @@ object CompanionPointerBus {
         DisplayPointerInjector.dispatchClick(displayId, x, y, button, GlassesSessionState.launcherForeground)
     }
 
-    private fun flashPressed() {
-        val current = _cursor.value
-        _cursor.value = current.copy(isPressed = true)
-        _cursor.value = current.copy(isPressed = false)
+    private fun pulsePressed() {
+        pressResetRunnable?.let { mainHandler.removeCallbacks(it) }
+        _cursor.value = _cursor.value.copy(isPressed = true)
+        val reset = Runnable {
+            _cursor.value = _cursor.value.copy(isPressed = false)
+            pressResetRunnable = null
+        }
+        pressResetRunnable = reset
+        mainHandler.postDelayed(reset, PRESS_FLASH_MS)
     }
 
     fun clickAt(x: Float, y: Float, button: PointerButton) {
@@ -350,6 +379,9 @@ object CompanionPointerBus {
     }
 
     private fun emitClick(click: PointerClick) {
+        clickListeners.forEach { listener ->
+            listener(click)
+        }
         _clicks.tryEmit(click)
     }
 
@@ -407,6 +439,8 @@ object CompanionPointerBus {
     }
 
     fun resetCursor() {
+        pressResetRunnable?.let { mainHandler.removeCallbacks(it) }
+        pressResetRunnable = null
         gestureAnchorX = null
         gestureAnchorY = null
         gesturePressCount = 0
@@ -423,3 +457,5 @@ object CompanionPointerBus {
         WorkspaceLookOffset.reset()
     }
 }
+
+private const val POINTER_LOG_TAG = "XRLauncher/Pointer"

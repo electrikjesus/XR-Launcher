@@ -15,8 +15,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -105,8 +107,19 @@ private fun FlatGlassesWorkspaceScreen(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val density = LocalDensity.current
-        rootWidthPx = with(density) { maxWidth.toPx() }
-        rootHeightPx = with(density) { maxHeight.toPx() }
+        val configuration = LocalConfiguration.current
+        val fallbackWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+        val fallbackHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+        val measuredWidthPx = with(density) { maxWidth.toPx() }
+        val measuredHeightPx = with(density) { maxHeight.toPx() }
+        rootWidthPx = if (measuredWidthPx > 1f) measuredWidthPx else fallbackWidthPx
+        rootHeightPx = if (measuredHeightPx > 1f) measuredHeightPx else fallbackHeightPx
+
+        LaunchedEffect(rootWidthPx, rootHeightPx) {
+            if (rootWidthPx > 1f && rootHeightPx > 1f) {
+                GlassesSessionState.onLauncherRootSized?.invoke()
+            }
+        }
 
         val onAppContextMenu = { app: LaunchableApp, bounds: Rect ->
             openAppContextMenuFromBounds(

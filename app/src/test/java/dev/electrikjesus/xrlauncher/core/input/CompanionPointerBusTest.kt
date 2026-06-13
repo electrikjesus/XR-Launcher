@@ -14,6 +14,7 @@ class CompanionPointerBusTest {
     fun reset() {
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
+        GlassesSessionState.markLauncherForeground()
     }
 
     @Test
@@ -54,7 +55,7 @@ class CompanionPointerBusTest {
         val cursor = CompanionPointerBus.cursor.value
         assertEquals(0.25f, cursor.x)
         assertEquals(0.75f, cursor.y)
-        assertEquals(false, cursor.isPressed)
+        assertTrue(cursor.isPressed)
     }
 
     @Test
@@ -63,6 +64,22 @@ class CompanionPointerBusTest {
         val cursor = CompanionPointerBus.cursor.value
         assertEquals(0.1f, cursor.x)
         assertEquals(0.9f, cursor.y)
+    }
+
+    @Test
+    fun clickListener_receivesLeftClickWhenLauncherForeground() {
+        GlassesSessionState.markLauncherForeground()
+        var received: PointerClick? = null
+        val listener: (PointerClick) -> Unit = { received = it }
+        CompanionPointerBus.addClickListener(listener)
+        try {
+            CompanionPointerBus.clickAt(0.3f, 0.4f, PointerButton.LEFT)
+            assertEquals(0.3f, received?.x)
+            assertEquals(0.4f, received?.y)
+            assertEquals(PointerButton.LEFT, received?.button)
+        } finally {
+            CompanionPointerBus.removeClickListener(listener)
+        }
     }
 
     @Test

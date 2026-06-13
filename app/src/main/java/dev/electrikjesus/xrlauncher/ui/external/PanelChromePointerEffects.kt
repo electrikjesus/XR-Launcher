@@ -1,7 +1,9 @@
 package dev.electrikjesus.xrlauncher.ui.external
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -23,7 +25,8 @@ fun PanelChromePointerEffects(
     onClosePanel: (String) -> Unit,
     onRestorePanel: (String) -> Unit,
 ) {
-    if (!GlassesSessionState.launcherForeground) return
+    val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
+    if (!launcherForeground) return
 
     val currentPanels = rememberUpdatedState(panels)
     val currentPanelBounds = rememberUpdatedState(panelBounds)
@@ -33,9 +36,9 @@ fun PanelChromePointerEffects(
     val currentOnClose = rememberUpdatedState(onClosePanel)
     val currentOnRestore = rememberUpdatedState(onRestorePanel)
 
-    LaunchedEffect(Unit) {
-        CompanionPointerBus.clicks.collect { click ->
-            if (click.button != PointerButton.LEFT) return@collect
+    DisposableEffect(Unit) {
+        val listener: (dev.electrikjesus.xrlauncher.core.input.PointerClick) -> Unit = listener@{ click ->
+            if (click.button != PointerButton.LEFT) return@listener
             val point = Offset(
                 click.x * currentRootWidthPx.value,
                 click.y * currentRootHeightPx.value,
@@ -47,9 +50,11 @@ fun PanelChromePointerEffects(
                 onMinimizePanel = currentOnMinimize.value,
                 onClosePanel = currentOnClose.value,
                 onRestorePanel = currentOnRestore.value,
-            ) ?: return@collect
+            ) ?: return@listener
             action()
         }
+        CompanionPointerBus.addClickListener(listener)
+        onDispose { CompanionPointerBus.removeClickListener(listener) }
     }
 }
 
