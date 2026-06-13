@@ -69,8 +69,8 @@ fun CompanionTouchpadSurface(
                         ),
                     ),
                 )
-                .pointerInput(motionEnabled, desktopPointerReady, touchpadClickSuppressed) {
-                    val useDesktopGestures = desktopPointerReady
+                .pointerInput(motionEnabled, desktopPointerReady, touchpadClickSuppressed, headTrackingActive) {
+                    val useDesktopGestures = desktopPointerReady && !headTrackingActive
                     var lastTapTime = 0L
                     var lastTapPos = Offset.Zero
                     val doubleTapTimeoutMs = 300L
@@ -203,13 +203,14 @@ fun CompanionTouchpadSurface(
 @Composable
 fun CompanionPointerButtonsRow(
     desktopPointerReady: Boolean,
+    headTrackingActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     androidx.compose.foundation.layout.Row(
         modifier = modifier,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
     ) {
-        val useHoldLeft = desktopPointerReady
+        val useHoldLeft = desktopPointerReady && !headTrackingActive
         if (useHoldLeft) {
             HoldablePointerButton(
                 label = stringResource(R.string.left_click),

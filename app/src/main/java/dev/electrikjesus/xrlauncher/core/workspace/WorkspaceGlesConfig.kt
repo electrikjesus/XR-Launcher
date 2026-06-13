@@ -8,9 +8,9 @@ object WorkspaceGlesConfig {
     /** Hide Compose panel chrome when GL textures are active (interaction stays on Compose). */
     var hideComposePanelsWhenGles: Boolean = false
 
-    /** Draw wireframe cylinder and slot guides. */
-    var showGuideWireframe: Boolean = true
+    /** Draw wireframe cylinder and slot guides (off by default — use Compose panels as source of truth). */
+    var showGuideWireframe: Boolean = false
 
-    /** Map the device wallpaper onto the inner cylinder wall (preferred backdrop). */
-    var showWallpaperCylinder: Boolean = true
+    /** Map the device wallpaper onto the inner cylinder wall (off by default until aligned with Compose layout). */
+    var showWallpaperCylinder: Boolean = false
 }

@@ -155,11 +155,31 @@ class CompanionPointerBusTest {
     }
 
     @Test
-    fun applyGlassesImuSample_steersLookOnLauncherForeground() {
+    fun applyGlassesImuSample_doesNotSteerLookOffsetOnLauncher() {
         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
         GlassesSessionState.launcherForeground = true
         try {
             WorkspaceLookOffset.reset()
+            CompanionPointerBus.applyGlassesImuSample(
+                gyroXDps = 0f,
+                gyroYDps = -30f,
+                gyroZDps = 0f,
+                deltaTimeSec = 0.016f,
+            )
+            assertEquals(0f, WorkspaceLookOffset.yawDegrees, 0.001f)
+            assertEquals(0f, WorkspaceLookOffset.pitchDegrees, 0.001f)
+        } finally {
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+            GlassesSessionState.launcherForeground = false
+            CompanionPointerBus.resetCursor()
+        }
+    }
+
+    @Test
+    fun applyGlassesImuSample_movesCursorOnLauncherForeground() {
+        GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        GlassesSessionState.launcherForeground = true
+        try {
             CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
             CompanionPointerBus.applyGlassesImuSample(
                 gyroXDps = 0f,
@@ -167,8 +187,7 @@ class CompanionPointerBusTest {
                 gyroZDps = 0f,
                 deltaTimeSec = 0.016f,
             )
-            assertTrue(WorkspaceLookOffset.yawDegrees > 0f)
-            assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
+            assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
         } finally {
             GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
             GlassesSessionState.launcherForeground = false

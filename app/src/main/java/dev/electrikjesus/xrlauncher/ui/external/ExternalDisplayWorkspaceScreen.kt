@@ -23,6 +23,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
@@ -37,6 +38,8 @@ fun ExternalDisplayWorkspaceScreen(
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     LaunchedEffect(GlassesSessionState.preferSubspaceShell, GlassesSessionState.subspaceDecision) {
@@ -53,6 +56,8 @@ fun ExternalDisplayWorkspaceScreen(
             workspaceRepository = workspaceRepository,
             onLaunchApp = onLaunchApp,
             onToggleHotseatPin = onToggleHotseatPin,
+            onCloseEmbedded = onCloseEmbedded,
+            onPopOutEmbedded = onPopOutEmbedded,
             modifier = modifier,
         )
         return
@@ -63,6 +68,8 @@ fun ExternalDisplayWorkspaceScreen(
         workspaceRepository = workspaceRepository,
         onLaunchApp = onLaunchApp,
         onToggleHotseatPin = onToggleHotseatPin,
+        onCloseEmbedded = onCloseEmbedded,
+        onPopOutEmbedded = onPopOutEmbedded,
         modifier = modifier,
     )
 }
@@ -73,6 +80,8 @@ private fun FlatGlassesWorkspaceScreen(
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
@@ -135,6 +144,8 @@ private fun FlatGlassesWorkspaceScreen(
                 onPanelRestore = { panelId ->
                     scope.launch { workspaceRepository.setPanelMinimized(panelId, minimized = false) }
                 },
+                onCloseEmbedded = onCloseEmbedded,
+                onPopOutEmbedded = onPopOutEmbedded,
             )
 
             LauncherWorkspaceInteractionLayer(
@@ -148,6 +159,11 @@ private fun FlatGlassesWorkspaceScreen(
                 workspaceRepository = workspaceRepository,
                 onLaunchApp = onLaunchApp,
                 onToggleHotseatPin = onToggleHotseatPin,
+                onOpenSettings = { DisplayLaunchHelper.openSettings(context) },
+                onOpenAllApps = { GlassesSessionState.showAllAppsOverlay() },
+                onLayoutPresetSelected = { preset ->
+                    panelSaver.save(WorkspaceLayoutPresets.apply(panels, preset))
+                },
                 onPanelBoundsChanged = { panelId, bounds ->
                     panelSaver.save(
                         panels.map { panel ->

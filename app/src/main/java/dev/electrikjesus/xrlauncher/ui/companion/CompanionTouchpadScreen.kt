@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import androidx.compose.runtime.rememberCoroutineScope
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -242,6 +243,8 @@ fun CompanionTouchpadScreen(
                                 onXrInputModeChange = { mode ->
                                     GlassesSessionState.xrInputMode = mode
                                     if (mode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+                                        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
+                                        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
                                         CompanionPointerBus.recenterCursor()
                                         val appearance = workspace?.appearance?.clamped()
                                         if (appearance != null) {
@@ -281,6 +284,7 @@ fun CompanionTouchpadScreen(
                 )
                 CompanionPointerButtonsRow(
                     desktopPointerReady = desktopPointerReady,
+                    headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (allAppsOverlayVisible) {

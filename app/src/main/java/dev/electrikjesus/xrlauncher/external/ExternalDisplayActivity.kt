@@ -13,19 +13,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
-import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
-import dev.electrikjesus.xrlauncher.core.launcher.PanelAppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
-import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
-import dev.electrikjesus.xrlauncher.core.workspace.PanelState
+import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.ExternalDisplayWorkspaceScreen
@@ -34,12 +30,20 @@ import kotlinx.coroutines.launch
 
 class ExternalDisplayActivity : ComponentActivity() {
     private var lastLaunchAtMs = 0L
-    private var panelEmbedRegistry: PanelEmbedRegistry? = null
+    private lateinit var launchCoordinator: WorkspaceAppLaunchCoordinator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        panelEmbedRegistry = PanelEmbedRegistry.fromActivity(this)
-        GlassesSessionState.panelEmbedRegistry = panelEmbedRegistry
+        val appLauncher = AppLauncher(this)
+        val workspaceRepository = WorkspaceRepository(applicationContext)
+        val embedRegistry = PanelEmbedRegistry.fromActivity(this)
+        launchCoordinator = WorkspaceAppLaunchCoordinator(
+            activity = this,
+            appLauncher = appLauncher,
+            workspaceRepository = workspaceRepository,
+            embedRegistry = embedRegistry,
+        )
+        GlassesSessionState.panelEmbedRegistry = embedRegistry
         applyImmersiveFullscreen()
         syncSessionDisplayId()
         AllAppsGridConfigStore.init(this)
@@ -59,17 +63,21 @@ class ExternalDisplayActivity : ComponentActivity() {
             )
         }
 
-        val appLauncher = AppLauncher(this)
-        val workspaceRepository = WorkspaceRepository(applicationContext)
-
         setContent {
             val scope = rememberCoroutineScope()
-            val repo = remember { workspaceRepository }
+            val repo = remember { WorkspaceRepository(applicationContext) }
             XRLauncherTheme(forGlasses = true) {
                 ExternalDisplayWorkspaceScreen(
                     launcherPackageName = packageName,
                     workspaceRepository = repo,
-                    onLaunchApp = { app -> launchApp(appLauncher, app, repo) },
+                    onLaunchApp = { app -> launchApp(app) },
+                    onCloseEmbedded = { panelId -> launchCoordinator.closeEmbedded(panelId) },
+                    onPopOutEmbedded = { panelId ->
+                        val displayId = display?.displayId
+                            ?: GlassesSessionState.secondaryDisplayId
+                            ?: return@ExternalDisplayWorkspaceScreen
+                        launchCoordinator.popOutEmbedded(panelId, displayId)
+                    },
                     onToggleHotseatPin = { app ->
                         scope.launch {
                             repo.toggleHotseatPin(app.componentKey())
@@ -110,14 +118,13 @@ class ExternalDisplayActivity : ComponentActivity() {
         }
     }
 
-    override fun onPause() {
+    override fun onStop() {
         GlassesSessionState.launcherForeground = false
-        super.onPause()
+        super.onStop()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        GlassesSessionState.launcherForeground = hasFocus
         if (hasFocus) {
             applyImmersiveFullscreen()
             syncSessionDisplayId()
@@ -125,28 +132,16 @@ class ExternalDisplayActivity : ComponentActivity() {
         }
     }
 
-    private fun launchApp(appLauncher: AppLauncher, app: LaunchableApp, workspaceRepository: WorkspaceRepository) {
+    private fun launchApp(app: LaunchableApp) {
         val displayId = display?.displayId
             ?: GlassesSessionState.secondaryDisplayId
             ?: return
         val now = System.currentTimeMillis()
         if (now - lastLaunchAtMs < LAUNCH_DEBOUNCE_MS) return
         lastLaunchAtMs = now
-        val focusedPanelId = CompanionPointerBus.focusedPanelId.value
-        val launchPanel = when (focusedPanelId) {
-            "empty_slot" -> PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT, visible = true)
-            else -> PanelState(id = "full_window", kind = PanelKind.EMPTY_SLOT)
-        }
-        if (focusedPanelId == "empty_slot") {
-            lifecycleScope.launch {
-                workspaceRepository.assignPanelHost("empty_slot", app.componentName.flattenToString())
-                workspaceRepository.setPanelVisible("empty_slot", visible = true)
-            }
-        }
-        Log.d(TAG, "Launching ${app.label} on displayId=$displayId panel=${launchPanel.id}")
-        PanelAppLauncher(this, appLauncher, panelEmbedRegistry).launchInPanel(
-            panel = launchPanel,
-            componentName = app.componentName,
+        Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
+        launchCoordinator.launchFromGlasses(
+            app = app,
             displayId = displayId,
             moveLauncherToBack = { window.decorView.post { moveTaskToBack(true) } },
         )
@@ -183,7 +178,7 @@ class ExternalDisplayActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        panelEmbedRegistry?.disposeAll()
+        launchCoordinator.embedRegistry?.disposeAll()
         GlassesSessionState.panelEmbedRegistry = null
         super.onDestroy()
     }

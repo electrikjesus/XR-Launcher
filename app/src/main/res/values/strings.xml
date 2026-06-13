@@ -145,6 +145,10 @@
     <string name="display_pointer_service_description">Shows a cursor on the glasses display and lets the phone companion click apps there.</string>
     <string name="no_apps_found">No apps found</string>
     <string name="workspace_empty_slot">Empty panel slot</string>
+    <string name="workspace_empty_slot_hosted">Running %1$s in this slot</string>
+    <string name="panel_embed_focus">Focus</string>
+    <string name="panel_embed_pop_out">Pop out</string>
+    <string name="panel_embed_close">Close</string>
     <string name="workspace_panel_hotseat">Hotseat</string>
     <string name="workspace_panel_clock">Clock</string>
     <string name="workspace_panel_calendar">Calendar</string>

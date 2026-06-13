@@ -9,6 +9,7 @@ import android.util.Log
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
@@ -33,7 +34,9 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         overlayManager = DisplayCursorOverlayManager(this) {
             DisplayLaunchHelper.showLauncherOnGlasses(this)
         }
-        if (GlassesSessionState.secondaryDisplayId != null) {
+        if (GlassesSessionState.secondaryDisplayId != null &&
+            GlassesSessionState.xrInputMode != GlassesXrInputMode.GLASSES_HEAD_TRACKING
+        ) {
             GlassesSessionState.controlMode = GlassesControlMode.DESKTOP
             CompanionPointerBus.setGlassesControlMode(GlassesControlMode.DESKTOP)
         }

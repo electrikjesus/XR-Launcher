@@ -34,21 +34,35 @@ class PanelAppLauncher(
                     PanelLaunchResult.Embedded
                 } else {
                     Log.i(TAG, "Spatial embed unavailable — falling back to full window")
-                    launchFullWindow(componentName, displayId, moveLauncherToBack)
+                    launchFullWindow(panel, componentName, displayId, moveLauncherToBack, embedRegistry)
                     PanelLaunchResult.FullWindowFallback(
                         reason = "Spatial embed unavailable on this device",
                     )
                 }
             }
             EmbedMode.FULL_WINDOW -> {
-                launchFullWindow(componentName, displayId, moveLauncherToBack)
+                launchFullWindow(panel, componentName, displayId, moveLauncherToBack, embedRegistry)
                 PanelLaunchResult.FullWindow
             }
             EmbedMode.NONE -> {
-                launchFullWindow(componentName, displayId, moveLauncherToBack)
+                launchFullWindow(panel, componentName, displayId, moveLauncherToBack, embedRegistry)
                 PanelLaunchResult.FullWindow
             }
         }
+    }
+
+    private fun launchFullWindow(
+        panel: PanelState,
+        componentName: ComponentName,
+        displayId: Int,
+        moveLauncherToBack: () -> Unit,
+        embedRegistry: PanelEmbedRegistry?,
+    ) {
+        appLauncher.launchOnDisplay(componentName, displayId)
+        if (panel.id == "empty_slot") {
+            embedRegistry?.recordFullWindowHost(panel.id, componentName)
+        }
+        moveLauncherToBack()
     }
 
     private fun launchFullWindow(

@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -28,6 +29,9 @@ fun LauncherWorkspaceInteractionLayer(
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
     onPanelBoundsChanged: (String, PanelBounds) -> Unit = { _, _ -> },
+    onOpenSettings: () -> Unit = {},
+    onOpenAllApps: () -> Unit = {},
+    onLayoutPresetSelected: (LayoutPreset) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -40,6 +44,10 @@ fun LauncherWorkspaceInteractionLayer(
         panelBounds = panelBounds,
         rootWidthPx = rootWidthPx,
         rootHeightPx = rootHeightPx,
+        onLaunchApp = onLaunchApp,
+        onOpenSettings = onOpenSettings,
+        onOpenAllApps = onOpenAllApps,
+        onLayoutPresetSelected = onLayoutPresetSelected,
     )
 
     WorkspacePanelFocusEffects(

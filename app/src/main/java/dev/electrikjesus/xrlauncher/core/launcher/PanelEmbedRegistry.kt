@@ -20,9 +20,15 @@ class PanelEmbedRegistry(
     val session: Session,
 ) {
     private val entities = mutableMapOf<String, ActivityPanelEntity>()
+    private val hostedComponents = mutableMapOf<String, ComponentName>()
+    private val embeddedPanels = mutableSetOf<String>()
 
     fun canEmbed(): Boolean =
         session.scene.spatialCapabilities.contains(SpatialCapability.EMBED_ACTIVITY)
+
+    fun isEmbedded(panelId: String): Boolean = panelId in embeddedPanels
+
+    fun getHostedComponent(panelId: String): ComponentName? = hostedComponents[panelId]
 
     fun embedLaunch(panel: PanelState, componentName: ComponentName): Boolean {
         if (!canEmbed()) return false
@@ -40,6 +46,8 @@ class PanelEmbedRegistry(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             entity.startActivity(intent)
+            hostedComponents[panel.id] = componentName
+            embeddedPanels.add(panel.id)
             Log.i(TAG, "Embedded ${componentName.flattenToShortString()} in panel ${panel.id}")
             true
         }.getOrElse { error ->
@@ -48,12 +56,25 @@ class PanelEmbedRegistry(
         }
     }
 
-    fun dispose(panelId: String) {
+    fun recordFullWindowHost(panelId: String, componentName: ComponentName) {
+        hostedComponents[panelId] = componentName
+        embeddedPanels.remove(panelId)
+    }
+
+    fun closeEmbedded(panelId: String) {
+        hostedComponents.remove(panelId)
+        embeddedPanels.remove(panelId)
         entities.remove(panelId)?.parent = null
+    }
+
+    fun dispose(panelId: String) {
+        closeEmbedded(panelId)
     }
 
     fun disposeAll() {
         entities.keys.toList().forEach(::dispose)
+        hostedComponents.clear()
+        embeddedPanels.clear()
     }
 
     companion object {

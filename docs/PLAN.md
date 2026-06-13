@@ -575,12 +575,12 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 3.1 | Implement `launchInPanel(panel, intent)` with embed attempt then fallback. | ☑ Partial — `PanelAppLauncher` + full-window fallback |
 | 3.2 | Check `SpatialCapability.EMBED_ACTIVITY` before embed path. | ☑ Partial — `SpatialEmbedCapability` (spatial API gate) |
 | 3.3 | Tier 3: create `ActivityPanelEntity` per panel; wire `startActivity(intent)`. | ☑ Partial — `PanelEmbedRegistry` on XR session |
-| 3.4 | Add orbiters / chrome: Close, Focus, Resize, Pop out to full window. | ☐ |
+| 3.4 | Add orbiters / chrome: Close, Focus, Resize, Pop out to full window. | ☑ Partial — `PanelEmbedOrbiterBar` on empty slot (glasses + Tier 0) |
 | 3.5 | Dispose panel entity + activity when panel closed (no leaked activities). | ☑ Partial — detach on panel hide / activity destroy |
-| 3.6 | Create internal **test harness app** module with `allowUntrustedActivityEmbedding=true` for CI/device testing. | ☐ |
+| 3.6 | Create internal **test harness app** module with `allowUntrustedActivityEmbedding=true` for CI/device testing. | ☑ — `:embed-test-app` module |
 | 3.7 | Surface embed support in UI (icon or label: “Spatial window” vs “Full launch”). | ☑ Partial — capability helper + strings |
 | 3.8 | Tier 1/2: launch app on glasses display in focused “slot” (pseudo-panel) until true embed works. | ☑ Partial — empty slot host + full-window launch |
-| 3.9 | **Tier 0:** Embed or launch-in-panel on large-screen 3D workspace where platform allows. | ☐ |
+| 3.9 | **Tier 0:** Embed or launch-in-panel on large-screen 3D workspace where platform allows. | ☑ Partial — `WorkspaceAppLaunchCoordinator` + empty slot orbiters |
 
 ---
 

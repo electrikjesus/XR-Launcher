@@ -266,13 +266,8 @@ object WorkspaceCylinderGeometry {
         lookPitchDegrees: Float,
         workspaceWidth: Float,
         workspaceHeight: Float,
-        includeCursorPan: Boolean = !WorkspaceWraparound.headTrackingSteersLauncherView(),
     ): CameraState {
-        val (panX, panY) = if (includeCursorPan) {
-            cursorPanNorm(cursorX, cursorY, workspaceWidth, workspaceHeight)
-        } else {
-            0f to 0f
-        }
+        val (panX, panY) = cursorPanNorm(cursorX, cursorY, workspaceWidth, workspaceHeight)
         return CameraState(
             yawDegrees = -lookYawDegrees,
             pitchDegrees = -lookPitchDegrees,

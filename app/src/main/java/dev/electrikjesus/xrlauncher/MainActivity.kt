@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         getSystemService(DisplayManager::class.java)
             .unregisterDisplayListener(displayListener)
+        GlassesSessionState.panelEmbedRegistry?.disposeAll()
+        GlassesSessionState.panelEmbedRegistry = null
         super.onDestroy()
     }
 

@@ -3,6 +3,7 @@ package dev.electrikjesus.xrlauncher.ui.workspace
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +30,13 @@ fun WidgetPanelById(
 }
 
 @Composable
-fun EmptySlotPanel(modifier: Modifier = Modifier) {
+fun EmptySlotPanel(
+    hostedAppLabel: String? = null,
+    onFocusHosted: () -> Unit = {},
+    onPopOutHosted: () -> Unit = {},
+    onCloseHosted: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -39,14 +46,35 @@ fun EmptySlotPanel(modifier: Modifier = Modifier) {
                 color = Color.White.copy(alpha = 0.2f),
                 shape = RoundedCornerShape(16.dp),
             )
-            .padding(24.dp),
-        contentAlignment = Alignment.Center,
+            .padding(16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.workspace_empty_slot),
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.45f),
-        )
+        if (hostedAppLabel.isNullOrBlank()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.workspace_empty_slot),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.45f),
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                PanelEmbedOrbiterBar(
+                    hostedLabel = hostedAppLabel,
+                    onFocus = onFocusHosted,
+                    onPopOut = onPopOutHosted,
+                    onClose = onCloseHosted,
+                )
+                Text(
+                    text = stringResource(R.string.workspace_empty_slot_hosted, hostedAppLabel),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
     }
 }
 

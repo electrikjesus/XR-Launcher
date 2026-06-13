@@ -31,6 +31,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.LauncherWorkspaceInteractionLayer
@@ -45,6 +46,8 @@ fun GlassesWorkspaceScreen(
     workspaceRepository: WorkspaceRepository,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
@@ -113,6 +116,8 @@ fun GlassesWorkspaceScreen(
                                 onLaunchApp = onLaunchApp,
                                 onOpenSettings = { DisplayLaunchHelper.openSettings(context) },
                                 onAppContextMenu = onAppContextMenu,
+                                onCloseEmbedded = onCloseEmbedded,
+                                onPopOutEmbedded = onPopOutEmbedded,
                             )
                         }
                     }
@@ -130,6 +135,11 @@ fun GlassesWorkspaceScreen(
                 workspaceRepository = workspaceRepository,
                 onLaunchApp = onLaunchApp,
                 onToggleHotseatPin = onToggleHotseatPin,
+                onOpenSettings = { DisplayLaunchHelper.openSettings(context) },
+                onOpenAllApps = { GlassesSessionState.showAllAppsOverlay() },
+                onLayoutPresetSelected = { preset ->
+                    panelSaver.save(WorkspaceLayoutPresets.apply(panels, preset))
+                },
                 onPanelBoundsChanged = { panelId, bounds ->
                     panelSaver.save(
                         panels.map { panel ->

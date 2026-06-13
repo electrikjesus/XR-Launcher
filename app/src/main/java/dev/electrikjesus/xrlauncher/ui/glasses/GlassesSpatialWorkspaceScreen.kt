@@ -38,6 +38,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
@@ -68,12 +69,13 @@ fun GlassesSpatialWorkspaceScreen(
     onPanelMinimize: (String) -> Unit = {},
     onPanelClose: (String) -> Unit = {},
     onPanelRestore: (String) -> Unit = {},
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val desktopOverlayActive by DisplayPointerInjector.isAvailableFlow.collectAsState()
-    val showInAppCursor = !desktopOverlayActive
     var searchQuery by remember { mutableStateOf("") }
     val filteredApps = remember(launchableApps, searchQuery) {
         AppRepository.filterLaunchableApps(launchableApps, searchQuery)
@@ -93,6 +95,7 @@ fun GlassesSpatialWorkspaceScreen(
     val visiblePanels = remember(panels) { panels.filter { it.visible } }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
     val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
+    val showInAppCursor = !desktopOverlayActive
     val useFreeform = remember(panels) { WorkspaceLayoutPresets.usesFreeformLayout(panels) }
     val inferredPreset = remember(panels) { WorkspaceLayoutPresets.inferPreset(panels) }
     var activePreset by remember(panels) { mutableStateOf(inferredPreset) }
@@ -156,10 +159,12 @@ fun GlassesSpatialWorkspaceScreen(
                                 activePreset = preset
                                 onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
                             },
+                            onBoundsChanged = onBoundsChanged,
                         )
                         if (useFreeform) {
                             FreeformGlassesPanelLayout(
                                 panels = visiblePanels,
+                                launchableApps = launchableApps,
                                 focusedPanelId = focusedPanelId,
                                 hotseatApps = hotseatApps,
                                 pinnedComponentKeys = pinnedComponentKeys,
@@ -176,6 +181,8 @@ fun GlassesSpatialWorkspaceScreen(
                                 onPanelMinimize = onPanelMinimize,
                                 onPanelClose = onPanelClose,
                                 onPanelRestore = onPanelRestore,
+                                onCloseEmbedded = onCloseEmbedded,
+                                onPopOutEmbedded = onPopOutEmbedded,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -186,6 +193,7 @@ fun GlassesSpatialWorkspaceScreen(
                         } else {
                             GlassesPanelLayout(
                                 panels = visiblePanels,
+                                launchableApps = launchableApps,
                                 focusedPanelId = focusedPanelId,
                                 hotseatApps = hotseatApps,
                                 pinnedComponentKeys = pinnedComponentKeys,
@@ -201,6 +209,8 @@ fun GlassesSpatialWorkspaceScreen(
                                 onPanelMinimize = onPanelMinimize,
                                 onPanelClose = onPanelClose,
                                 onPanelRestore = onPanelRestore,
+                                onCloseEmbedded = onCloseEmbedded,
+                                onPopOutEmbedded = onPopOutEmbedded,
                                 allAppsHovered = allAppsHovered,
                                 panelGapDp = panelGapDp,
                                 wrapCurvature = wrapCurvature,
@@ -321,6 +331,7 @@ private fun StackPanelShell(
 @Composable
 private fun GlassesPanelLayout(
     panels: List<PanelState>,
+    launchableApps: List<LaunchableApp>,
     focusedPanelId: String?,
     hotseatApps: List<LaunchableApp>,
     pinnedComponentKeys: Set<String>,
@@ -336,6 +347,8 @@ private fun GlassesPanelLayout(
     onPanelMinimize: (String) -> Unit = {},
     onPanelClose: (String) -> Unit = {},
     onPanelRestore: (String) -> Unit = {},
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
     wrapCurvature: Float,
@@ -479,7 +492,12 @@ private fun GlassesPanelLayout(
                             onPanelRestore = onPanelRestore,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            EmptySlotPanel()
+                            EmptySlotPanelContent(
+                                panel = panel,
+                                launchableApps = launchableApps,
+                                onCloseEmbedded = onCloseEmbedded,
+                                onPopOutEmbedded = onPopOutEmbedded,
+                            )
                         }
                     }
                     index++
@@ -492,6 +510,7 @@ private fun GlassesPanelLayout(
 @Composable
 private fun FreeformGlassesPanelLayout(
     panels: List<PanelState>,
+    launchableApps: List<LaunchableApp>,
     focusedPanelId: String?,
     hotseatApps: List<LaunchableApp>,
     pinnedComponentKeys: Set<String>,
@@ -508,6 +527,8 @@ private fun FreeformGlassesPanelLayout(
     onPanelMinimize: (String) -> Unit = {},
     onPanelClose: (String) -> Unit = {},
     onPanelRestore: (String) -> Unit = {},
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
     panelGapDp: Float,
     wrapCurvature: Float,
@@ -538,6 +559,7 @@ private fun FreeformGlassesPanelLayout(
             ) {
                 PanelBody(
                     panel = panel,
+                    launchableApps = launchableApps,
                     hotseatApps = hotseatApps,
                     pinnedComponentKeys = pinnedComponentKeys,
                     searchQuery = searchQuery,
@@ -549,6 +571,8 @@ private fun FreeformGlassesPanelLayout(
                     onOpenAllApps = onOpenAllApps,
                     onAppContextMenu = onAppContextMenu,
                     allAppsHovered = allAppsHovered,
+                    onCloseEmbedded = onCloseEmbedded,
+                    onPopOutEmbedded = onPopOutEmbedded,
                 )
             }
         }
@@ -558,6 +582,7 @@ private fun FreeformGlassesPanelLayout(
 @Composable
 private fun PanelBody(
     panel: PanelState,
+    launchableApps: List<LaunchableApp>,
     hotseatApps: List<LaunchableApp>,
     pinnedComponentKeys: Set<String>,
     searchQuery: String,
@@ -572,6 +597,8 @@ private fun PanelBody(
     onPanelClose: (String) -> Unit = {},
     onPanelRestore: (String) -> Unit = {},
     allAppsHovered: Boolean = false,
+    onCloseEmbedded: (String) -> Unit = {},
+    onPopOutEmbedded: (String) -> Unit = {},
 ) {
     when (panel.kind) {
         PanelKind.WIDGET -> WidgetPanelById(widgetId = panel.id)
@@ -595,8 +622,31 @@ private fun PanelBody(
             onOpenAllApps = onOpenAllApps,
             allAppsHovered = allAppsHovered,
         )
-        PanelKind.EMPTY_SLOT -> EmptySlotPanel()
+        PanelKind.EMPTY_SLOT -> EmptySlotPanelContent(
+            panel = panel,
+            launchableApps = launchableApps,
+            onCloseEmbedded = onCloseEmbedded,
+            onPopOutEmbedded = onPopOutEmbedded,
+        )
     }
+}
+
+@Composable
+private fun EmptySlotPanelContent(
+    panel: PanelState,
+    launchableApps: List<LaunchableApp>,
+    onCloseEmbedded: (String) -> Unit,
+    onPopOutEmbedded: (String) -> Unit,
+) {
+    val hostedLabel = panel.hostedComponentKey?.let { key ->
+        launchableApps.find { it.componentKey() == key }?.label ?: key.substringBefore('/')
+    }
+    EmptySlotPanel(
+        hostedAppLabel = hostedLabel,
+        onFocusHosted = { CompanionPointerBus.setFocusedPanelId(panel.id) },
+        onPopOutHosted = { onPopOutEmbedded(panel.id) },
+        onCloseHosted = { onCloseEmbedded(panel.id) },
+    )
 }
 
 @Composable

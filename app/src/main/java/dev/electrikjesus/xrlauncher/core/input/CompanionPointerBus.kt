@@ -50,7 +50,7 @@ data class WorkspaceCameraState(
 /** Normalized cursor position (0..1) shared between phone companion and external display. */
 data class CompanionCursorState(
     val x: Float = 0.5f,
-    val y: Float = 0f,
+    val y: Float = 0.5f,
     val isPressed: Boolean = false,
     val hoveredLabel: String? = null,
 )
@@ -74,7 +74,7 @@ object CompanionPointerBus {
     private val _events = MutableSharedFlow<PointerEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<PointerEvent> = _events.asSharedFlow()
 
-    private val _clicks = MutableSharedFlow<PointerClick>(extraBufferCapacity = 16)
+    private val _clicks = MutableSharedFlow<PointerClick>(extraBufferCapacity = 64)
     val clicks: SharedFlow<PointerClick> = _clicks.asSharedFlow()
 
     private val _camera = MutableStateFlow(WorkspaceCameraState())
@@ -165,7 +165,10 @@ object CompanionPointerBus {
         WorkspaceLookOffset.addDelta(-deltaY * scale, -deltaX * scale)
     }
 
-    /** Glasses USB HID gyro → view look on launcher, cursor move over other apps. */
+    /**
+     * Glasses USB HID gyro → cursor move on launcher and other apps.
+     * Does not touch persisted look-left/right sliders or scene rotation offsets.
+     */
     fun applyGlassesImuSample(
         gyroXDps: Float,
         gyroYDps: Float,
@@ -184,15 +187,10 @@ object CompanionPointerBus {
         val dt = deltaTimeSec.coerceIn(0.001f, 0.05f)
         val calibration = HeadTrackingCalibrationStore.current()
         val (yawRate, pitchRate) = calibration.mapGyroRates(gyroXDps, gyroYDps, gyroZDps)
-        val yawDelta = yawRate * dt * scales.yawScale
-        val pitchDelta = pitchRate * dt * scales.pitchScale
-
-        if (GlassesSessionState.launcherForeground) {
-            // Head steers the cylinder view; touchpad moves the pointer (no cursor→camera feedback).
-            WorkspaceLookOffset.addDelta(yawDelta, -pitchDelta)
-        } else {
-            moveBy(yawDelta * base, pitchDelta * base)
-        }
+        moveBy(
+            yawRate * dt * base * scales.yawScale,
+            pitchRate * dt * base * scales.pitchScale,
+        )
     }
 
     fun setGlassesImuYawScale(value: Float) {
@@ -315,8 +313,9 @@ object CompanionPointerBus {
         GlassesSessionState.secondaryDisplayId != null &&
             DisplayPointerInjector.isAvailable
 
-    /** Inject OS gestures when accessibility service is active. */
-    private fun shouldInjectPointerOnGlasses(): Boolean = pointerInjectionAvailable()
+    /** Inject OS gestures when accessibility service is active and launcher is backgrounded. */
+    private fun shouldInjectPointerOnGlasses(): Boolean =
+        pointerInjectionAvailable() && !GlassesSessionState.launcherForeground
 
     private fun deliverLeftClick(x: Float, y: Float) {
         if (shouldInjectPointerOnGlasses()) {
@@ -327,10 +326,10 @@ object CompanionPointerBus {
     }
 
     private fun deliverRightClick(x: Float, y: Float) {
-        if (GlassesSessionState.launcherForeground || !pointerInjectionAvailable()) {
-            emitClick(PointerClick(button = PointerButton.RIGHT, x = x, y = y))
-        } else {
+        if (shouldInjectPointerOnGlasses()) {
             injectClickAt(x, y, PointerButton.RIGHT)
+        } else {
+            emitClick(PointerClick(button = PointerButton.RIGHT, x = x, y = y))
         }
     }
 

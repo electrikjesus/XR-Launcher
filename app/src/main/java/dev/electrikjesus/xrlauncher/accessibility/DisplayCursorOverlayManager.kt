@@ -17,21 +17,25 @@ import android.widget.TextView
 import dev.electrikjesus.xrlauncher.R
 
 /**
- * Draws the companion cursor and a return-to-launcher bubble on the glasses display.
+ * Draws the companion cursor (passthrough overlay) and an optional return-to-launcher bubble.
+ *
+ * The cursor layer is always [FLAG_NOT_TOUCHABLE] so injected gestures reach apps and Compose
+ * below. The bubble lives in a separate small touchable window when the launcher is backgrounded.
  */
 class DisplayCursorOverlayManager(
     private val context: Context,
     private val onReturnToLauncher: () -> Unit,
 ) {
-    private var overlayRoot: FrameLayout? = null
+    private var cursorRoot: FrameLayout? = null
     private var cursorView: CursorOverlayView? = null
     private var bubbleView: LauncherReturnBubbleView? = null
-    private var windowManager: WindowManager? = null
+    private var cursorWindowManager: WindowManager? = null
+    private var bubbleWindowManager: WindowManager? = null
     private var attachedDisplayId: Int? = null
     private var launcherForeground = true
 
     fun attach(displayId: Int) {
-        if (attachedDisplayId == displayId && overlayRoot != null) return
+        if (attachedDisplayId == displayId && cursorRoot != null) return
         detach()
         val displayManager = context.getSystemService(DisplayManager::class.java)
         val display = displayManager.getDisplay(displayId)
@@ -43,9 +47,6 @@ class DisplayCursorOverlayManager(
         val wm = displayContext.getSystemService(WindowManager::class.java)
         val root = FrameLayout(displayContext)
         val cursor = CursorOverlayView(displayContext)
-        val bubble = LauncherReturnBubbleView(displayContext) {
-            onReturnToLauncher()
-        }
         root.addView(
             cursor,
             FrameLayout.LayoutParams(
@@ -53,29 +54,13 @@ class DisplayCursorOverlayManager(
                 FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
-        root.addView(
-            bubble,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.END,
-            ).apply {
-                val margin = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    20f,
-                    displayContext.resources.displayMetrics,
-                ).toInt()
-                setMargins(margin, margin, margin, margin)
-            },
-        )
-        wm.addView(root, overlayLayoutParams())
-        overlayRoot = root
+        wm.addView(root, cursorOverlayLayoutParams())
+        cursorRoot = root
         cursorView = cursor
-        bubbleView = bubble
-        windowManager = wm
+        cursorWindowManager = wm
         attachedDisplayId = displayId
-        bubble.visibility = if (launcherForeground) View.GONE else View.VISIBLE
-        Log.d(TAG, "Cursor overlay attached on display $displayId")
+        syncBubbleVisibility()
+        Log.d(TAG, "Cursor overlay attached on display $displayId (passthrough)")
     }
 
     fun update(normalizedX: Float, normalizedY: Float, pressed: Boolean) {
@@ -83,38 +68,94 @@ class DisplayCursorOverlayManager(
     }
 
     fun setLauncherForeground(foreground: Boolean) {
+        if (launcherForeground == foreground) return
         launcherForeground = foreground
-        bubbleView?.visibility = if (foreground) View.GONE else View.VISIBLE
+        syncBubbleVisibility()
     }
 
     fun detach() {
-        val wm = windowManager
-        val view = overlayRoot
+        detachBubble()
+        val wm = cursorWindowManager
+        val view = cursorRoot
         if (wm != null && view != null) {
             try {
                 wm.removeView(view)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Overlay already removed", e)
+                Log.w(TAG, "Cursor overlay already removed", e)
             }
         }
-        overlayRoot = null
+        cursorRoot = null
         cursorView = null
-        bubbleView = null
-        windowManager = null
+        cursorWindowManager = null
         attachedDisplayId = null
     }
 
-    private fun overlayLayoutParams(): WindowManager.LayoutParams =
+    private fun syncBubbleVisibility() {
+        if (launcherForeground) {
+            detachBubble()
+        } else {
+            attachBubble()
+        }
+    }
+
+    private fun attachBubble() {
+        if (bubbleView != null) return
+        val displayId = attachedDisplayId ?: return
+        val displayManager = context.getSystemService(DisplayManager::class.java)
+        val display = displayManager.getDisplay(displayId) ?: return
+        val displayContext = context.createDisplayContext(display)
+        val wm = displayContext.getSystemService(WindowManager::class.java)
+        val bubble = LauncherReturnBubbleView(displayContext) { onReturnToLauncher() }
+        wm.addView(bubble, bubbleOverlayLayoutParams(displayContext))
+        bubbleView = bubble
+        bubbleWindowManager = wm
+    }
+
+    private fun detachBubble() {
+        val wm = bubbleWindowManager
+        val view = bubbleView
+        if (wm != null && view != null) {
+            try {
+                wm.removeView(view)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Bubble overlay already removed", e)
+            }
+        }
+        bubbleView = null
+        bubbleWindowManager = null
+    }
+
+    private fun cursorOverlayLayoutParams(): WindowManager.LayoutParams =
         WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         )
+
+    private fun bubbleOverlayLayoutParams(displayContext: Context): WindowManager.LayoutParams {
+        val margin = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            20f,
+            displayContext.resources.displayMetrics,
+        ).toInt()
+        return WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.END
+            x = margin
+            y = margin
+        }
+    }
 
     private class CursorOverlayView(context: Context) : View(context) {
         private var normalizedX = 0.5f
@@ -127,10 +168,6 @@ class DisplayCursorOverlayManager(
             style = Paint.Style.STROKE
             strokeWidth = 4f
             color = Color.WHITE
-        }
-
-        init {
-            isClickable = false
         }
 
         fun setCursor(x: Float, y: Float, isPressed: Boolean) {

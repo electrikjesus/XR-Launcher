@@ -1,5 +1,7 @@
 package dev.electrikjesus.xrlauncher
 
+import android.app.Activity
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
@@ -12,9 +14,12 @@ import androidx.window.core.layout.WindowSizeClass
 import dev.electrikjesus.xrlauncher.core.capability.CapabilityDetector
 import dev.electrikjesus.xrlauncher.core.capability.LayoutFormFactor
 import dev.electrikjesus.xrlauncher.core.capability.RuntimeTier
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
-import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
+import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
+import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.desktop.SpatialDesktopScreen
 import dev.electrikjesus.xrlauncher.ui.phone.PhoneShellScreen
@@ -25,9 +30,21 @@ fun XRLauncherApp(
     onRefreshCapabilities: () -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = context as Activity
     val appRepository = remember { AppRepository(context) }
     val appLauncher = remember { AppLauncher(context) }
     val workspaceRepository = remember { WorkspaceRepository(context.applicationContext) }
+    val launchCoordinator = remember(activity) {
+        val embedRegistry = PanelEmbedRegistry.fromActivity(activity)?.also {
+            GlassesSessionState.panelEmbedRegistry = it
+        }
+        WorkspaceAppLaunchCoordinator(
+            activity = activity,
+            appLauncher = appLauncher,
+            workspaceRepository = workspaceRepository,
+            embedRegistry = embedRegistry,
+        )
+    }
     val apps = remember { appRepository.loadLaunchableApps() }
     val capabilities by capabilityDetector.capabilities.collectAsState()
 
@@ -48,7 +65,7 @@ fun XRLauncherApp(
             SpatialDesktopScreen(
                 apps = apps,
                 workspaceRepository = workspaceRepository,
-                onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
+                launchCoordinator = launchCoordinator,
                 modifier = Modifier.fillMaxSize(),
             )
         }

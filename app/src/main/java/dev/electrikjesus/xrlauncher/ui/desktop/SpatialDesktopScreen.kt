@@ -38,6 +38,7 @@ import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
@@ -45,6 +46,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.rememberDebouncedPanelSaver
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
@@ -56,7 +58,7 @@ import kotlinx.coroutines.launch
 fun SpatialDesktopScreen(
     apps: List<LaunchableApp>,
     workspaceRepository: WorkspaceRepository,
-    onLaunchApp: (LaunchableApp) -> Unit,
+    launchCoordinator: WorkspaceAppLaunchCoordinator,
     modifier: Modifier = Modifier,
 ) {
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
@@ -68,9 +70,7 @@ fun SpatialDesktopScreen(
     val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
 
     val panels = workspace?.panels ?: Workspace.defaultPanels()
-    val visiblePanels = remember(panels) {
-        panels.filter { it.visible && it.kind != PanelKind.EMPTY_SLOT }
-    }
+    val visiblePanels = remember(panels) { panels.filter { it.visible } }
     val hotseatApps = remember(apps, workspace?.hotseatPins) {
         HotseatResolver.resolveHotseatApps(
             apps = apps,
@@ -99,12 +99,20 @@ fun SpatialDesktopScreen(
         panelSaver.save(WorkspaceLayoutPresets.apply(panels, preset))
     }
 
+    fun launchApp(app: LaunchableApp) {
+        launchCoordinator.launchFromSpatialDesktop(
+            app = app,
+            visiblePanels = visiblePanels,
+            focusedPanelIndex = focusedPanelIndex,
+        )
+    }
+
     DesktopKeyboardLayer(
         panelCount = visiblePanels.size,
         visiblePanels = visiblePanels,
         gridApps = filteredApps,
         hotseatApps = hotseatApps,
-        onLaunchApp = onLaunchApp,
+        onLaunchApp = ::launchApp,
         onApplyPreset = ::applyPreset,
         onFocusedIndexChanged = { index ->
             scope.launch { workspaceRepository.updateFocusedPanelIndex(index) }
@@ -142,7 +150,9 @@ fun SpatialDesktopScreen(
                             pinnedComponentKeys = pinnedKeys,
                             hoveredLabel = cursor.hoveredLabel,
                             onBoundsChanged = { key, rect -> itemBounds[key] = rect },
-                            onLaunchApp = onLaunchApp,
+                            onLaunchApp = ::launchApp,
+                            launchCoordinator = launchCoordinator,
+                            apps = apps,
                             onFocus = {
                                 CompanionPointerBus.setFocusedPanel(index)
                                 scope.launch { workspaceRepository.updateFocusedPanelIndex(index) }
@@ -168,10 +178,15 @@ private fun SpatialDesktopPanel(
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: (LaunchableApp) -> Unit,
+    launchCoordinator: WorkspaceAppLaunchCoordinator,
+    apps: List<LaunchableApp>,
     onFocus: () -> Unit,
 ) {
     val (width, height) = spatialPanelSize(panel.kind)
     val title = spatialPanelTitle(panel)
+    val hostedLabel = panel.hostedComponentKey?.let { key ->
+        apps.find { it.componentKey() == key }?.label ?: key.substringBefore('/')
+    }
 
     SpatialPanel(
         modifier = SubspaceModifier
@@ -220,7 +235,17 @@ private fun SpatialDesktopPanel(
                         onLaunchApp = onLaunchApp,
                         modifier = Modifier.weight(1f),
                     )
-                    PanelKind.EMPTY_SLOT -> EmptySlotPanel(modifier = Modifier.weight(1f))
+                    PanelKind.EMPTY_SLOT -> EmptySlotPanel(
+                        hostedAppLabel = hostedLabel,
+                        onFocusHosted = onFocus,
+                        onPopOutHosted = {
+                            launchCoordinator.popOutEmbedded(panel.id)
+                        },
+                        onCloseHosted = {
+                            launchCoordinator.closeEmbedded(panel.id)
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -233,6 +258,7 @@ private fun spatialPanelTitle(panel: PanelState): String = when (panel.id) {
     "widget_calendar" -> stringResource(R.string.workspace_panel_calendar)
     "app_drawer" -> stringResource(R.string.workspace_panel_drawer)
     "hotseat" -> stringResource(R.string.workspace_panel_hotseat)
+    "empty_slot" -> stringResource(R.string.workspace_empty_slot)
     else -> panel.id
 }
 

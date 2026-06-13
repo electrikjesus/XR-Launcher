@@ -39,6 +39,7 @@ fun WorkspaceGlesBackdrop(
     workspaceHeight: Float,
     wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
     panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
+    showWallpaperCylinder: Boolean = true,
     modifier: Modifier = Modifier,
     enabled: Boolean = curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -125,6 +126,7 @@ fun WorkspaceGlesBackdrop(
             renderer.workspaceHeight = workspaceHeight
             renderer.setWallpaperBitmap(wallpaperBitmap, wallpaperGeneration.toLong())
             renderer.panelGuideCenters = panelGuideCenters
+            renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "XRLauncher"
 include(":app")
+include(":embed-test-app")

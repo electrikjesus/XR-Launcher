@@ -34,6 +34,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var viewportWidthPx: Float = 1f
     var viewportHeightPx: Float = 1f
     var panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList()
+    var showWallpaperCylinder: Boolean = true
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -145,7 +146,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         uploadPendingTextures()
         pruneStaleTextures()
 
-        if (WorkspaceGlesConfig.showWallpaperCylinder && curvature > 0.01f) {
+        if (showWallpaperCylinder && WorkspaceGlesConfig.showWallpaperCylinder && curvature > 0.01f) {
             drawWallpaperCylinder()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
