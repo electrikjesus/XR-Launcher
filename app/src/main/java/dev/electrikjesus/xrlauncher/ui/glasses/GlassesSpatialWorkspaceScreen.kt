@@ -1,6 +1,5 @@
 package dev.electrikjesus.xrlauncher.ui.glasses
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
@@ -51,6 +51,7 @@ import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
 import dev.electrikjesus.xrlauncher.ui.workspace.PanelChromeHeader
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWraparoundLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.WraparoundPanelContainer
 
@@ -124,43 +125,57 @@ fun GlassesSpatialWorkspaceScreen(
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
+    val lookYaw = WorkspaceWraparound.effectiveLookYaw(tuned)
+    val lookPitch = WorkspaceWraparound.effectiveLookPitch(tuned)
+    val (parallaxX, parallaxY) = WorkspaceWraparound.cursorNorm(cursor.x, cursor.y)
+    val (backdropYaw, backdropPitch) = WorkspaceWraparound.backdropLook(
+        cursorX = cursor.x,
+        cursorY = cursor.y,
+        lookYawDegrees = lookYaw,
+        lookPitchDegrees = lookPitch,
+    )
     val openAllApps = { GlassesSessionState.showAllAppsOverlay() }
     val allAppsHovered = cursor.hoveredLabel == AllAppsLauncher.HOVER_LABEL
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black),
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        WorkspaceWallpaper(
+            wallpaperChoice = tuned.wallpaperChoice,
+            parallaxX = parallaxX,
+            parallaxY = parallaxY,
+            lookYawDegrees = backdropYaw,
+            lookPitchDegrees = backdropPitch,
+            modifier = Modifier.fillMaxSize(),
+        )
+
         WorkspaceScaledLayer(uiScale = uiScale) {
-            WorkspaceWraparoundLayer(
-                appearance = tuned,
-                cursorX = cursor.x,
-                cursorY = cursor.y,
-                panels = visiblePanels,
-                modifier = Modifier.fillMaxSize(),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = if (useFreeform) 12.dp else 20.dp,
+                        vertical = if (useFreeform) 8.dp else 16.dp,
+                    ),
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(
-                                horizontal = if (useFreeform) 12.dp else 20.dp,
-                                vertical = if (useFreeform) 8.dp else 16.dp,
-                            ),
-                    ) {
-                        GlassesWorkspaceTitleBar(
-                            onOpenSettings = onOpenSettings,
-                            onBoundsChanged = onBoundsChanged,
-                        )
-                        WorkspaceLayoutPresetBar(
-                            activePreset = activePreset,
-                            onPresetSelected = { preset ->
-                                activePreset = preset
-                                onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
-                            },
-                            onBoundsChanged = onBoundsChanged,
-                        )
+                GlassesWorkspaceTitleBar(
+                    onOpenSettings = onOpenSettings,
+                    onBoundsChanged = onBoundsChanged,
+                )
+                WorkspaceLayoutPresetBar(
+                    activePreset = activePreset,
+                    onPresetSelected = { preset ->
+                        activePreset = preset
+                        onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
+                    },
+                    onBoundsChanged = onBoundsChanged,
+                )
+                WorkspaceWraparoundLayer(
+                    appearance = tuned,
+                    cursorX = cursor.x,
+                    cursorY = cursor.y,
+                    panels = visiblePanels,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         if (useFreeform) {
                             FreeformGlassesPanelLayout(
                                 panels = visiblePanels,
@@ -188,7 +203,7 @@ fun GlassesSpatialWorkspaceScreen(
                                 wrapCurvature = wrapCurvature,
                                 workspaceWidth = workspaceWidth,
                                 workspaceHeight = workspaceHeight,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxSize(),
                             )
                         } else {
                             GlassesPanelLayout(
@@ -216,19 +231,19 @@ fun GlassesSpatialWorkspaceScreen(
                                 wrapCurvature = wrapCurvature,
                                 workspaceWidth = workspaceWidth,
                                 workspaceHeight = workspaceHeight,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
-                    }
 
-                    WorkspaceLauncherStatusHints(
-                        hoveredLabel = cursor.hoveredLabel,
-                        focusedPanelId = focusedPanelId,
-                        launcherForeground = launcherForeground,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 16.dp, bottom = 12.dp),
-                    )
+                        WorkspaceLauncherStatusHints(
+                            hoveredLabel = cursor.hoveredLabel,
+                            focusedPanelId = focusedPanelId,
+                            launcherForeground = launcherForeground,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 12.dp),
+                        )
+                    }
                 }
             }
         }
@@ -431,6 +446,7 @@ private fun GlassesPanelLayout(
                                 onBoundsChanged = onBoundsChanged,
                                 onLaunchApp = onLaunchApp,
                                 onAppContextMenu = onAppContextMenu,
+                                useSharedPagination = true,
                             )
                         }
                     }
@@ -611,6 +627,7 @@ private fun PanelBody(
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
             onAppContextMenu = onAppContextMenu,
+            useSharedPagination = true,
         )
         PanelKind.HOTSEAT -> WorkspaceHotseatRow(
             apps = hotseatApps,

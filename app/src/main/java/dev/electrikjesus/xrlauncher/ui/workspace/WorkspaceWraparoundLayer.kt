@@ -1,6 +1,5 @@
 package dev.electrikjesus.xrlauncher.ui.workspace
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,8 +9,6 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -64,20 +61,6 @@ fun WorkspaceWraparoundLayer(
                 WorkspaceGlesConfig.texturedPanelsEnabled ||
                 WorkspaceGlesConfig.showGuideWireframe
             )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF12082A),
-                            Color(0xFF0A0618),
-                            Color.Black,
-                        ),
-                    ),
-                ),
-        )
 
         if (glesEnabled) {
             WorkspaceGlesBackdrop(

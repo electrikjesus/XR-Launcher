@@ -1,8 +1,10 @@
 package dev.electrikjesus.xrlauncher.ui.glasses
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
@@ -14,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
@@ -29,7 +31,38 @@ fun GlassesWorkspaceTitleBar(
     onOpenSettings: () -> Unit,
     onBoundsChanged: (String, Rect) -> Unit,
     modifier: Modifier = Modifier,
+    /** When true, only a small settings affordance is shown (glasses display). */
+    compact: Boolean = true,
 ) {
+    if (compact) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(bottom = 2.dp),
+        ) {
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(36.dp)
+                    .onGloballyPositioned { coordinates ->
+                        onBoundsChanged(
+                            GlassesWorkspaceTitleBar.BOUNDS_KEY,
+                            coordinates.boundsInRoot(),
+                        )
+                    },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = stringResource(R.string.settings_open),
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                )
+            }
+        }
+        return
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -45,16 +78,9 @@ fun GlassesWorkspaceTitleBar(
         IconButton(
             onClick = onOpenSettings,
             modifier = Modifier.onGloballyPositioned { coordinates ->
-                val position = coordinates.positionInRoot()
-                val size = coordinates.size
                 onBoundsChanged(
                     GlassesWorkspaceTitleBar.BOUNDS_KEY,
-                    Rect(
-                        left = position.x,
-                        top = position.y,
-                        right = position.x + size.width,
-                        bottom = position.y + size.height,
-                    ),
+                    coordinates.boundsInRoot(),
                 )
             },
         ) {

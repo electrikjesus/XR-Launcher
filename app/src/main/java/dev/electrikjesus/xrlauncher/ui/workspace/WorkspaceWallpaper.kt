@@ -19,19 +19,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import dev.electrikjesus.xrlauncher.core.launcher.SystemWallpaperLoader
+import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Device home-screen wallpaper with optional parallax — replaces the painted twilight backdrop.
+ * Flat workspace backdrop with cursor parallax — stays outside [WorkspaceWraparoundLayer]
+ * so it does not inherit cylinder scale/rotation (avoids misaligned GLES debug layers).
  */
 @Composable
 fun WorkspaceWallpaper(
+    wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
     parallaxX: Float = 0f,
     parallaxY: Float = 0f,
     lookYawDegrees: Float = 0f,
@@ -44,7 +48,11 @@ fun WorkspaceWallpaper(
     val backdropYaw = lookYawDegrees * WorkspaceWraparound.BACKDROP_LOOK_RATIO
     val backdropPitch = lookPitchDegrees * WorkspaceWraparound.BACKDROP_LOOK_RATIO
 
-    DisposableEffect(context) {
+    DisposableEffect(context, wallpaperChoice) {
+        if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
+            onDispose { }
+            return@DisposableEffect onDispose { }
+        }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 if (intent.action == Intent.ACTION_WALLPAPER_CHANGED) {
@@ -60,9 +68,9 @@ fun WorkspaceWallpaper(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    androidx.compose.runtime.LaunchedEffect(context, reloadToken) {
+    androidx.compose.runtime.LaunchedEffect(context, wallpaperChoice, reloadToken) {
         wallpaper = withContext(Dispatchers.IO) {
-            SystemWallpaperLoader.load(context)
+            WorkspaceWallpaperResolver.resolveBitmap(context, wallpaperChoice).asImageBitmap()
         }
     }
 
