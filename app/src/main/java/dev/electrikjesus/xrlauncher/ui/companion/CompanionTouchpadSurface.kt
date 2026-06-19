@@ -98,8 +98,21 @@ fun CompanionTouchpadSurface(
                         var accumulated = Offset.Zero
                         val touchSlop = viewConfiguration.touchSlop
                         var dragging = false
+                        var clickDragActive = false
                         val pointerId = down.id
                         val tapToClick = !useDesktopGestures
+
+                        if (useDesktopGestures && !touchpadClickSuppressed) {
+                            val now = System.currentTimeMillis()
+                            val isDoubleTap = lastTapTime > 0L &&
+                                now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
+                                (down.position - lastTapPos).getDistance() <= doubleTapSlop
+                            if (isDoubleTap) {
+                                lastTapTime = 0L
+                                CompanionPointerBus.beginTouchpadDragGesture()
+                                clickDragActive = true
+                            }
+                        }
 
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Main)
@@ -107,19 +120,12 @@ fun CompanionTouchpadSurface(
                             if (!change.pressed) {
                                 when {
                                     useDesktopGestures -> {
-                                        if (!dragging && !touchpadClickSuppressed) {
-                                            val now = System.currentTimeMillis()
-                                            val isSecondTap = lastTapTime > 0L &&
-                                                now - lastTapTime in doubleTapMinTimeMs..doubleTapTimeoutMs &&
-                                                (down.position - lastTapPos).getDistance() <= doubleTapSlop
-                                            if (isSecondTap) {
-                                                lastTapTime = 0L
-                                                CompanionPointerBus.click(PointerButton.LEFT)
-                                                CompanionPointerHaptics.leftClick(haptic)
-                                            } else {
-                                                lastTapTime = now
-                                                lastTapPos = down.position
-                                            }
+                                        if (clickDragActive) {
+                                            CompanionPointerBus.endTouchpadDragGesture()
+                                            CompanionPointerHaptics.leftClick(haptic)
+                                        } else if (!dragging && !touchpadClickSuppressed) {
+                                            lastTapTime = System.currentTimeMillis()
+                                            lastTapPos = down.position
                                         } else if (dragging) {
                                             lastTapTime = 0L
                                         }

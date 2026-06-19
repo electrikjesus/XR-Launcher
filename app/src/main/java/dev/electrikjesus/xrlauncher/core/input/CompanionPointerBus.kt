@@ -312,7 +312,7 @@ object CompanionPointerBus {
         val moved = hypot(end.x - startX, end.y - startY) > DRAG_THRESHOLD
         val primaryGesture = hadLeftButton || hadTouchpadDrag
         when {
-            moved && primaryGesture && shouldInjectPointerOnGlasses() ->
+            moved && primaryGesture && pointerInjectionAvailable() ->
                 DisplayPointerInjector.dispatchDrag(
                     GlassesSessionState.secondaryDisplayId!!,
                     startX,
