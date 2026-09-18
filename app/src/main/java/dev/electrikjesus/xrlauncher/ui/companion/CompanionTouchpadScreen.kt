@@ -3,16 +3,18 @@ package dev.electrikjesus.xrlauncher.ui.companion
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SettingsInputComponent
@@ -22,16 +24,14 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,7 +55,6 @@ import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
-import androidx.compose.ui.text.style.TextOverflow
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.ui.workspace.CompanionAllAppsPageControls
@@ -95,6 +94,8 @@ fun CompanionTouchpadScreen(
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
+    var showControls by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val statusHint = when {
         !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
@@ -104,53 +105,72 @@ fun CompanionTouchpadScreen(
         else -> stringResource(R.string.companion_pointer_active_hint)
     }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.companion_touchpad),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                actions = {
-                    IconButton(
-                        onClick = {
-                            context.startActivity(
-                                android.content.Intent(context, SettingsActivity::class.java),
-                            )
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.settings_open),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Top half — controls (tabs); height fixed at 50% so touchpad never shrinks.
+            IconButton(onClick = { showControls = true }) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = stringResource(R.string.companion_show_controls),
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (allAppsOverlayVisible) {
+                FilledTonalButton(
+                    onClick = { DisplayLaunchHelper.closeAllAppsOnGlasses() },
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(stringResource(R.string.all_apps_close_on_glasses))
+                }
+            }
+        }
+
+        CompanionTouchpadSurface(
+            motionEnabled = motionEnabled,
+            desktopPointerReady = desktopPointerReady,
+            touchpadClickSuppressed = touchpadClickSuppressed,
+            headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+        )
+        CompanionPointerButtonsRow(
+            desktopPointerReady = desktopPointerReady,
+            headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+        )
+    }
+
+    if (showControls) {
+        ModalBottomSheet(
+            onDismissRequest = { showControls = false },
+            sheetState = sheetState,
+        ) {
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ShowLauncherOnGlassesButton(
@@ -158,11 +178,11 @@ fun CompanionTouchpadScreen(
                         modifier = Modifier.weight(1f),
                     )
                     AllAppsOnGlassesButton(
-                        onClick = { DisplayLaunchHelper.openAllAppsOnGlasses(context) },
+                        overlayVisible = allAppsOverlayVisible,
+                        onClick = { DisplayLaunchHelper.toggleAllAppsOnGlasses(context) },
                         modifier = Modifier.weight(1f),
                     )
                 }
-
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
                     modifier = Modifier.fillMaxWidth(),
@@ -185,114 +205,72 @@ fun CompanionTouchpadScreen(
                         )
                     }
                 }
-
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = MaterialTheme.shapes.large,
-                    tonalElevation = 2.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.companion_status_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = statusHint,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        when (CompanionTab.entries[selectedTab]) {
-                            CompanionTab.Display -> DisplayTabContent(
-                                desktopPointerReady = desktopPointerReady,
-                                precisionPointer = precisionPointer,
-                                onPrecisionPointerChange = {
-                                    precisionPointer = it
-                                    CompanionPointerBus.setManualPrecisionPointer(it)
-                                },
-                                onOpenAccessibilitySettings = {
-                                    context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                                },
-                                apps = apps,
-                                onLaunchAppOnGlasses = onLaunchAppOnGlasses,
-                                allAppsOverlayVisible = allAppsOverlayVisible,
-                                cursorHoveredLabel = cursor.hoveredLabel,
-                                focusedPanelId = focusedPanelId,
-                                launcherForeground = launcherForeground,
-                            )
-                            CompanionTab.Input -> InputTabContent(
-                                xrInputMode = xrInputMode,
-                                rayNeoUsbAttached = rayNeoUsbAttached,
-                                headTrackingState = headTrackingState,
-                                headTrackingError = headTrackingError,
-                                motionAvailable = motionAvailable,
-                                motionEnabled = motionEnabled,
-                                isCalibrating = isCalibrating,
-                                onCalibrate = onCalibrate,
-                                onXrInputModeChange = { mode ->
-                                    GlassesSessionState.xrInputMode = mode
-                                    if (mode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
-                                        GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
-                                        CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
-                                        CompanionPointerBus.recenterCursor()
-                                        val appearance = workspace?.appearance?.clamped()
-                                        if (appearance != null) {
-                                            scope.launch {
-                                                workspaceRepository.updateAppearance(
-                                                    appearance.copy(
-                                                        lookYawDegrees = 0f,
-                                                        lookPitchDegrees = 0f,
-                                                    ),
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Bottom half — touchpad + click buttons (always 50% of content area).
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                CompanionTouchpadSurface(
-                    motionEnabled = motionEnabled,
-                    desktopPointerReady = desktopPointerReady,
-                    touchpadClickSuppressed = touchpadClickSuppressed,
-                    headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                Text(
+                    text = stringResource(R.string.companion_status_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                CompanionPointerButtonsRow(
-                    desktopPointerReady = desktopPointerReady,
-                    headTrackingActive = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
-                    modifier = Modifier.fillMaxWidth(),
+                Text(
+                    text = statusHint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (allAppsOverlayVisible) {
-                    CompanionAllAppsPageControls(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
+                when (CompanionTab.entries[selectedTab]) {
+                    CompanionTab.Display -> DisplayTabContent(
+                        desktopPointerReady = desktopPointerReady,
+                        precisionPointer = precisionPointer,
+                        onPrecisionPointerChange = {
+                            precisionPointer = it
+                            CompanionPointerBus.setManualPrecisionPointer(it)
+                        },
+                        onOpenAccessibilitySettings = {
+                            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        },
+                        apps = apps,
+                        onLaunchAppOnGlasses = onLaunchAppOnGlasses,
+                        allAppsOverlayVisible = allAppsOverlayVisible,
+                        cursorHoveredLabel = cursor.hoveredLabel,
+                        focusedPanelId = focusedPanelId,
+                        launcherForeground = launcherForeground,
                     )
+                    CompanionTab.Input -> InputTabContent(
+                        xrInputMode = xrInputMode,
+                        rayNeoUsbAttached = rayNeoUsbAttached,
+                        headTrackingState = headTrackingState,
+                        headTrackingError = headTrackingError,
+                        motionAvailable = motionAvailable,
+                        motionEnabled = motionEnabled,
+                        isCalibrating = isCalibrating,
+                        onCalibrate = onCalibrate,
+                        onXrInputModeChange = { mode ->
+                            GlassesSessionState.xrInputMode = mode
+                            if (mode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+                                GlassesSessionState.controlMode = GlassesControlMode.LAUNCHER
+                                CompanionPointerBus.setGlassesControlMode(GlassesControlMode.LAUNCHER)
+                                CompanionPointerBus.recenterCursor()
+                                val appearance = workspace?.appearance?.clamped()
+                                if (appearance != null) {
+                                    scope.launch {
+                                        workspaceRepository.updateAppearance(
+                                            appearance.copy(
+                                                lookYawDegrees = 0f,
+                                                lookPitchDegrees = 0f,
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Text(stringResource(R.string.settings_open))
                 }
             }
         }
@@ -301,6 +279,7 @@ fun CompanionTouchpadScreen(
 
 @Composable
 private fun AllAppsOnGlassesButton(
+    overlayVisible: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -310,12 +289,18 @@ private fun AllAppsOnGlassesButton(
         shape = MaterialTheme.shapes.extraLarge,
     ) {
         Icon(
-            imageVector = Icons.Default.Apps,
+            imageVector = if (overlayVisible) Icons.Default.Close else Icons.Default.Apps,
             contentDescription = null,
             modifier = Modifier.padding(end = 8.dp),
         )
         Text(
-            text = stringResource(R.string.all_apps_on_glasses),
+            text = stringResource(
+                if (overlayVisible) {
+                    R.string.all_apps_close_on_glasses
+                } else {
+                    R.string.all_apps_on_glasses
+                },
+            ),
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
         )

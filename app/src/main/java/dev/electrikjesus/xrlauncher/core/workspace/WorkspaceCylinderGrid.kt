@@ -58,8 +58,8 @@ object WorkspaceCylinderGrid {
 
     /** Default stack-layout slot per panel id (STANDARD preset). */
     fun defaultStackSlot(panelId: String): Slot? = when (panelId) {
-        "widget_clock" -> Slot(col = 0, row = 0, colSpan = 3, rowSpan = 1)
-        "widget_calendar" -> Slot(col = 3, row = 0, colSpan = 3, rowSpan = 1)
+        "widget_clock" -> Slot(col = 0, row = 0, colSpan = 4, rowSpan = 2)
+        "widget_calendar" -> Slot(col = 4, row = 0, colSpan = 2, rowSpan = 2)
         "app_drawer" -> Slot(col = 0, row = 1, colSpan = 6, rowSpan = 2)
         "hotseat" -> Slot(col = 0, row = 3, colSpan = 6, rowSpan = 1)
         else -> null

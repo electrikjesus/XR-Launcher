@@ -138,6 +138,7 @@ object DisplayLaunchHelper {
     }
 
     fun showLauncherOnGlasses(context: Context): Boolean {
+        GlassesSessionState.hideAllAppsOverlay()
         val displayId = resolveSecondaryDisplayId(context, GlassesSessionState.secondaryDisplayId)
             ?: return false
         applySessionControlMode()
@@ -162,6 +163,19 @@ object DisplayLaunchHelper {
             GlassesSessionState.showAllAppsOverlay()
         }
         return shown
+    }
+
+    fun closeAllAppsOnGlasses() {
+        GlassesSessionState.hideAllAppsOverlay()
+    }
+
+    /** Open All Apps on glasses, or dismiss it if it is already showing. */
+    fun toggleAllAppsOnGlasses(context: Context): Boolean {
+        if (GlassesSessionState.allAppsOverlayVisible) {
+            closeAllAppsOnGlasses()
+            return true
+        }
+        return openAllAppsOnGlasses(context)
     }
 
     private fun applySessionControlMode() {

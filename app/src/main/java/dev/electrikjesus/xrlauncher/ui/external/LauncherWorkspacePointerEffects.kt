@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
@@ -89,10 +90,23 @@ fun LauncherWorkspacePointerEffects(
     }
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
-    LaunchedEffect(cursor.x, cursor.y, itemBounds, panelBounds, rootWidthPx, rootHeightPx, apps) {
+    val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    LaunchedEffect(
+        cursor.x,
+        cursor.y,
+        itemBounds,
+        panelBounds,
+        rootWidthPx,
+        rootHeightPx,
+        apps,
+        allAppsOverlayVisible,
+    ) {
         val point = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
+            allAppsOverlayVisible &&
+                itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true ->
+                AllAppsOverlayHits.CLOSE_HOVER_LABEL
             itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ->
                 GlassesWorkspaceTitleBar.HOVER_LABEL
             itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ->
@@ -200,6 +214,27 @@ private fun handleLeftClick(
         LauncherContextMenuState.dismiss()
         return
     }
+    val overlayVisible = GlassesSessionState.allAppsOverlayVisible
+    val hitClose = itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true
+    val hitAllAppsLauncher = itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true
+    val hitOtherTarget = itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ||
+        itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ||
+        isPaginationHit(point, itemBounds) ||
+        LayoutPreset.entries.any { preset ->
+            itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
+        } ||
+        findAppAt(point, itemBounds, apps) != null
+    if (
+        AllAppsOverlayHits.shouldDismiss(
+            overlayVisible = overlayVisible,
+            hitClose = hitClose,
+            hitOtherTarget = hitOtherTarget,
+        )
+    ) {
+        Log.d(LOG_TAG, "left-click dismiss all-apps overlay close=$hitClose launcher=$hitAllAppsLauncher")
+        GlassesSessionState.hideAllAppsOverlay()
+        return
+    }
     if (itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true) {
         Log.d(LOG_TAG, "left-click hit settings")
         onOpenSettings()
@@ -210,7 +245,7 @@ private fun handleLeftClick(
         GlassesSessionState.toggleLayoutPresets()
         return
     }
-    if (itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true) {
+    if (hitAllAppsLauncher) {
         Log.d(LOG_TAG, "left-click hit all-apps launcher")
         onOpenAllApps()
         return
@@ -225,10 +260,23 @@ private fun handleLeftClick(
     }
     findAppAt(point, itemBounds, apps)?.let { app ->
         Log.d(LOG_TAG, "left-click hit app=${app.label}")
+        GlassesSessionState.hideAllAppsOverlay()
         onLaunchApp(app)
         return
     }
     logClickMiss(point, itemBounds)
+}
+
+private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>): Boolean {
+    if (itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true) return true
+    if (itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true) return true
+    val pageCount = AllAppsPaginationState.pageCountFlow.value
+    for (page in 0 until pageCount) {
+        if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
+            return true
+        }
+    }
+    return false
 }
 
 private fun handlePaginationClick(point: Offset, itemBounds: Map<String, Rect>): Boolean {

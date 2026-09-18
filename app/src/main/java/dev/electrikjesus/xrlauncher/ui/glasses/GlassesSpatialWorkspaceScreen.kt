@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -95,7 +97,7 @@ fun GlassesSpatialWorkspaceScreen(
             AllAppsPaginationState.reset()
         }
     }
-    val visiblePanels = remember(panels) { panels.filter { it.visible } }
+    val visiblePanels = remember(panels) { Workspace.spatialHomePanels(panels) }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
     val launcherForeground by GlassesSessionState.launcherForegroundFlow.collectAsState()
     val showInAppCursor = !desktopOverlayActive
@@ -254,10 +256,6 @@ fun GlassesSpatialWorkspaceScreen(
             }
         }
 
-        if (showInAppCursor) {
-            ExternalCursorDot(modifier = Modifier.fillMaxSize())
-        }
-
         if (allAppsOverlayVisible && onLaunchApp != null) {
             WorkspaceAllAppsOverlay(
                 appCount = launchableApps.size,
@@ -273,6 +271,10 @@ fun GlassesSpatialWorkspaceScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+
+        if (showInAppCursor) {
+            ExternalCursorDot(modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
@@ -287,10 +289,10 @@ private fun WorkspaceLauncherStatusHints(
 
     Column(modifier = modifier) {
         if (hoveredLabel != null) {
-            val hoverText = if (hoveredLabel == AllAppsLauncher.HOVER_LABEL) {
-                stringResource(R.string.all_apps)
-            } else {
-                hoveredLabel
+            val hoverText = when (hoveredLabel) {
+                AllAppsLauncher.HOVER_LABEL -> stringResource(R.string.all_apps)
+                AllAppsOverlayHits.CLOSE_HOVER_LABEL -> stringResource(R.string.all_apps_close)
+                else -> hoveredLabel
             }
             Text(
                 text = stringResource(R.string.cursor_over, hoverText),
@@ -465,6 +467,7 @@ private fun GlassesPanelLayout(
                     index++
                 }
                 PanelKind.HOTSEAT -> {
+                    Spacer(modifier = Modifier.weight(1f))
                     val slot = rowSlots[slotIndex++]
                     WraparoundPanelContainer(
                         panelId = panel.id,

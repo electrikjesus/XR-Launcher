@@ -29,6 +29,8 @@ class WorkspaceCylinderGridTest {
     @Test
     fun migrateStackToFreeformBounds_assignsAllVisiblePanels() {
         val migrated = WorkspaceCylinderGrid.migrateStackToFreeformBounds(Workspace.defaultPanels())
-        assertTrue(migrated.all { it.kind == PanelKind.EMPTY_SLOT || it.bounds != null })
+        migrated.filter { it.visible && it.kind != PanelKind.EMPTY_SLOT }.forEach { panel ->
+            assertTrue(panel.bounds != null)
+        }
     }
 }

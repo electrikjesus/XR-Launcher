@@ -43,10 +43,14 @@ data class Workspace(
 
         fun defaultPanels(): List<PanelState> = listOf(
             PanelState(id = "widget_clock", kind = PanelKind.WIDGET),
-            PanelState(id = "widget_calendar", kind = PanelKind.WIDGET),
-            PanelState(id = "app_drawer", kind = PanelKind.APP_DRAWER),
+            PanelState(id = "widget_calendar", kind = PanelKind.WIDGET, visible = false),
+            PanelState(id = "app_drawer", kind = PanelKind.APP_DRAWER, visible = false),
             PanelState(id = "hotseat", kind = PanelKind.HOTSEAT),
             PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT, visible = false),
         )
+
+        /** Home Space chrome: wallpaper, clock, dock. All Apps is an overlay, not a panel. */
+        fun spatialHomePanels(panels: List<PanelState>): List<PanelState> =
+            panels.filter { it.visible && it.kind != PanelKind.APP_DRAWER }
     }
 }

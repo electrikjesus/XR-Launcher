@@ -31,6 +31,7 @@
     <string name="use_as_controller">Use as controller</string>
     <string name="connect_glasses">Connect glasses</string>
     <string name="companion_touchpad">Companion touchpad</string>
+    <string name="companion_show_controls">Glasses controls</string>
     <string name="companion_tab_display">Display</string>
     <string name="companion_tab_input">Input</string>
     <string name="settings_title">Settings</string>
@@ -187,8 +188,9 @@
     <string name="all_apps_count">%1$d apps</string>
     <string name="all_apps_close">Close</string>
     <string name="all_apps_on_glasses">All apps on glasses</string>
+    <string name="all_apps_close_on_glasses">Close all apps</string>
     <string name="all_apps_companion_hint">Browse and launch apps on the glasses display</string>
-    <string name="all_apps_companion_page_hint">All Apps is open on glasses — use these controls or tap page buttons there.</string>
+    <string name="all_apps_companion_page_hint">All Apps is open on glasses — tap Close all apps to return to the launcher.</string>
     <string name="all_apps_page_prev">Previous page</string>
     <string name="all_apps_page_next">Next page</string>
     <string name="all_apps_page_status">Page %1$d of %2$d</string>

@@ -30,7 +30,7 @@ fun ClockWidgetPanel(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = time,
-            style = MaterialTheme.typography.displayMedium,
+            style = MaterialTheme.typography.displayLarge,
             color = Color.White,
         )
         Text(

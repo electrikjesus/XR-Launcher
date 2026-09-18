@@ -21,7 +21,8 @@ class WorkspaceJsonTest {
     fun defaultPanels_includesDrawerWidgetsHotseatAndEmptySlot() {
         val panels = Workspace.defaultPanels()
         assertEquals(5, panels.size)
-        assertTrue(panels.any { it.id == "widget_calendar" && it.kind == PanelKind.WIDGET })
+        assertTrue(panels.any { it.id == "app_drawer" && it.kind == PanelKind.APP_DRAWER && !it.visible })
+        assertTrue(panels.any { it.id == "widget_calendar" && it.kind == PanelKind.WIDGET && !it.visible })
         assertTrue(panels.any { it.id == "empty_slot" && it.kind == PanelKind.EMPTY_SLOT && !it.visible })
     }
 
