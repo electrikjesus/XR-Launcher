@@ -600,14 +600,14 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed: shrink open All Apps for pager reach; hide blotchy backing texture (collision/pick only).
+Landed: hide All Apps backing; fix mouse-look up/down; companion mouse-look toggle above touchpad.
 
 **Do this next (after on-device check). One concern per change.**
 
-1. **On-device recheck** — no backing panel; pager reachable; then mouse-look invert / Edit dismiss / companion FPS button.
-2. **Persist placed desktop icons + drawer pose** — `DeskRepository` analog (yaw/pitch on the sphere).
-3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
-4. **Unify panes as pinned widgets** — after the desk feels right.
+1. **On-device recheck** — mouse-look pitch + companion toggle; Edit dialog still camera-stuck.
+2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
+3. **Persist placed desktop icons + drawer pose** — `DeskRepository` analog (yaw/pitch on the sphere).
+4. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 5. **Stop** — Do not start 6.9 onboarding in this pass.
 
 ---
@@ -768,7 +768,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Desk grab/pager/pose:** square backing; unplaced pageCount; sync Left-down grab; movable All Apps tile; zero release velocity | Pager no-op; jump on drop; Hold-Left only after lift; All Apps tile stuck |
 | 2026-09-18 | **Shrink open All Apps** so pager stays in cursor pitch FOV | Widget too tall to reach bottom pagination |
 | 2026-09-18 | **Hide All Apps backing texture** — pick/physics only, no stretched panel | Low-res rounded panel looked mottled / blotchy |
+| 2026-09-18 | **Mouse-look pitch sign + companion toggle** — finger up looks up; 3D-rotation icon above touchpad | FPS look inverted; no phone control for look mode |
 
 ---
 
-*Last updated: 2026-09-18 (hide All Apps backing texture; host tests)*
+*Last updated: 2026-09-18 (mouse-look pitch + companion toggle; host tests)*

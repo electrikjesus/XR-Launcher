@@ -160,6 +160,7 @@ class GlassesHomeLookTest {
     fun addFpsLook_turnsYawAndPitch() {
         GlassesHomeLook.addFpsLook(deltaX = 0.2f, deltaY = 0.1f)
         assertTrue(GlassesHomeLook.panNorm > 0f)
-        assertTrue(GlassesHomeLook.lookPitch < 0f)
+        // Finger/cursor down (positive deltaY) looks down (positive pitch).
+        assertTrue(GlassesHomeLook.lookPitch > 0f)
     }
 }

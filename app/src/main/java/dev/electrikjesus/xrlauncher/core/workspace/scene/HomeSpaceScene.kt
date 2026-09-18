@@ -184,7 +184,7 @@ object HomeSpaceScene {
         return deltaX * hfovDeg / arc
     }
 
-    fun fpsPitchDelta(deltaY: Float): Float = -deltaY * FOV_Y_DEGREES
+    fun fpsPitchDelta(deltaY: Float): Float = deltaY * FOV_Y_DEGREES
 
     fun pane(
         worldX: Float,

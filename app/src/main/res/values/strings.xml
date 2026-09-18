@@ -239,6 +239,9 @@
     <string name="companion_show_keyboard">Keyboard</string>
     <string name="companion_cursor_touchpad">Touchpad cursor</string>
     <string name="companion_cursor_head">Head tracking cursor</string>
+    <string name="companion_mouselook">Mouse look</string>
+    <string name="companion_mouselook_on">Mouse look on — drag touchpad to turn the view</string>
+    <string name="companion_mouselook_off">Mouse look off — free cursor on the glasses</string>
     <string name="launch_target_title">Launch %1$s</string>
     <string name="launch_target_hint">Choose where this app opens.</string>
     <string name="launch_target_phone">Phone display</string>

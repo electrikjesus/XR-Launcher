@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
@@ -65,6 +66,7 @@ import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
 import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.ui.workspace.CompanionAllAppsPageControls
@@ -103,6 +105,7 @@ fun CompanionTouchpadScreen(
     val touchpadClickSuppressed = textEntryActive || precisionPointer
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val lookMode by GlassesLookMode.preferenceFlow.collectAsState()
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
     var showControls by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -114,6 +117,8 @@ fun CompanionTouchpadScreen(
         !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
         textEntryActive -> stringResource(R.string.companion_text_entry_hint)
         touchpadClickSuppressed -> stringResource(R.string.precision_pointer_on_hint)
+        lookMode == GlassesLookMode.FPS && launcherForeground ->
+            stringResource(R.string.companion_mouselook_on)
         launcherForeground -> stringResource(R.string.companion_launcher_foreground_hint)
         else -> stringResource(R.string.companion_pointer_active_hint)
     }
@@ -162,6 +167,33 @@ fun CompanionTouchpadScreen(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = stringResource(R.string.companion_cursor_head),
                     tint = if (xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+            IconButton(
+                onClick = {
+                    val next = if (lookMode == GlassesLookMode.FPS) {
+                        GlassesLookMode.GRADIENT
+                    } else {
+                        GlassesLookMode.FPS
+                    }
+                    GlassesLookMode.preference = next
+                    if (next == GlassesLookMode.FPS) {
+                        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+                    }
+                    val appearance = workspace?.appearance?.clamped() ?: return@IconButton
+                    scope.launch {
+                        workspaceRepository.updateAppearance(appearance.copy(lookMode = next))
+                    }
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mouse,
+                    contentDescription = stringResource(R.string.companion_mouselook),
+                    tint = if (lookMode == GlassesLookMode.FPS) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface
