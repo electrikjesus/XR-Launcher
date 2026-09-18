@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -20,7 +21,6 @@ import dev.electrikjesus.xrlauncher.core.input.MotionPointerController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
-import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.companion.CompanionTouchpadScreen
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
@@ -77,7 +77,6 @@ class CompanionControllerActivity : ComponentActivity() {
 
         setContent {
             val workspaceRepository = remember { WorkspaceRepository(applicationContext) }
-            val appLauncher = remember { AppLauncher(this) }
             val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
             val launchableApps = rememberLaunchableApps(
                 excludePackageName = packageName,
@@ -87,11 +86,8 @@ class CompanionControllerActivity : ComponentActivity() {
                 CompanionTouchpadScreen(
                     workspaceRepository = workspaceRepository,
                     apps = launchableApps,
-                    onLaunchAppOnGlasses = { app ->
-                        appLauncher.launchOnGlasses(
-                            app.componentName,
-                            GlassesSessionState.secondaryDisplayId,
-                        )
+                    onLaunchApp = { app, target ->
+                        DisplayLaunchHelper.launchApp(this, app, target)
                     },
                     motionAvailable = motionController.isAvailable,
                     isCalibrating = isCalibrating,

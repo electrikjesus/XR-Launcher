@@ -34,16 +34,20 @@ import android.widget.ImageView
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AppIconCache
+import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.ui.launcher.AppLaunchTargetSheet
 
 @Composable
 fun CompanionAllAppsPicker(
     apps: List<LaunchableApp>,
-    onLaunchApp: (LaunchableApp) -> Unit,
+    onLaunchApp: (LaunchableApp, AppLaunchTarget) -> Unit,
+    hasSecondaryDisplay: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
+    var launchTargetApp by remember { mutableStateOf<LaunchableApp?>(null) }
     val filtered = remember(apps, query) {
         AppRepository.filterLaunchableApps(apps, query)
     }
@@ -86,10 +90,18 @@ fun CompanionAllAppsPicker(
                 items(filtered, key = { it.componentName.flattenToString() }) { app ->
                     CompanionAppChip(
                         app = app,
-                        onClick = { onLaunchApp(app) },
+                        onClick = { launchTargetApp = app },
                     )
                 }
             }
+        }
+        launchTargetApp?.let { app ->
+            AppLaunchTargetSheet(
+                app = app,
+                hasSecondaryDisplay = hasSecondaryDisplay,
+                onSelect = { target -> onLaunchApp(app, target) },
+                onDismiss = { launchTargetApp = null },
+            )
         }
     }
 }

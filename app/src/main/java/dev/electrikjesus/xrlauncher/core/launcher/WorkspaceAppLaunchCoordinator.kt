@@ -29,8 +29,9 @@ class WorkspaceAppLaunchCoordinator(
         app: LaunchableApp,
         displayId: Int,
         moveLauncherToBack: () -> Unit,
+        preferEmbedded: Boolean = true,
     ): PanelLaunchResult {
-        if (tryOpenInFocusedPlane(app)) {
+        if (preferEmbedded && tryOpenInFocusedPlane(app)) {
             return PanelLaunchResult.Embedded
         }
         return panelLauncher.launchInPanel(

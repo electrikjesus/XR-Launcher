@@ -13,6 +13,10 @@ import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
+import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
+import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.launcher.PendingGlassesAppLaunch
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
@@ -136,6 +140,56 @@ object DisplayLaunchHelper {
             Log.d(TAG, "Opened glasses session on displayId=$displayId (fullscreen relaunch)")
         }
         return fullscreen
+    }
+
+    /**
+     * Launch [app] from the phone HOME or companion chooser.
+     * XR targets open the companion touchpad after the glasses launch is queued.
+     */
+    fun launchApp(context: Context, app: LaunchableApp, target: AppLaunchTarget): Boolean {
+        return when (target) {
+            AppLaunchTarget.PHONE -> {
+                AppLauncher(context).launchOnDefaultDisplay(app.componentName)
+                true
+            }
+            AppLaunchTarget.XR_EMBEDDED -> launchOnXr(context, app, embedded = true)
+            AppLaunchTarget.XR_FULLSCREEN -> launchOnXr(context, app, embedded = false)
+        }
+    }
+
+    private fun launchOnXr(
+        context: Context,
+        app: LaunchableApp,
+        embedded: Boolean,
+    ): Boolean {
+        val displayId = resolveSecondaryDisplayId(context, GlassesSessionState.secondaryDisplayId)
+        if (displayId == null) {
+            Log.w(TAG, "No XR display for ${app.label}")
+            return false
+        }
+        GlassesSessionState.secondaryDisplayId = displayId
+        if (embedded) {
+            GlassesSessionState.pendingAppLaunch = PendingGlassesAppLaunch.from(
+                app = app,
+                preferEmbedded = true,
+            )
+            val sessionAlreadyOpen = GlassesSessionState.launcherForeground ||
+                GlassesSessionState.launcherBackgrounded
+            val shown = if (sessionAlreadyOpen) {
+                showLauncherOnGlasses(context)
+            } else {
+                openGlassesSession(context)
+            }
+            if (!shown) {
+                GlassesSessionState.pendingAppLaunch = null
+                return false
+            }
+        } else {
+            GlassesSessionState.pendingAppLaunch = null
+            AppLauncher(context).launchOnGlasses(app.componentName, displayId)
+        }
+        openCompanionController(context)
+        return true
     }
 
     fun showLauncherOnGlasses(context: Context): Boolean {

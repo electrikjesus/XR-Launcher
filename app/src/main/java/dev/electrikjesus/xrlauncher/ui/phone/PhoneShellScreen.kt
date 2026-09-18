@@ -55,12 +55,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.capability.DeviceCapabilities
+import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.PhoneHomeLayout
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingLogic
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
+import dev.electrikjesus.xrlauncher.ui.launcher.AppLaunchTargetSheet
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 import java.text.DateFormat
@@ -83,7 +85,7 @@ fun PhoneShellScreen(
     apps: List<LaunchableApp>,
     capabilities: DeviceCapabilities,
     hotseatApps: List<LaunchableApp>,
-    onLaunchApp: (LaunchableApp) -> Unit,
+    onLaunchApp: (LaunchableApp, AppLaunchTarget) -> Unit,
     onOpenGlassesWorkspace: () -> Unit,
     onOpenCompanion: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -110,7 +112,7 @@ private fun PhoneShellContent(
     apps: List<LaunchableApp>,
     capabilities: DeviceCapabilities,
     hotseatApps: List<LaunchableApp>,
-    onLaunchApp: (LaunchableApp) -> Unit,
+    onLaunchApp: (LaunchableApp, AppLaunchTarget) -> Unit,
     onOpenGlassesWorkspace: () -> Unit,
     onOpenCompanion: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -121,6 +123,8 @@ private fun PhoneShellContent(
     var resumeTick by remember { mutableIntStateOf(0) }
     var showOnboarding by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    var launchTargetApp by remember { mutableStateOf<LaunchableApp?>(null) }
+    val requestLaunch: (LaunchableApp) -> Unit = { launchTargetApp = it }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -220,7 +224,7 @@ private fun PhoneShellContent(
                                 app = app,
                                 isHovered = false,
                                 onBoundsChanged = { _, _ -> },
-                                onLaunchApp = onLaunchApp,
+                                onLaunchApp = requestLaunch,
                             )
                         }
                     }
@@ -228,7 +232,7 @@ private fun PhoneShellContent(
                 PhoneHomeDock(
                     hotseatApps = hotseatApps,
                     hasSecondaryDisplay = capabilities.hasSecondaryDisplay,
-                    onLaunchApp = onLaunchApp,
+                    onLaunchApp = requestLaunch,
                     onOpenGlassesWorkspace = onOpenGlassesWorkspace,
                     onOpenCompanion = onOpenCompanion,
                     onShowOnboarding = { showOnboarding = true },
@@ -237,6 +241,14 @@ private fun PhoneShellContent(
                         .windowInsetsPadding(WindowInsets.navigationBars),
                 )
             }
+        }
+        launchTargetApp?.let { app ->
+            AppLaunchTargetSheet(
+                app = app,
+                hasSecondaryDisplay = capabilities.hasSecondaryDisplay,
+                onSelect = { target -> onLaunchApp(app, target) },
+                onDismiss = { launchTargetApp = null },
+            )
         }
     }
 }

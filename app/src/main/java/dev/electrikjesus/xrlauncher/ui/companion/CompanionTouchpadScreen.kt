@@ -62,6 +62,7 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
+import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -79,7 +80,7 @@ private enum class CompanionTab(val labelRes: Int) {
 fun CompanionTouchpadScreen(
     workspaceRepository: WorkspaceRepository,
     apps: List<LaunchableApp> = emptyList(),
-    onLaunchAppOnGlasses: (LaunchableApp) -> Unit = {},
+    onLaunchApp: (LaunchableApp, AppLaunchTarget) -> Unit = { _, _ -> },
     motionAvailable: Boolean = true,
     isCalibrating: Boolean = false,
     onCalibrate: () -> Unit = {},
@@ -305,7 +306,7 @@ fun CompanionTouchpadScreen(
                             context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                         },
                         apps = apps,
-                        onLaunchAppOnGlasses = onLaunchAppOnGlasses,
+                        onLaunchApp = onLaunchApp,
                         allAppsOverlayVisible = allAppsOverlayVisible,
                         cursorHoveredLabel = cursor.hoveredLabel,
                         focusedPanelId = focusedPanelId,
@@ -414,7 +415,7 @@ private fun DisplayTabContent(
     onPrecisionPointerChange: (Boolean) -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     apps: List<LaunchableApp>,
-    onLaunchAppOnGlasses: (LaunchableApp) -> Unit,
+    onLaunchApp: (LaunchableApp, AppLaunchTarget) -> Unit,
     allAppsOverlayVisible: Boolean,
     cursorHoveredLabel: String?,
     focusedPanelId: String?,
@@ -459,7 +460,9 @@ private fun DisplayTabContent(
     if (apps.isNotEmpty()) {
         CompanionAllAppsPicker(
             apps = apps,
-            onLaunchApp = onLaunchAppOnGlasses,
+            onLaunchApp = onLaunchApp,
+            hasSecondaryDisplay = DisplayLaunchHelper.findSecondaryDisplayId(LocalContext.current) != null ||
+                GlassesSessionState.secondaryDisplayId != null,
         )
     }
     if (allAppsOverlayVisible) {

@@ -3,6 +3,7 @@ package dev.electrikjesus.xrlauncher.core.display
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
+import dev.electrikjesus.xrlauncher.core.launcher.PendingGlassesAppLaunch
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -169,6 +170,15 @@ object GlassesSessionState {
     /** Whether RayNeo USB HID IMU was detected the last time we checked. */
     var rayNeoUsbAttached: Boolean = false
 
+    /** App launch queued from the phone HOME / companion chooser for the glasses activity. */
+    var pendingAppLaunch: PendingGlassesAppLaunch? = null
+
+    fun consumePendingAppLaunch(): PendingGlassesAppLaunch? {
+        val pending = pendingAppLaunch
+        pendingAppLaunch = null
+        return pending
+    }
+
     fun clear() {
         secondaryDisplayId = null
         controlMode = GlassesControlMode.LAUNCHER
@@ -187,6 +197,7 @@ object GlassesSessionState {
         layoutPresetsVisible = false
         AllAppsPaginationState.reset()
         GlassesHomeLook.reset()
+        pendingAppLaunch = null
         _xrInputMode.value = GlassesXrInputMode.COMPANION
         rayNeoUsbAttached = false
         RayNeoHeadTrackingController.stop()

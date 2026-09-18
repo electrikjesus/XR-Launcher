@@ -19,6 +19,7 @@ import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
 import dev.electrikjesus.xrlauncher.core.launcher.PanelLaunchResult
@@ -113,7 +114,10 @@ class ExternalDisplayActivity : ComponentActivity() {
         super.onResume()
         GlassesSessionState.markLauncherForeground()
         syncSessionDisplayId()
-        window.decorView.post { updateInjectFrame() }
+        window.decorView.post {
+            updateInjectFrame()
+            consumePendingAppLaunch()
+        }
         if (isDebugBuild()) {
             Log.i(
                 SubspaceSpike.TAG,
@@ -140,7 +144,14 @@ class ExternalDisplayActivity : ComponentActivity() {
         }
     }
 
-    private fun launchApp(app: LaunchableApp) {
+    private fun consumePendingAppLaunch() {
+        val pending = GlassesSessionState.consumePendingAppLaunch() ?: return
+        val app = pending.toLaunchableApp() ?: return
+        GlassesRecentApps.record(app)
+        launchApp(app, preferEmbedded = pending.preferEmbedded)
+    }
+
+    private fun launchApp(app: LaunchableApp, preferEmbedded: Boolean = true) {
         val displayId = display?.displayId
             ?: GlassesSessionState.secondaryDisplayId
             ?: return
@@ -155,6 +166,7 @@ class ExternalDisplayActivity : ComponentActivity() {
                 GlassesSessionState.markLauncherBackgrounded()
                 window.decorView.post { moveTaskToBack(true) }
             },
+            preferEmbedded = preferEmbedded,
         )
         if (result is PanelLaunchResult.Embedded) {
             GlassesSessionState.markLauncherForeground()

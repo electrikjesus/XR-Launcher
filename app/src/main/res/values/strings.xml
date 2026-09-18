@@ -218,4 +218,13 @@
     <string name="companion_show_keyboard">Keyboard</string>
     <string name="companion_cursor_touchpad">Touchpad cursor</string>
     <string name="companion_cursor_head">Head tracking cursor</string>
+    <string name="launch_target_title">Launch %1$s</string>
+    <string name="launch_target_hint">Choose where this app opens.</string>
+    <string name="launch_target_phone">Phone display</string>
+    <string name="launch_target_phone_hint">Open on this phone</string>
+    <string name="launch_target_xr_embedded">XR display · embedded</string>
+    <string name="launch_target_xr_embedded_hint">Open as a window in the Home Space</string>
+    <string name="launch_target_xr_fullscreen">XR display · fullscreen</string>
+    <string name="launch_target_xr_fullscreen_hint">Fill the glasses display</string>
+    <string name="launch_target_xr_unavailable">Connect glasses to launch on the XR display.</string>
 </resources>

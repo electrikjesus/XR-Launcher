@@ -17,6 +17,7 @@ import dev.electrikjesus.xrlauncher.core.capability.RuntimeTier
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
+import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
 import dev.electrikjesus.xrlauncher.core.launcher.PhoneHomeLayout
@@ -86,7 +87,9 @@ fun XRLauncherApp(
                     formFactor = if (isExpanded) LayoutFormFactor.EXPANDED else LayoutFormFactor.COMPACT,
                 ),
                 hotseatApps = hotseatApps,
-                onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
+                onLaunchApp = { app, target ->
+                    DisplayLaunchHelper.launchApp(context, app, target)
+                },
                 onOpenGlassesWorkspace = {
                     onRefreshCapabilities()
                     DisplayLaunchHelper.openGlassesSession(
