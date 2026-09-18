@@ -54,7 +54,7 @@ class GlassesHomeLookTest {
         GlassesHomeLook.lookAt(-4f)
         assertEquals(GlassesHomeLook.minPan(), GlassesHomeLook.panNorm, 0.001f)
         GlassesHomeLook.lookAt(4f)
-        assertEquals(GlassesHomeLook.PANE_RIGHT, GlassesHomeLook.panNorm, 0.001f)
+        assertEquals(GlassesHomeLook.maxPan(), GlassesHomeLook.panNorm, 0.001f)
     }
 
     @Test
@@ -66,6 +66,14 @@ class GlassesHomeLookTest {
     }
 
     @Test
+    fun pan_allowsLookingRightOfTrayForEmptySpace() {
+        assertTrue(GlassesHomeLook.maxPan() > GlassesHomeLook.trayPane())
+        GlassesHomeLook.lookAt(GlassesHomeLook.trayPane() + 0.8f)
+        assertEquals(GlassesHomeLook.trayPane() + 0.8f, GlassesHomeLook.panNorm, 0.001f)
+        assertTrue(GlassesHomeLook.lookingAtTray())
+    }
+
+    @Test
     fun leftEdge_canPanPastDesktopCenter() {
         GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
         repeat(120) {
@@ -74,6 +82,18 @@ class GlassesHomeLookTest {
         assertTrue(
             "edge pan should reach empty space left of Desktop",
             GlassesHomeLook.panNorm < GlassesHomeLook.PANE_LEFT - 0.2f,
+        )
+    }
+
+    @Test
+    fun rightEdge_canPanPastTrayCenter() {
+        GlassesHomeLook.lookAt(GlassesHomeLook.trayPane())
+        repeat(120) {
+            GlassesHomeLook.tickEdgePan(cursorX = 0.98f, deltaSeconds = 0.016f)
+        }
+        assertTrue(
+            "edge pan should reach empty space right of Tray",
+            GlassesHomeLook.panNorm > GlassesHomeLook.trayPane() + 0.2f,
         )
     }
 
@@ -109,7 +129,8 @@ class GlassesHomeLookTest {
         )
         assertEquals(2f, GlassesHomeLook.panNorm, 0.001f)
         assertEquals("app_two", GlassesHomeLook.focusedAppPlane()?.panelId)
-        assertEquals(3f, GlassesHomeLook.maxPan(), 0.001f)
+        assertEquals(3f, GlassesHomeLook.trayPane(), 0.001f)
+        assertEquals(3f + GlassesHomeLook.SIDE_LOOK_EXTRA, GlassesHomeLook.maxPan(), 0.001f)
     }
 
     @Test

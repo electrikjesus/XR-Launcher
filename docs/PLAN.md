@@ -774,7 +774,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.17:** persist Desktop icons + All Apps tile pose via `desk_json` in workspace DataStore | Positions were in-memory only |
 | 2026-09-18 | **Desk pager + open speed:** incremental icon bitmaps; drag effect ignores mouse-look; desk owns pageCount | Full rebuild on page; FPS look restarted drag and ate pager clicks |
 | 2026-09-18 | **0.1.18 release:** README screenshots (phone companion + glasses Home Space / All Apps) | Docs lagged the desk UI |
+| 2026-09-18 | **Tray look range** — `maxPan` = tray + SIDE_LOOK_EXTRA (mirror of Desktop left) | Mouse-look locked at tray center; right half unreachable |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.18 README screenshots + release)*
+*Last updated: 2026-09-18 (extend right Tray look for mouse-look)*

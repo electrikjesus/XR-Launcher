@@ -27,10 +27,13 @@ object GlassesHomeLook {
     const val PANE_RIGHT = 1f
 
     /**
-     * Extra pan left of [PANE_LEFT] so the camera can face empty Desktop space
-     * and the left half of the All Apps widget (FPS locks the cursor to center).
+     * Extra pan past Desktop / Tray so mouse-look (FPS, cursor centered) can face
+     * empty sphere space and the outer halves of those panes.
      */
-    const val DESKTOP_LOOK_EXTRA = 1.15f
+    const val SIDE_LOOK_EXTRA = 1.15f
+
+    /** @deprecated Use [SIDE_LOOK_EXTRA]. */
+    const val DESKTOP_LOOK_EXTRA = SIDE_LOOK_EXTRA
 
     const val EDGE_START = 0.12f
     const val PAN_SPEED = 0.85f
@@ -83,11 +86,12 @@ object GlassesHomeLook {
     val appPlanes: List<GlassesAppPlane>
         get() = _appPlanes.value
 
-    fun minPan(): Float = PANE_LEFT - DESKTOP_LOOK_EXTRA
+    fun minPan(): Float = PANE_LEFT - SIDE_LOOK_EXTRA
 
-    fun maxPan(): Float = PANE_RIGHT + appPlanes.size
+    /** Rightmost look — past the tray into empty space (same budget as Desktop left). */
+    fun maxPan(): Float = trayPane() + SIDE_LOOK_EXTRA
 
-    fun trayPane(): Float = maxPan()
+    fun trayPane(): Float = PANE_RIGHT + appPlanes.size
 
     fun appPane(index: Int): Float = PANE_RIGHT + index
 
@@ -119,6 +123,7 @@ object GlassesHomeLook {
 
     fun lookingAtHome(): Boolean = abs(panNorm - PANE_HOME) <= 0.45f
 
+    /** Tray / notifications wall, including empty space to the right of the tray. */
     fun lookingAtTray(): Boolean = panNorm >= trayPane() - 0.45f
 
     fun focusedAppPlane(): GlassesAppPlane? {
