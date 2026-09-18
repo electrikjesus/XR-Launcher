@@ -4,13 +4,35 @@ Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** 
 
 ## Status
 
-Active development — Phase 3 panel launch and glasses input in progress. See **[docs/PLAN.md](docs/PLAN.md)** for the roadmap.
+Active development — Home Space desk (BumpDesk-style icons on the sphere), companion mouse-look, and panel launch in progress. See **[docs/PLAN.md](docs/PLAN.md)** for the roadmap.
+
+**Latest:** `v0.1.18` — Desktop icon persistence, All Apps drawer on the sphere, companion mouse-look toggle.
 
 **New developer?** Start with **[docs/DEVELOPER.md](docs/DEVELOPER.md)** — architecture, build, debugging, device support, and workflow.
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/glasses-posed-20260918.png" alt="Glasses Home Space — All Apps drawer and Home pane" width="720" />
+</p>
+
+<p align="center"><em>Glasses: Desktop All Apps drawer (left) and Home pane (right)</em></p>
+
+<p align="center">
+  <img src="screenshots/glasses-homespace-20260918.png" alt="Glasses Home Space looking at Home" width="720" />
+</p>
+
+<p align="center"><em>Glasses: Home Space centered on Home</em></p>
+
+<p align="center">
+  <img src="screenshots/phone-companion-20260918.png" alt="Phone companion touchpad with mouse-look control" width="280" />
+</p>
+
+<p align="center"><em>Phone companion: touchpad, mouse-look toggle, Left / Right click</em></p>
+
 ## Releases
 
-Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.0`). Debug APKs are built on every push to `main`.
+Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.18`). Debug APKs are built on every push to `main`.
 
 1. Download **`app-release.apk`** from [Releases](https://github.com/electrikjesus/XR-Launcher/releases).
 2. Install with `adb install -r app-release.apk`. Optionally set **XR Launcher** as Home.
@@ -54,7 +76,7 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 - One plan task per branch (`dev/phase1-1.3-…`) and per commit
 - Validate with `./gradlew build` and unit tests before committing
-- Tag stable milestones on `main` (e.g. `v1.002`)
+- Tag stable milestones on `main` (e.g. `v0.1.18`)
 
 ## Modes
 

@@ -602,7 +602,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed **0.1.17:** Desktop icon + All Apps tile poses persist (`desk_json`); mouse-look + left pan; drawer polish.
+Landed **0.1.18:** README screenshots; desk persist; pager speed/click fixes; mouse-look + left pan.
 
 **Do this next. One concern per change.**
 
@@ -773,7 +773,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Desktop look range** — `minPan` = PANE_LEFT − 1.15 so empty space / left All Apps is reachable | Pan clamped at Desktop center; left half of drawer unreachable |
 | 2026-09-18 | **0.1.17:** persist Desktop icons + All Apps tile pose via `desk_json` in workspace DataStore | Positions were in-memory only |
 | 2026-09-18 | **Desk pager + open speed:** incremental icon bitmaps; drag effect ignores mouse-look; desk owns pageCount | Full rebuild on page; FPS look restarted drag and ate pager clicks |
+| 2026-09-18 | **0.1.18 release:** README screenshots (phone companion + glasses Home Space / All Apps) | Docs lagged the desk UI |
 
 ---
 
-*Last updated: 2026-09-18 (pager click + desk texture speed)*
+*Last updated: 2026-09-18 (0.1.18 README screenshots + release)*
