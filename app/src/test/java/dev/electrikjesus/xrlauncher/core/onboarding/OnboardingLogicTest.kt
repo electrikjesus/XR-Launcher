@@ -51,9 +51,49 @@ class OnboardingLogicTest {
     }
 
     @Test
-    fun lastPageIsAccessibility() {
-        assertEquals(OnboardingStep.ACCESSIBILITY, OnboardingLogic.steps.last())
-        assertTrue(OnboardingLogic.isLastPage(OnboardingLogic.pageCount() - 1))
-        assertFalse(OnboardingLogic.isLastPage(0))
+    fun pagesIncludePermissionsWhenMissing() {
+        val pages = OnboardingLogic.pages(
+            OnboardingGrantState(accessibilityEnabled = false, isDefaultHome = false),
+        )
+        assertEquals(OnboardingStep.DEFAULT_HOME, pages[pages.size - 2])
+        assertEquals(OnboardingStep.ACCESSIBILITY, pages.last())
+        assertTrue(OnboardingLogic.isLastPage(pages.lastIndex, pages.size))
+    }
+
+    @Test
+    fun pagesOmitGrantedPermissions() {
+        val pages = OnboardingLogic.pages(
+            OnboardingGrantState(accessibilityEnabled = true, isDefaultHome = true),
+        )
+        assertEquals(OnboardingLogic.introSteps, pages)
+        assertFalse(pages.contains(OnboardingStep.ACCESSIBILITY))
+        assertFalse(pages.contains(OnboardingStep.DEFAULT_HOME))
+    }
+
+    @Test
+    fun pagesKeepOnlyMissingHomeRole() {
+        val pages = OnboardingLogic.pages(
+            OnboardingGrantState(accessibilityEnabled = true, isDefaultHome = false),
+        )
+        assertEquals(OnboardingStep.DEFAULT_HOME, pages.last())
+        assertFalse(pages.contains(OnboardingStep.ACCESSIBILITY))
+    }
+
+    @Test
+    fun accessibilityListedParsesColonSeparatedServices() {
+        val component = "dev.electrikjesus.xrlauncher/dev.electrikjesus.xrlauncher.accessibility.DisplayPointerAccessibilityService"
+        assertTrue(
+            OnboardingLogic.isAccessibilityListed(
+                "com.other/.Svc:$component",
+                component,
+            ),
+        )
+        assertFalse(
+            OnboardingLogic.isAccessibilityListed(
+                "com.other/.Svc",
+                component,
+            ),
+        )
+        assertFalse(OnboardingLogic.isAccessibilityListed(null, component))
     }
 }

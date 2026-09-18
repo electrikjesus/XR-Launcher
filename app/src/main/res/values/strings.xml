@@ -6,7 +6,14 @@
     <string name="phone_connect_glasses_hint">Connect XR glasses or a display to open the spatial workspace. Your phone becomes the touchpad.</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
+    <string name="onboarding_later">Not now</string>
     <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_permission_needed">Required — not enabled yet</string>
+    <string name="onboarding_permission_granted">Enabled</string>
+    <string name="onboarding_set_default_home">Set as Home app</string>
+    <string name="onboarding_enable_accessibility">Enable display pointer</string>
+    <string name="onboarding_home_title">Set as Home</string>
+    <string name="onboarding_home_body">Make XR Launcher the default Home app so it opens when you press Home and when glasses connect. You can change this later in Android settings.</string>
     <string name="onboarding_show_again">How to use XR Launcher</string>
     <string name="onboarding_welcome_title">A launcher for XR</string>
     <string name="onboarding_welcome_body">XR Launcher is a spatial HOME for Android XR glasses and large screens. Your phone is the controller when the workspace is on glasses.</string>
