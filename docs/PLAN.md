@@ -539,6 +539,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Borrow BumpDesk icon + widget paths** (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) that already work in a real 3D scene, instead of re-solving them. Icons: `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture). Widgets: `WidgetRenderer` (`AppWidgetHostView` measure/layout → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`, posed on a wall/floor with XYZ). Port the working methods into XR-Launcher’s Home Space objects (each with a Z) and keep Compose hit-testing. | ☐ |
+| 2.21 | **Desktop pane instead of All Apps.** Replace the left All Apps carousel pane with a **Desktop** pane: user favorites (pinned / hotseat) plus widgets, BumpDesk-style. All Apps stays reachable from a control (pill / search) rather than occupying a dedicated look-left pane. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -699,7 +700,8 @@ Record major choices here as they are made.
 | 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
 | 2026-09-18 | **Onboarding 6.9 (backlog):** full permission check + App Info restricted-settings path for desktop cursor accessibility | Sideloaded builds cannot enable the accessibility service until Restricted settings is allowed on App Info |
 | 2026-09-18 | **2.20 (backlog):** reuse BumpDesk `ItemRenderer` / `WidgetRenderer` for 3D launcher icons and live AppWidget textures | Those paths already bind icons and host widgets onto posed 3D surfaces |
+| 2026-09-18 | **2.21 (backlog):** replace the All Apps look-left pane with a Desktop pane (favorites + widgets) | Home Space should feel like a desk, not a drawer; All Apps remains a control |
 
 ---
 
-*Last updated: 2026-09-18 (6.9 onboarding permissions; 2.20 BumpDesk icons/widgets)*
+*Last updated: 2026-09-18 (2.21 Desktop pane; Home Space camera-turn)*

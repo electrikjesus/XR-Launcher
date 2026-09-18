@@ -8,6 +8,9 @@ import kotlin.math.tan
 /**
  * BumpDesk-style Home Space: camera at the origin, objects in world XYZ on an
  * inward-facing cylinder, wallpaper as a surrounding room farther on Z.
+ *
+ * The cylinder stays fixed. Looking left/right/up/down rotates the camera; panes
+ * keep facing the origin so they slide through the view instead of spinning in place.
  */
 object GlassesHomeSpace3d {
     /** Angular spacing between Home panes, in degrees. */
@@ -19,17 +22,14 @@ object GlassesHomeSpace3d {
     /** Surrounding room / wallpaper cylinder, farther than the panes. */
     const val ROOM_RADIUS = 3.4f
 
-    const val FOV_Y_DEGREES = 52f
+    const val FOV_Y_DEGREES = 64f
     const val CURSOR_YAW_DEGREES = 8f
     const val CURSOR_PITCH_DEGREES = 20f
     const val MAX_PITCH_DEGREES = 24f
 
-    /** Neighbor pane center as a fraction of viewport width when one pane away. */
-    const val NEIGHBOR_SHIFT_FRACTION = 0.48f
-    const val PANE_WIDTH_FRACTION = 0.52f
-    const val PANE_HEIGHT_FRACTION = 0.80f
+    const val PANE_WIDTH_FRACTION = 0.74f
+    const val PANE_HEIGHT_FRACTION = 0.88f
     const val CAMERA_DISTANCE_FACTOR = 0.92f
-    const val PITCH_TILT_GAIN = 1.25f
 
     data class WorldPose(
         val x: Float,
@@ -100,23 +100,23 @@ object GlassesHomeSpace3d {
             return ProjectedPane(0f, 0f, 0f, 0f, 1f, 0f, 1f, false, z2)
         }
 
-        val arcRad = Math.toRadians(PANE_ARC_DEGREES.toDouble()).toFloat()
-        val yawShift = tan(Math.toRadians(relYaw.toDouble()).toFloat()) / tan(arcRad)
         val fade = paneAlpha(relYaw)
         if (fade <= 0.02f) {
             return ProjectedPane(0f, 0f, 0f, 0f, 1f, 0f, 1f, false, z2)
         }
 
         val fovy = Math.toRadians(FOV_Y_DEGREES.toDouble()).toFloat()
+        val aspect = viewportWidthPx / viewportHeightPx.coerceAtLeast(1f)
         val sy = 1f / tan(fovy / 2f)
+        val sx = sy / aspect
+        val ndcX = sx * (x1 / -z2)
         val ndcY = sy * (y2 / -z2)
-        val pitchNorm = (abs(pitchDeg) / MAX_PITCH_DEGREES).coerceIn(0f, 1f)
         return ProjectedPane(
-            translationXPx = yawShift * NEIGHBOR_SHIFT_FRACTION * viewportWidthPx,
+            translationXPx = ndcX * viewportWidthPx * 0.5f,
             translationYPx = -ndcY * viewportHeightPx * 0.5f,
-            rotationYDeg = -relYaw,
-            rotationXDeg = -pitchDeg * PITCH_TILT_GAIN,
-            scale = (1f - 0.12f * abs(yawShift) - 0.08f * pitchNorm).coerceIn(0.74f, 1f),
+            rotationYDeg = 0f,
+            rotationXDeg = 0f,
+            scale = 1f,
             alpha = fade,
             cameraDistancePx = viewportWidthPx * CAMERA_DISTANCE_FACTOR,
             visible = true,

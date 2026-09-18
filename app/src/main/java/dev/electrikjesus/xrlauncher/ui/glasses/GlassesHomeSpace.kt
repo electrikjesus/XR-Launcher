@@ -59,6 +59,8 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.PaginatedAppGrid
@@ -91,7 +93,7 @@ fun GlassesHomeSpace(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 48.dp, vertical = 28.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         GlassesHomeClock()
@@ -104,7 +106,7 @@ fun GlassesHomeSpace(
             onNotifications = onOpenNotifications,
             onQuickSettings = onOpenQuickSettings,
             onSettings = onOpenSettings,
-            modifier = Modifier.padding(top = 28.dp),
+            modifier = Modifier.padding(top = 16.dp),
         )
         PaginatedAppGrid(
             apps = homeApps,
@@ -118,10 +120,11 @@ fun GlassesHomeSpace(
             columns = 5,
             rows = 2,
             showPageControls = true,
+            iconSize = 92.dp,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(top = 28.dp),
+                .padding(top = 16.dp),
         )
     }
 }
@@ -144,7 +147,7 @@ fun GlassesXrAllAppsLayer(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.18f))
-            .padding(horizontal = 48.dp, vertical = 24.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         GlassesHomeClock()
@@ -172,9 +175,10 @@ fun GlassesXrAllAppsLayer(
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
             onAppContextMenu = onAppContextMenu,
-            columns = 5,
-            rows = 4,
+            columns = 4,
+            rows = 3,
             showPageControls = true,
+            iconSize = 88.dp,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -447,7 +451,7 @@ private fun GlassesCircleButton(
     hovered: Boolean,
     onBoundsChanged: (String, Rect) -> Unit,
     onClick: () -> Unit,
-    diameter: Dp = 56.dp,
+    diameter: Dp = 80.dp,
 ) {
     Box(
         modifier = Modifier
@@ -527,6 +531,7 @@ private fun GlassesRecentCard(
             AppIconCell(
                 app = app,
                 isHovered = hovered,
+                iconSize = 88.dp,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = { onLaunch() },
             )
@@ -601,6 +606,7 @@ fun GlassesHomeCarousel(
     right: @Composable () -> Unit,
     appPane: @Composable (GlassesAppPlane) -> Unit,
     modifier: Modifier = Modifier,
+    uiScale: Float = WorkspaceAppearance.DEFAULT_UI_SCALE,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
@@ -629,7 +635,7 @@ fun GlassesHomeCarousel(
             .sortedBy { it.second.viewZ }
             .forEach { (slot, projected) ->
                 androidx.compose.runtime.key(slot.key) {
-                    CarouselPane(projected = projected, content = slot.content)
+                    CarouselPane(projected = projected, uiScale = uiScale, content = slot.content)
                 }
             }
     }
@@ -638,6 +644,7 @@ fun GlassesHomeCarousel(
 @Composable
 private fun CarouselPane(
     projected: GlassesHomeSpace3d.ProjectedPane,
+    uiScale: Float,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -655,12 +662,12 @@ private fun CarouselPane(
                 transformOrigin = TransformOrigin(0.5f, 0.5f)
             },
     ) {
-        GlassesFovStage(content = content)
+        GlassesFovStage(uiScale = uiScale, content = content)
     }
 }
 
 @Composable
-private fun GlassesFovStage(content: @Composable () -> Unit) {
+private fun GlassesFovStage(uiScale: Float, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -670,7 +677,9 @@ private fun GlassesFovStage(content: @Composable () -> Unit) {
                 .fillMaxWidth(GlassesHomeSpace3d.PANE_WIDTH_FRACTION)
                 .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION),
         ) {
-            content()
+            WorkspaceScaledLayer(uiScale = uiScale) {
+                content()
+            }
         }
     }
 }

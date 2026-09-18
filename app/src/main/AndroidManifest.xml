@@ -81,6 +81,14 @@
             android:exported="false"
             android:theme="@style/Theme.XRLauncher" />
 
+        <receiver
+            android:name=".debug.PerspectiveProbeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.electrikjesus.xrlauncher.PERSPECTIVE_PROBE" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".accessibility.DisplayPointerAccessibilityService"
             android:exported="false"

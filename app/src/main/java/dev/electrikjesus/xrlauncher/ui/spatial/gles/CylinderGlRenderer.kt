@@ -140,7 +140,14 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         viewportWidthPx = width.toFloat().coerceAtLeast(1f)
         viewportHeightPx = height.toFloat().coerceAtLeast(1f)
         val aspect = width.toFloat() / height.coerceAtLeast(1)
-        Matrix.perspectiveM(projectionMatrix, 0, 52f, aspect, 0.05f, 40f)
+        Matrix.perspectiveM(
+            projectionMatrix,
+            0,
+            GlassesHomeSpace3d.FOV_Y_DEGREES,
+            aspect,
+            0.05f,
+            40f,
+        )
         rebuildCylinderMeshes()
     }
 

@@ -37,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.withFrameNanos
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.PerspectiveCursorProbe
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.ui.workspace.DraggableWorkspacePanelShell
@@ -152,10 +153,19 @@ fun GlassesSpatialWorkspaceScreen(
         GlassesRecentApps.seedIfEmpty(hotseatApps)
     }
     LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1_400)
+        PerspectiveCursorProbe.requestPlay()
+    }
+    LaunchedEffect(Unit) {
+        PerspectiveCursorProbe.requests.collect {
+            PerspectiveCursorProbe.play()
+        }
+    }
+    LaunchedEffect(Unit) {
         var lastFrame = 0L
         while (true) {
             withFrameNanos { now ->
-                if (lastFrame != 0L) {
+                if (lastFrame != 0L && !PerspectiveCursorProbe.playing.value) {
                     val dt = ((now - lastFrame).coerceAtMost(50_000_000L)) / 1_000_000_000f
                     GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
                 }
@@ -183,6 +193,7 @@ fun GlassesSpatialWorkspaceScreen(
             cursorX = cursor.x,
             cursorY = cursor.y,
             appPlanes = appPlanes,
+            uiScale = tuned.uiScale,
             left = {
                 GlassesXrAllAppsLayer(
                     apps = filteredAllApps,
