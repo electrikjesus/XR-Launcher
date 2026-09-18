@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -14,6 +15,7 @@ class HomeSpaceDeskStateTest {
     @Before
     fun reset() {
         HomeSpaceDeskState.clear()
+        AllAppsPaginationState.reset()
     }
 
     @Test
@@ -106,5 +108,20 @@ class HomeSpaceDeskStateTest {
         assertFalse(HomeSpaceDeskState.notePointerUp(cursorMoved = false))
         assertFalse(HomeSpaceDeskState.release(onDesktop = true))
         assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
+
+    @Test
+    fun notePointerUp_firesPendingPagerChrome() {
+        val prev = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(HomeSpaceDesk.PAGE_PREV_KEY, "Previous", "", HomeSpaceDesk.Kind.PAGE_PREV),
+            yawDeg = -40f,
+            pitchDeg = -8f,
+            sphereScale = 1f,
+        )
+        AllAppsPaginationState.updatePageCount(40, HomeSpaceDesk.DRAWER_PAGE_SIZE)
+        AllAppsPaginationState.goToPage(2)
+        HomeSpaceDeskState.press(prev, 0.5f, 0.5f)
+        assertTrue(HomeSpaceDeskState.notePointerUp(cursorMoved = false))
+        assertEquals(1, AllAppsPaginationState.pageIndex)
     }
 }

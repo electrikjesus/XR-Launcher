@@ -1,5 +1,9 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import android.util.Log
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.workspace.scene.DeskPhysics
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +15,7 @@ import kotlin.math.hypot
 object HomeSpaceDeskState {
     private const val DRAG_SLOP = 0.018f
     private const val ANGLE_SLOP_DEG = 3.5f
+    private const val LOG_TAG = "XRLauncher/Desk"
 
     data class Drag(
         val app: HomeSpaceDesk.AppRef,
@@ -32,7 +37,14 @@ object HomeSpaceDeskState {
     val dragFlow: StateFlow<Drag?> = _drag.asStateFlow()
     val drag: Drag? get() = _drag.value
 
+    /** Pager / All Apps tile pressed under Hold-Left — fired on pointer-up if not dragging. */
+    private var pendingChrome: HomeSpaceDesk.Icon? = null
+
     fun press(icon: HomeSpaceDesk.Icon, cursorX: Float, cursorY: Float) {
+        pendingChrome = when {
+            icon.isPager || icon.isAppDrawer -> icon
+            else -> null
+        }
         if (!icon.isDesktopApp) {
             _drag.value = null
             return
@@ -55,6 +67,7 @@ object HomeSpaceDeskState {
         val pulled = current.pulling ||
             hypot(cursorX - current.startX, cursorY - current.startY) > DRAG_SLOP ||
             hypot(yawDeg - current.startYawDeg, pitchDeg - current.startPitchDeg) > ANGLE_SLOP_DEG
+        if (pulled) pendingChrome = null
         _drag.value = current.copy(
             yawDeg = yawDeg,
             pitchDeg = pitchDeg,
@@ -64,16 +77,46 @@ object HomeSpaceDeskState {
 
     /**
      * Call from companion pointer-up **before** clearing `isPressed`.
-     * Marks the desk drag as pulling when the cursor moved so a Compose sync-release
-     * still places the icon, and returns true so the companion must not emit a click.
+     * Handles pending pager/All-Apps chrome clicks and desk-icon pulls.
+     * @return true when the companion must not emit a click/drag.
      */
     fun notePointerUp(cursorMoved: Boolean): Boolean {
+        val chrome = pendingChrome
+        pendingChrome = null
+        if (chrome != null && _drag.value?.pulling != true) {
+            fireChrome(chrome)
+            return true
+        }
         val current = _drag.value ?: return false
         if (!current.pulling && !cursorMoved) return false
         if (!current.pulling) {
             _drag.value = current.copy(pulling = true)
         }
         return true
+    }
+
+    private fun fireChrome(icon: HomeSpaceDesk.Icon) {
+        when (icon.kind) {
+            HomeSpaceDesk.Kind.APP_DRAWER -> {
+                Log.d(LOG_TAG, "chrome click all-apps tile")
+                GlassesSessionState.toggleAllAppsOverlay()
+            }
+            HomeSpaceDesk.Kind.PAGE_PREV -> {
+                Log.d(LOG_TAG, "chrome click page prev")
+                AllAppsPaginationState.prevPage()
+            }
+            HomeSpaceDesk.Kind.PAGE_NEXT -> {
+                Log.d(LOG_TAG, "chrome click page next")
+                AllAppsPaginationState.nextPage()
+            }
+            HomeSpaceDesk.Kind.PAGE -> {
+                HomeSpaceDesk.pageIndex(icon.componentKey)?.let {
+                    Log.d(LOG_TAG, "chrome click page $it")
+                    AllAppsPaginationState.goToPage(it)
+                }
+            }
+            else -> Unit
+        }
     }
 
     /**
@@ -103,18 +146,125 @@ object HomeSpaceDeskState {
             paneBlocks = panes,
             excludeKey = current.app.componentKey,
         ) ?: return true
+        val (impulseYaw, impulsePitch) = DeskPhysics.impulseFromDrag(
+            current.startYawDeg,
+            current.startPitchDeg,
+            resolved.first,
+            resolved.second,
+        )
         val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
-            HomeSpaceDesk.Placed(current.app, resolved.first, resolved.second)
+            HomeSpaceDesk.Placed(
+                app = current.app,
+                yawDeg = resolved.first,
+                pitchDeg = resolved.second,
+                velYawDeg = impulseYaw,
+                velPitchDeg = impulsePitch,
+            )
         _placed.value = next
         return true
     }
 
+    /**
+     * Advance BumpDesk-style physics for placed icons.
+     * [pinnedObstacles] are immovable (All Apps tile, open widget, panes as angular boxes).
+     */
+    fun tickPhysics(
+        dtSec: Float,
+        sphereScale: Float,
+        uiScale: Float,
+        pinnedObstacles: List<HomeSpaceDesk.Icon>,
+        panes: List<HomeSpaceScene.Pane>,
+    ) {
+        val halfW = HomeSpaceDesk.iconHalfWidth(uiScale)
+        val halfH = HomeSpaceDesk.iconHalfHeight(uiScale)
+        val halfYaw = HomeSpaceDesk.angularHalfYaw(halfW, sphereScale)
+        val halfPitch = HomeSpaceDesk.angularHalfPitch(halfH, sphereScale)
+        val mass = DeskPhysics.massFor(halfW, halfH)
+        val bodies = ArrayList<DeskPhysics.Body>(_placed.value.size + pinnedObstacles.size + panes.size)
+        _placed.value.forEach { item ->
+            bodies += DeskPhysics.Body(
+                key = item.app.componentKey,
+                yawDeg = item.yawDeg,
+                pitchDeg = item.pitchDeg,
+                velYawDeg = item.velYawDeg,
+                velPitchDeg = item.velPitchDeg,
+                halfYawDeg = halfYaw,
+                halfPitchDeg = halfPitch,
+                mass = mass,
+                pinned = false,
+            )
+        }
+        pinnedObstacles.forEach { icon ->
+            bodies += DeskPhysics.Body(
+                key = icon.componentKey,
+                yawDeg = icon.yawDeg,
+                pitchDeg = icon.pitchDeg,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+                halfYawDeg = HomeSpaceDesk.angularHalfYaw(icon.halfWidth, sphereScale),
+                halfPitchDeg = HomeSpaceDesk.angularHalfPitch(icon.halfHeight, sphereScale),
+                mass = 100f,
+                pinned = true,
+            )
+        }
+        panes.forEach { pane ->
+            bodies += DeskPhysics.Body(
+                key = "pane:${pane.worldX}",
+                yawDeg = pane.yawDeg,
+                pitchDeg = 0f,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+                halfYawDeg = pane.halfWidthDeg,
+                halfPitchDeg = pane.halfHeightDeg,
+                mass = 100f,
+                pinned = true,
+            )
+        }
+        val draggingKey = _drag.value?.takeIf { it.pulling }?.app?.componentKey
+        if (draggingKey != null) {
+            val drag = _drag.value!!
+            bodies += DeskPhysics.Body(
+                key = draggingKey,
+                yawDeg = drag.yawDeg,
+                pitchDeg = drag.pitchDeg,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+                halfYawDeg = halfYaw,
+                halfPitchDeg = halfPitch,
+                mass = mass,
+                pinned = false,
+            )
+        }
+        DeskPhysics.step(bodies, dtSec, manipulatedKey = draggingKey)
+        val byKey = bodies.associateBy { it.key }
+        var changed = false
+        val updated = _placed.value.map { item ->
+            val body = byKey[item.app.componentKey] ?: return@map item
+            if (body.yawDeg != item.yawDeg || body.pitchDeg != item.pitchDeg ||
+                body.velYawDeg != item.velYawDeg || body.velPitchDeg != item.velPitchDeg
+            ) {
+                changed = true
+                item.copy(
+                    yawDeg = body.yawDeg,
+                    pitchDeg = body.pitchDeg,
+                    velYawDeg = body.velYawDeg,
+                    velPitchDeg = body.velPitchDeg,
+                )
+            } else {
+                item
+            }
+        }
+        if (changed) _placed.value = updated
+    }
+
     fun cancel() {
         _drag.value = null
+        pendingChrome = null
     }
 
     fun clear() {
         _placed.value = emptyList()
         _drag.value = null
+        pendingChrome = null
     }
 }

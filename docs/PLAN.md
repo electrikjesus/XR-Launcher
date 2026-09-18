@@ -578,7 +578,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — open widget refit + pager hits + drop collisions; still missing piles, lasso, radial menu, persist |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — drawer frame/pager + DeskPhysics mass/collision; still missing piles, lasso, radial menu, persist |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -600,11 +600,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed desk polish: open All Apps widget refit; pager hits; drop collisions; desk icon drag no longer fires a stray click at the drop point on release.
+Landed desk polish: squarer All Apps frame + row gap; pager chrome clicks on Hold-Left release; BumpDesk-style icon mass/collision (pinned panes immovable).
 
 **Do this next (after on-device check). One concern per change.**
 
-1. **On-device recheck** — open All Apps layout, pager clicks, drag-to-desktop (no click on release), collisions.
+1. **On-device recheck** — widget frame, pager clicks, icon physics vs panes.
 2. **Persist placed desktop icons** — `DeskRepository` analog (yaw/pitch on the sphere).
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Unify panes as pinned widgets** — after the desk feels right.
@@ -764,7 +764,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **All Apps expand:** no camera snap to Desktop; open-drawer icons 1.4× with backing fitted to 4×4 + pager | Forced `lookAt(PANE_LEFT)` stole view; widget/icons read too small on glasses |
 | 2026-09-18 | **All Apps widget refit:** content-sized backing, pager gap, max 5 page dots, hide closed tile while open; pick prefers pager; drops collide with tile/icons/panes | Clipped top row, cramped/stray pager, backing ate clicks, free overlap on drop |
 | 2026-09-18 | **Desk drag pointer-up:** snapshot/suppress companion click before clearing `isPressed` | Compose release raced and clicked at the drop point |
+| 2026-09-18 | **All Apps frame + pager chrome + DeskPhysics:** wider/squarer backing, row gap; Hold-Left pager via pending chrome; BumpDesk mass/impulse on sphere (panes pinned) | Tall cramped widget; highlight without click; icons passed through each other/panels |
 
 ---
 
-*Last updated: 2026-09-18 (desk drag release no longer clicks; host tests)*
+*Last updated: 2026-09-18 (All Apps frame + pager clicks + DeskPhysics; host tests)*

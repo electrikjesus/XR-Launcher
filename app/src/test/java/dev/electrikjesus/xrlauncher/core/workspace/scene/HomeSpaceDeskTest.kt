@@ -88,19 +88,19 @@ class HomeSpaceDeskTest {
         assertTrue(open.first().isBacking)
         assertEquals(HomeSpaceDesk.DRAWER_PAGE_SIZE, appsOnPage.size)
         assertEquals(many[0].componentKey, appsOnPage.first().componentKey)
-        assertEquals(2 + HomeSpaceDesk.MAX_PAGE_DOTS.coerceAtMost(2), pager.size)
+        assertEquals(2 + 2, pager.size) // prev + next + 2 page dots for 20 apps
         assertTrue(appsOnPage.first().center.length() < backing.center.length())
         assertTrue(
             "open drawer icons should be larger than the closed All Apps tile",
             appsOnPage.first().halfWidth > closedDrawer.halfWidth / HomeSpaceDesk.DRAWER_SCALE,
         )
         assertTrue(
-            "backing should cover the 4x4 grid plus pager",
-            backing.halfWidth > appsOnPage.first().halfWidth * 3.5f,
+            "backing should be wider for a squarer widget",
+            backing.halfWidth > appsOnPage.first().halfWidth * 3.8f,
         )
         assertTrue(
-            "backing should be taller than four stacked open icons",
-            backing.halfHeight > appsOnPage.first().halfHeight * 3.2f,
+            "row spacing should leave room for labels",
+            HomeSpaceDesk.DRAWER_OPEN_ROW_SPACING > HomeSpaceDesk.DRAWER_OPEN_COL_SPACING,
         )
         val topApp = appsOnPage.first()
         val bottomPager = pager.first { it.kind == HomeSpaceDesk.Kind.PAGE_PREV }

@@ -37,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -240,6 +241,8 @@ fun GlassesSpatialWorkspaceScreen(
             PerspectiveCursorProbe.play()
         }
     }
+    val currentTuned = rememberUpdatedState(tuned)
+    val currentAppPlanes = rememberUpdatedState(appPlanes)
     LaunchedEffect(Unit) {
         var lastFrame = 0L
         while (true) {
@@ -247,6 +250,25 @@ fun GlassesSpatialWorkspaceScreen(
                 if (lastFrame != 0L && !PerspectiveCursorProbe.playing.value) {
                     val dt = ((now - lastFrame).coerceAtMost(50_000_000L)) / 1_000_000_000f
                     GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
+                    val appearance = currentTuned.value
+                    val icons = DeskIconTextureBus.icons()
+                    val pinned = icons.filter { it.isAppDrawer || it.isBacking }
+                    val panes = GlassesHomeLook.homeSpaceSlots(currentAppPlanes.value).map { slot ->
+                        HomeSpaceScene.pane(
+                            worldX = slot.worldX,
+                            viewportWidthPx = 1920f,
+                            viewportHeightPx = 1080f,
+                            panelScale = appearance.panelScale,
+                            sphereScale = appearance.sphereScale,
+                        )
+                    }
+                    HomeSpaceDeskState.tickPhysics(
+                        dtSec = dt,
+                        sphereScale = appearance.sphereScale,
+                        uiScale = appearance.uiScale,
+                        pinnedObstacles = pinned,
+                        panes = panes,
+                    )
                 }
                 lastFrame = now
             }
