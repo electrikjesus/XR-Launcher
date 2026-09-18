@@ -1,7 +1,7 @@
 package dev.electrikjesus.xrlauncher
 
 import android.app.Activity
-import androidx.activity.ComponentActivity
+import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
@@ -19,8 +19,10 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
+import dev.electrikjesus.xrlauncher.core.launcher.PhoneHomeLayout
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.ui.desktop.SpatialDesktopScreen
 import dev.electrikjesus.xrlauncher.ui.phone.PhoneShellScreen
 
@@ -47,6 +49,10 @@ fun XRLauncherApp(
     }
     val apps = remember { appRepository.loadLaunchableApps() }
     val capabilities by capabilityDetector.capabilities.collectAsState()
+    val workspace by workspaceRepository.workspace.collectAsState(initial = null)
+    val hotseatApps = remember(apps, workspace?.hotseatPins) {
+        PhoneHomeLayout.resolveHotseat(apps, workspace?.hotseatPins ?: emptyList())
+    }
 
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isExpanded = windowSizeClass.isWidthAtLeastBreakpoint(
@@ -79,6 +85,7 @@ fun XRLauncherApp(
                 capabilities = capabilities.copy(
                     formFactor = if (isExpanded) LayoutFormFactor.EXPANDED else LayoutFormFactor.COMPACT,
                 ),
+                hotseatApps = hotseatApps,
                 onLaunchApp = { appLauncher.launchOnDefaultDisplay(it.componentName) },
                 onOpenGlassesWorkspace = {
                     onRefreshCapabilities()
@@ -89,6 +96,9 @@ fun XRLauncherApp(
                 },
                 onOpenCompanion = {
                     DisplayLaunchHelper.openCompanionController(context)
+                },
+                onOpenSettings = {
+                    context.startActivity(Intent(context, SettingsActivity::class.java))
                 },
                 modifier = Modifier.fillMaxSize(),
             )

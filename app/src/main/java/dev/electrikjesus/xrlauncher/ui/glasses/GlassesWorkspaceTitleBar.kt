@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -15,15 +16,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 
 object GlassesWorkspaceTitleBar {
     const val BOUNDS_KEY = "__launcher_settings__"
+    const val LAYOUT_BOUNDS_KEY = "__launcher_layout__"
     const val HOVER_LABEL = "Settings"
+    const val LAYOUT_HOVER_LABEL = "Layout"
 }
 
 @Composable
@@ -33,6 +36,8 @@ fun GlassesWorkspaceTitleBar(
     modifier: Modifier = Modifier,
     /** When true, only a small settings affordance is shown (glasses display). */
     compact: Boolean = true,
+    layoutSelected: Boolean = false,
+    onToggleLayout: (() -> Unit)? = null,
 ) {
     if (compact) {
         Box(
@@ -40,24 +45,47 @@ fun GlassesWorkspaceTitleBar(
                 .fillMaxWidth()
                 .padding(bottom = 2.dp),
         ) {
-            IconButton(
-                onClick = onOpenSettings,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(36.dp)
-                    .onGloballyPositioned { coordinates ->
-                        onBoundsChanged(
-                            GlassesWorkspaceTitleBar.BOUNDS_KEY,
-                            coordinates.boundsInRoot(),
+            Row(modifier = Modifier.align(Alignment.TopEnd)) {
+                if (onToggleLayout != null) {
+                    IconButton(
+                        onClick = onToggleLayout,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .onGloballyPositioned { coordinates ->
+                                onBoundsChanged(
+                                    GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY,
+                                    coordinates.boundsInRoot(),
+                                )
+                            },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DashboardCustomize,
+                            contentDescription = stringResource(R.string.workspace_appearance_title),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (layoutSelected) 0.95f else 0.55f,
+                            ),
                         )
-                    },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = stringResource(R.string.settings_open),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                )
+                    }
+                }
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .onGloballyPositioned { coordinates ->
+                            onBoundsChanged(
+                                GlassesWorkspaceTitleBar.BOUNDS_KEY,
+                                coordinates.boundsInRoot(),
+                            )
+                        },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = stringResource(R.string.settings_open),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    )
+                }
             }
         }
         return

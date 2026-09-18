@@ -15,7 +15,8 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 
-private val GlassPanelShape = RoundedCornerShape(24.dp)
+private val GlassPanelShape = RoundedCornerShape(28.dp)
+private val DockShape = RoundedCornerShape(36.dp)
 
 @Composable
 fun WorkspacePanelShell(
@@ -27,8 +28,8 @@ fun WorkspacePanelShell(
     header: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val focusColor = Color(0xFF03DAC5)
-    val borderColor = if (isFocused) focusColor else Color.White.copy(alpha = 0.18f)
+    val focusColor = Color(0xFF9CDCFE)
+    val borderColor = if (isFocused) focusColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.14f)
 
     Surface(
         modifier = modifier
@@ -37,11 +38,11 @@ fun WorkspacePanelShell(
                 onPanelBoundsChanged(panelId, coordinates.boundsInRoot())
             },
         shape = GlassPanelShape,
-        color = Color(0xFF1A1520).copy(alpha = 0.82f),
-        tonalElevation = if (isFocused) 8.dp else 4.dp,
-        shadowElevation = if (isFocused) 12.dp else 6.dp,
+        color = Color(0xCC141820),
+        tonalElevation = if (isFocused) 10.dp else 3.dp,
+        shadowElevation = if (isFocused) 16.dp else 8.dp,
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isFocused) 2.dp else 1.dp,
+            width = if (isFocused) 1.5.dp else 1.dp,
             color = borderColor,
         ),
     ) {
@@ -60,6 +61,36 @@ fun WorkspacePanelShell(
             Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
                 content()
             }
+        }
+    }
+}
+
+@Composable
+fun WorkspaceDockShell(
+    panelId: String,
+    isFocused: Boolean,
+    onPanelBoundsChanged: (String, Rect) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val focusColor = Color(0xFF9CDCFE)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                onPanelBoundsChanged(panelId, coordinates.boundsInRoot())
+            },
+        shape = DockShape,
+        color = Color(0xB3181C24),
+        tonalElevation = if (isFocused) 8.dp else 2.dp,
+        shadowElevation = 10.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (isFocused) focusColor.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.16f),
+        ),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            content()
         }
     }
 }

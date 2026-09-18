@@ -1,9 +1,7 @@
 package dev.electrikjesus.xrlauncher.ui.workspace
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,19 +26,17 @@ fun ClockWidgetPanel(modifier: Modifier = Modifier) {
     val date = DateFormat.getDateInstance(DateFormat.MEDIUM).format(now)
 
     Column(
-        modifier = modifier
-            .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Text(
             text = time,
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.displayMedium,
             color = Color.White,
         )
         Text(
             text = date,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = 0.75f),
+            color = Color.White.copy(alpha = 0.78f),
             modifier = Modifier.padding(top = 4.dp),
         )
     }

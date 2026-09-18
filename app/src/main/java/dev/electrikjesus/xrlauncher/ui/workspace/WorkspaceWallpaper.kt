@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
@@ -100,7 +101,35 @@ fun WorkspaceWallpaper(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.22f)),
+                .background(Color.Black.copy(alpha = 0.18f)),
         )
+        SpatialEnvironmentScrim(modifier = Modifier.fillMaxSize())
     }
+}
+
+/** Soft horizon glow + vignette so a 2D wallpaper reads more like Android XR Home Space. */
+@Composable
+private fun SpatialEnvironmentScrim(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(
+            Brush.radialGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.18f),
+                    Color.Black.copy(alpha = 0.55f),
+                ),
+            ),
+        ),
+    )
+    Box(
+        modifier = modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x66101828),
+                    Color.Transparent,
+                    Color(0x99020812),
+                ),
+            ),
+        ),
+    )
 }

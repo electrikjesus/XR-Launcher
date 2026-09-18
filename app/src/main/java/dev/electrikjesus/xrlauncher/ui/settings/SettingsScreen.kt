@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     workspaceRepository: WorkspaceRepository,
     onNavigateBack: () -> Unit,
+    onShowOnboarding: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current.applicationContext
@@ -79,6 +80,16 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            item {
+                SettingsSectionTitle(stringResource(R.string.settings_how_to_section))
+                OutlinedButton(
+                    onClick = onShowOnboarding,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Text(stringResource(R.string.onboarding_show_again))
+                }
+            }
             item {
                 SettingsSectionTitle(stringResource(R.string.settings_all_apps_section))
                 AllAppsGridSettingsSection(

@@ -2,6 +2,23 @@
 <resources>
     <string name="app_name">XR Launcher</string>
     <string name="search_apps">Search apps</string>
+    <string name="control_glasses">Control glasses</string>
+    <string name="phone_connect_glasses_hint">Connect XR glasses or a display to open the spatial workspace. Your phone becomes the touchpad.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_show_again">How to use XR Launcher</string>
+    <string name="onboarding_welcome_title">A launcher for XR</string>
+    <string name="onboarding_welcome_body">XR Launcher is a spatial HOME for Android XR glasses and large screens. Your phone is the controller when the workspace is on glasses.</string>
+    <string name="onboarding_phone_title">Phone HOME</string>
+    <string name="onboarding_phone_body">Use this screen like any launcher — search, tap an app, or pin favorites in the dock. Settings and this intro live in the top-right.</string>
+    <string name="onboarding_connect_title">Connect glasses</string>
+    <string name="onboarding_connect_body">Plug in or pair your XR glasses so Android treats them as a second display. When they appear, tap Control glasses on the dock.</string>
+    <string name="onboarding_touchpad_title">Touchpad controls</string>
+    <string name="onboarding_touchpad_body">Control glasses opens the spatial workspace on the XR display and a touchpad on the phone. Drag to move the cursor; use Left / Right click for taps.</string>
+    <string name="onboarding_accessibility_title">Desktop pointer</string>
+    <string name="onboarding_accessibility_body">Enable Settings → Accessibility → XR Launcher display pointer so clicks work over other apps on the glasses display, not only the launcher.</string>
+    <string name="settings_how_to_section">Getting started</string>
     <string name="spatial_workspace">Spatial workspace</string>
     <string name="open_on_glasses">Open on glasses</string>
     <string name="use_as_controller">Use as controller</string>

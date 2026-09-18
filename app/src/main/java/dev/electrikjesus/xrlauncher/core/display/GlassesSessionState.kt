@@ -112,6 +112,19 @@ object GlassesSessionState {
         allAppsOverlayVisible = !allAppsOverlayVisible
     }
 
+    private val _layoutPresetsVisible = MutableStateFlow(false)
+    val layoutPresetsVisibleFlow: StateFlow<Boolean> = _layoutPresetsVisible.asStateFlow()
+
+    var layoutPresetsVisible: Boolean
+        get() = _layoutPresetsVisible.value
+        set(value) {
+            _layoutPresetsVisible.value = value
+        }
+
+    fun toggleLayoutPresets() {
+        layoutPresetsVisible = !layoutPresetsVisible
+    }
+
     private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
     val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
 
@@ -140,6 +153,7 @@ object GlassesSessionState {
         subspaceOuterComposed = false
         subspaceInnerComposed = false
         allAppsOverlayVisible = false
+        layoutPresetsVisible = false
         AllAppsPaginationState.reset()
         _xrInputMode.value = GlassesXrInputMode.COMPANION
         rayNeoUsbAttached = false

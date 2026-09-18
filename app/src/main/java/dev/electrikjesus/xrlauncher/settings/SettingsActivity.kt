@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.settings.SettingsScreen
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
@@ -15,6 +16,7 @@ class SettingsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AllAppsGridConfigStore.init(this)
+        OnboardingStore.init(this)
 
         setContent {
             val workspaceRepository = remember { WorkspaceRepository(applicationContext) }
@@ -22,6 +24,10 @@ class SettingsActivity : ComponentActivity() {
                 SettingsScreen(
                     workspaceRepository = workspaceRepository,
                     onNavigateBack = { finish() },
+                    onShowOnboarding = {
+                        OnboardingStore.requestReplay(this)
+                        finish()
+                    },
                 )
             }
         }

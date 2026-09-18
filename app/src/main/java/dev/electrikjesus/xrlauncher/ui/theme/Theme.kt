@@ -12,9 +12,12 @@ private val LightColors = lightColorScheme(
 )
 
 private val GlassesColors = darkColorScheme(
-    primary = Color(0xFFD0BCFF),
+    primary = Color(0xFF9CDCFE),
+    onPrimary = Color(0xFF00344A),
+    primaryContainer = Color(0xFF1A2A38),
     background = Color.Black,
-    surface = Color(0xFF121212),
+    surface = Color(0xFF121820),
+    onSurface = Color(0xFFE8EEF4),
 )
 
 @Composable

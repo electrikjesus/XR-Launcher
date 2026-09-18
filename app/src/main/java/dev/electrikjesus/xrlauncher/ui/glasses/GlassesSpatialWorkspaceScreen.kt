@@ -47,6 +47,7 @@ import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAllAppsOverlay
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceDockShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
 import dev.electrikjesus.xrlauncher.ui.workspace.PanelChromeHeader
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
@@ -86,6 +87,7 @@ fun GlassesSpatialWorkspaceScreen(
         AppRepository.filterLaunchableApps(launchableApps, allAppsSearchQuery)
     }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
 
     LaunchedEffect(allAppsOverlayVisible) {
         if (allAppsOverlayVisible) {
@@ -159,15 +161,19 @@ fun GlassesSpatialWorkspaceScreen(
                 GlassesWorkspaceTitleBar(
                     onOpenSettings = onOpenSettings,
                     onBoundsChanged = onBoundsChanged,
+                    layoutSelected = showLayoutPresets,
+                    onToggleLayout = { GlassesSessionState.toggleLayoutPresets() },
                 )
-                WorkspaceLayoutPresetBar(
-                    activePreset = activePreset,
-                    onPresetSelected = { preset ->
-                        activePreset = preset
-                        onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
-                    },
-                    onBoundsChanged = onBoundsChanged,
-                )
+                if (showLayoutPresets) {
+                    WorkspaceLayoutPresetBar(
+                        activePreset = activePreset,
+                        onPresetSelected = { preset ->
+                            activePreset = preset
+                            onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
+                        },
+                        onBoundsChanged = onBoundsChanged,
+                    )
+                }
                 WorkspaceWraparoundLayer(
                     appearance = tuned,
                     cursorX = cursor.x,
@@ -288,8 +294,8 @@ private fun WorkspaceLauncherStatusHints(
             }
             Text(
                 text = stringResource(R.string.cursor_over, hoverText),
-                color = Color(0xFF03DAC5),
-                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.labelMedium,
             )
         }
         if (focusedPanelId != null && launcherForeground) {
@@ -316,6 +322,7 @@ private fun StackPanelShell(
     onPanelClose: (String) -> Unit,
     onPanelRestore: (String) -> Unit,
     modifier: Modifier = Modifier,
+    showChrome: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     WorkspacePanelShell(
@@ -323,18 +330,22 @@ private fun StackPanelShell(
         isFocused = isFocused,
         onPanelBoundsChanged = onPanelBoundsChanged,
         modifier = modifier,
-        header = {
-            PanelChromeHeader(
-                panelId = panel.id,
-                title = title,
-                isFocused = isFocused,
-                minimized = panel.minimized,
-                showWindowControls = panel.kind.supportsWindowControls(),
-                onPanelBoundsChanged = onPanelBoundsChanged,
-                onMinimize = { onPanelMinimize(panel.id) },
-                onClose = { onPanelClose(panel.id) },
-                onRestore = { onPanelRestore(panel.id) },
-            )
+        header = if (showChrome) {
+            {
+                PanelChromeHeader(
+                    panelId = panel.id,
+                    title = title,
+                    isFocused = isFocused,
+                    minimized = panel.minimized,
+                    showWindowControls = panel.kind.supportsWindowControls(),
+                    onPanelBoundsChanged = onPanelBoundsChanged,
+                    onMinimize = { onPanelMinimize(panel.id) },
+                    onClose = { onPanelClose(panel.id) },
+                    onRestore = { onPanelRestore(panel.id) },
+                )
+            }
+        } else {
+            null
         },
     ) {
         if (!panel.minimized) {
@@ -407,6 +418,7 @@ private fun GlassesPanelLayout(
                                     onPanelMinimize = onPanelMinimize,
                                     onPanelClose = onPanelClose,
                                     onPanelRestore = onPanelRestore,
+                                    showChrome = widgetPanel.id != "widget_clock",
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     WidgetPanelById(widgetId = widgetPanel.id)
@@ -463,14 +475,10 @@ private fun GlassesPanelLayout(
                         workspaceHeight = workspaceHeight,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        StackPanelShell(
-                            panel = panel,
-                            title = panelTitle(panel),
+                        WorkspaceDockShell(
+                            panelId = panel.id,
                             isFocused = focusedPanelId == panel.id,
                             onPanelBoundsChanged = onPanelBoundsChanged,
-                            onPanelMinimize = onPanelMinimize,
-                            onPanelClose = onPanelClose,
-                            onPanelRestore = onPanelRestore,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             WorkspaceHotseatRow(

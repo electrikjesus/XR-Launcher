@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dev.electrikjesus.xrlauncher.core.capability.CapabilityDetector
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        OnboardingStore.init(this)
         capabilityDetector = CapabilityDetector(this)
         getSystemService(DisplayManager::class.java)
             .registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))

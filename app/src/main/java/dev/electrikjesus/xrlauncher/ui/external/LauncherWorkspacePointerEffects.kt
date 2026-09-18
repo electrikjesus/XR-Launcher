@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
@@ -94,6 +95,8 @@ fun LauncherWorkspacePointerEffects(
             LauncherContextMenuState.isOpen -> null
             itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ->
                 GlassesWorkspaceTitleBar.HOVER_LABEL
+            itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ->
+                GlassesWorkspaceTitleBar.LAYOUT_HOVER_LABEL
             itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true ->
                 AllAppsLauncher.HOVER_LABEL
             itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true ->
@@ -200,6 +203,11 @@ private fun handleLeftClick(
     if (itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true) {
         Log.d(LOG_TAG, "left-click hit settings")
         onOpenSettings()
+        return
+    }
+    if (itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true) {
+        Log.d(LOG_TAG, "left-click hit layout orbiter")
+        GlassesSessionState.toggleLayoutPresets()
         return
     }
     if (itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true) {
