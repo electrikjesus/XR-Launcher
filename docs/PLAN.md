@@ -576,7 +576,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☐ **after 2.22** |
 | 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and **DeskRepository**. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☐ **after 2.20** |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☐ Partial — `HomeSpaceScene` + Compose view only (still isometric) |
-| 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☐ (code started; ship with 2.22) |
+| 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☑ Partial — 0.1.7 on-device: companion + glasses windows have `KEEP_SCREEN_ON`; WM holds `SCREEN_BRIGHT_WAKE_LOCK` on display 0 and 46. Override display can still report OFF (OEM quirk). |
 | 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☐ **after 2.22** |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
@@ -745,4 +745,4 @@ Record major choices here as they are made.
 
 ---
 
-*Last updated: 2026-09-18 (2.22 BumpDesk GLES first; stop Compose graphicsLayer perspective)*
+*Last updated: 2026-09-18 (0.1.7 on device: keep-awake verified; 2.22 BumpDesk GLES still next)*
