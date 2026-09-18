@@ -102,10 +102,9 @@ object HomeSpaceScene {
     ): Float = 2f * angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale) + PANE_GAP_DEGREES
 
     /**
-     * Look camera only. Companion cursor is a ray through this view onto the inner
-     * sphere — it must not yaw the camera, or the cursor becomes a HUD on a flat plane.
+     * Mouse-look on top of [look]: companion cursor yaws/pitches the FPS camera a little,
+     * while hover still uses a ray through that same view onto the inner sphere.
      */
-    @Suppress("UNUSED_PARAMETER")
     fun camera(
         look: Float,
         cursorX: Float,
@@ -115,7 +114,10 @@ object HomeSpaceScene {
         panelScale: Float = 1f,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
-        return Camera(yawDeg = look * arc, pitchDeg = 0f)
+        val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
+        val pitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
+            .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
+        return Camera(yawDeg = yaw, pitchDeg = pitch)
     }
 
     fun pane(

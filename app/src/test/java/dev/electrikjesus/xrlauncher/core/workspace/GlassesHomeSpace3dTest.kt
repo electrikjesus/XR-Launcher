@@ -82,16 +82,8 @@ class GlassesHomeSpace3dTest {
     }
 
     @Test
-    fun cursorAim_doesNotPitchTheLookCameraOrSlideThePane() {
-        val center = GlassesHomeSpace3d.projectPane(
-            worldX = 0f,
-            look = 0f,
-            cursorX = 0.5f,
-            cursorY = 0.5f,
-            viewportWidthPx = 1920f,
-            viewportHeightPx = 1080f,
-        )
-        val down = GlassesHomeSpace3d.projectPane(
+    fun lookingDown_shiftsTheFrontPaneUpAndPitchesTheCamera() {
+        val projected = GlassesHomeSpace3d.projectPane(
             worldX = 0f,
             look = 0f,
             cursorX = 0.5f,
@@ -99,10 +91,20 @@ class GlassesHomeSpace3dTest {
             viewportWidthPx = 1920f,
             viewportHeightPx = 1080f,
         )
-        assertTrue(center.visible && down.visible)
-        assertEquals(center.translationYPx, down.translationYPx, 1f)
-        assertEquals(center.rotationXDeg, down.rotationXDeg, 0.2f)
-        assertEquals(0f, GlassesHomeSpace3d.cameraPitchDegrees(0.9f), 0.2f)
+        assertTrue(projected.visible)
+        assertTrue(projected.translationYPx < -80f)
+        assertTrue(projected.rotationXDeg < -10f)
+        val lookingUp = GlassesHomeSpace3d.projectPane(
+            worldX = 0f,
+            look = 0f,
+            cursorX = 0.5f,
+            cursorY = 0.1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertTrue(lookingUp.translationYPx > 80f)
+        assertTrue(lookingUp.rotationXDeg > 10f)
+        assertTrue(GlassesHomeSpace3d.cameraPitchDegrees(0.9f) > 10f)
     }
 
     @Test

@@ -42,7 +42,7 @@ Home Space on glasses must feel like an **FPS camera inside a room**, not a 2D c
 | `UIRenderer` / `OverlayRenderer` | Close, pagination, Edit-mode chrome as GLES controls |
 | `InteractionManager` | Ray-pick from inverted VP matrix (drag, piles, widget hit) |
 
-**Cursor.** Companion (x, y) is a **camera ray**, not a HUD on a flat plane in front of the view. The ray hits the inner Home Space sphere; hover, clicks, and the GLES cursor sit at that intersection (pane UV). Look is `panNorm` only — the cursor does not yaw the camera.
+**Cursor.** Companion (x, y) is a **camera ray** onto the inner Home Space sphere for hover/click. The same cursor also **mouse-looks** the FPS camera (yaw + pitch); edge-pan still turns further. Do not treat the cursor as a HUD on a flat plane.
 
 Compose stays as: phone companion UI, offscreen content for textures if needed, and hit-test overlay **after** GLES poses are authoritative.
 
@@ -597,7 +597,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-1. **On-device check of 0.1.9** — Fullscreen glasses window; Edit in the corner; hover follows the camera→sphere ray out to pane edges (3-turn spiral); pane faces mostly transparent.
+1. **On-device check of 0.1.10** — Larger Edit chrome; mouse-look yaw+pitch with sphere-ray hover still tracking panes.
 2. **2.20 Items on panels** — Recreate icons, shortcuts, pills/controls, and widgets with `ItemRenderer` / `WidgetRenderer` / `TextureUtils` / `UIRenderer`.
 3. **2.21 Desktop DND** — BumpDesk `InteractionManager` + `Pile` + arrange on the Desktop pane; All Apps remains a control.
 4. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -743,7 +743,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.22 GLES panes in 0.1.8:** tessellated sphere patches + thickness, Compose captured as textures | graphicsLayer kept only as an invisible hit overlay |
 | 2026-09-18 | **2.23 keep-awake** + **2.24 GLES Edit mode** after the engine | Caffeine proved phone sleep blanks glasses; scale sliders belong in the 3D scene |
 | 2026-09-18 | **0.1.9:** camera ray onto the inner sphere is the cursor; pane faces mostly transparent; glasses forced fullscreen; Edit in the corner | HUD-plane hover only worked near view center; Desktop Mode freeform; Edit overlay was unwired |
+| 2026-09-18 | **0.1.10:** mouse-look yaw+pitch restored; Edit chrome scaled up; hover stays sphere-ray | 0.1.9 look only edge-panned and lost up/down |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.9 sphere-ray cursor + Edit overlay + fullscreen; next 2.20 ItemRenderer)*
+*Last updated: 2026-09-18 (0.1.10 mouse-look + larger Edit; next 2.20 ItemRenderer)*

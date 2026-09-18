@@ -144,8 +144,12 @@ fun GlassesSpatialWorkspaceScreen(
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
-        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(panNorm, 0.5f),
-        pitchDegrees = 0f,
+        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(
+            panNorm,
+            cursor.x,
+            panelScale = tuned.panelScale,
+        ),
+        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(cursor.y),
         panNormX = 0f,
         panNormY = 0f,
     )

@@ -90,6 +90,41 @@ class HomeSpaceCursorTest {
     }
 
     @Test
+    fun mouseLookRight_stillPicksHomeTowardTheRightEdge() {
+        val cursorX = 0.72f
+        val camera = HomeSpaceScene.camera(0f, cursorX, 0.5f, 1920f, 1080f)
+        assertTrue(camera.yawDeg > 8f)
+        val pick = HomeSpaceScene.pickPane(
+            cursorX = cursorX,
+            cursorY = 0.5f,
+            camera = camera,
+            slots = slots,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertNotNull(pick)
+        assertEquals("home", pick!!.slot.panelId)
+        assertTrue(pick.u > 0.55f)
+    }
+
+    @Test
+    fun mouseLookDown_stillPicksHome() {
+        val cursorY = 0.66f
+        val camera = HomeSpaceScene.camera(0f, 0.5f, cursorY, 1920f, 1080f)
+        assertTrue(camera.pitchDeg > 5f)
+        val pick = HomeSpaceScene.pickPane(
+            cursorX = 0.5f,
+            cursorY = cursorY,
+            camera = camera,
+            slots = slots,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertNotNull(pick)
+        assertEquals("home", pick!!.slot.panelId)
+    }
+
+    @Test
     fun lookingLeft_centerRayHitsAllApps() {
         val camera = HomeSpaceScene.camera(-1f, 0.5f, 0.5f, 1920f, 1080f)
         val pick = HomeSpaceScene.pickPane(

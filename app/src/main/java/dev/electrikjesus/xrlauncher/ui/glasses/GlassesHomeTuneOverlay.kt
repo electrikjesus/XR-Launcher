@@ -33,6 +33,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import java.util.Locale
 
 private val PillBg = Color(0xCC1C1C1E)
@@ -50,81 +51,83 @@ fun GlassesHomeTuneOverlay(
     modifier: Modifier = Modifier,
 ) {
     val tuned = appearance.clamped()
-    Column(
-        modifier = modifier.padding(20.dp),
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (editing) {
-            Column(
+    WorkspaceScaledLayer(uiScale = tuned.uiScale) {
+        Column(
+            modifier = modifier.padding(32.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            if (editing) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(min = 420.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(CardBg)
+                        .padding(horizontal = 28.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.xr_edit_space_title),
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    TuneRow(
+                        label = stringResource(R.string.xr_edit_panel_scale),
+                        value = tuned.panelScale,
+                        minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
+                        plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
+                        hoveredLabel = hoveredLabel,
+                        onBoundsChanged = onBoundsChanged,
+                        onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
+                        onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
+                    )
+                    TuneRow(
+                        label = stringResource(R.string.xr_edit_sphere_scale),
+                        value = tuned.sphereScale,
+                        minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
+                        plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
+                        hoveredLabel = hoveredLabel,
+                        onBoundsChanged = onBoundsChanged,
+                        onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
+                        onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
+                    )
+                    TuneRow(
+                        label = stringResource(R.string.xr_edit_element_scale),
+                        value = tuned.uiScale,
+                        minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
+                        plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
+                        hoveredLabel = hoveredLabel,
+                        onBoundsChanged = onBoundsChanged,
+                        onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
+                        onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
+                    )
+                }
+            }
+            Box(
                 modifier = Modifier
-                    .widthIn(min = 280.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(CardBg)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .clip(RoundedCornerShape(36.dp))
+                    .background(
+                        if (hoveredLabel == GlassesHomeHits.EDIT_LABEL) {
+                            Accent.copy(alpha = 0.55f)
+                        } else {
+                            PillBg
+                        },
+                    )
+                    .clickable(onClick = onToggleEdit)
+                    .onGloballyPositioned {
+                        onBoundsChanged(GlassesHomeHits.EDIT_TOGGLE, it.boundsInRoot())
+                    }
+                    .padding(horizontal = 40.dp, vertical = 22.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.xr_edit_space_title),
+                    text = stringResource(
+                        if (editing) R.string.xr_edit_space_done else R.string.xr_edit_space,
+                    ),
                     color = Color.White,
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_panel_scale),
-                    value = tuned.panelScale,
-                    minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
-                )
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_sphere_scale),
-                    value = tuned.sphereScale,
-                    minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
-                )
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_element_scale),
-                    value = tuned.uiScale,
-                    minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
+                    style = MaterialTheme.typography.headlineSmall,
                 )
             }
-        }
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    if (hoveredLabel == GlassesHomeHits.EDIT_LABEL) {
-                        Accent.copy(alpha = 0.55f)
-                    } else {
-                        PillBg
-                    },
-                )
-                .clickable(onClick = onToggleEdit)
-                .onGloballyPositioned {
-                    onBoundsChanged(GlassesHomeHits.EDIT_TOGGLE, it.boundsInRoot())
-                }
-                .padding(horizontal = 22.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(
-                    if (editing) R.string.xr_edit_space_done else R.string.xr_edit_space,
-                ),
-                color = Color.White,
-                style = MaterialTheme.typography.titleSmall,
-            )
         }
     }
 }
@@ -142,12 +145,12 @@ private fun TuneRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = label,
             color = Color.White.copy(alpha = 0.9f),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.weight(1f),
         )
         TuneStepButton(
@@ -161,8 +164,8 @@ private fun TuneRow(
         Text(
             text = String.format(Locale.US, "%.2f", value),
             color = Color.White,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
         TuneStepButton(
             icon = Icons.Default.Add,
@@ -186,13 +189,13 @@ private fun TuneStepButton(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(88.dp)
             .clip(CircleShape)
             .background(if (hovered) Accent.copy(alpha = 0.55f) else Color(0xFF3A3A3C))
             .clickable(onClick = onClick)
             .onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(44.dp))
     }
 }

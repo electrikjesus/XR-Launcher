@@ -381,8 +381,8 @@ private fun homeSpacePick(
 ): HomeSpacePanePick? {
     val camera = HomeSpaceScene.camera(
         look = GlassesHomeLook.panNorm,
-        cursorX = 0.5f,
-        cursorY = 0.5f,
+        cursorX = cursorX,
+        cursorY = cursorY,
         viewportWidthPx = rootWidthPx,
         viewportHeightPx = rootHeightPx,
         panelScale = panelScale,
