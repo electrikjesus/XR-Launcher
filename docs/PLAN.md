@@ -578,7 +578,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — square drawer, pager+pageCount sync, Hold-Left grab, movable All Apps tile, rest-on-drop; still missing piles, lasso, radial menu, persist |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persisted poses (`desk_json`); still missing piles, lasso, radial menu |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -600,15 +600,16 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed: hide All Apps backing; mouse-look pitch + companion toggle; extend left pan past Desktop for empty space / left half of the drawer.
+#### Phase 2 — Next steps (immediate)
 
-**Do this next (after on-device check). One concern per change.**
+Landed **0.1.17:** Desktop icon + All Apps tile poses persist (`desk_json`); mouse-look + left pan; drawer polish.
 
-1. **On-device recheck** — look far left past All Apps; select left-side icons; Edit dialog still camera-stuck.
-2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
-3. **Persist placed desktop icons + drawer pose** — `DeskRepository` analog (yaw/pitch on the sphere).
-4. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
-5. **Stop** — Do not start 6.9 onboarding in this pass.
+**Do this next. One concern per change.**
+
+1. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
+2. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
+3. **Unify panes as pinned widgets** — after the desk feels right.
+4. **Stop** — Do not start 6.9 onboarding in this pass.
 
 ---
 
@@ -770,7 +771,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Hide All Apps backing texture** — pick/physics only, no stretched panel | Low-res rounded panel looked mottled / blotchy |
 | 2026-09-18 | **Mouse-look pitch sign + companion toggle** — finger up looks up; 3D-rotation icon above touchpad | FPS look inverted; no phone control for look mode |
 | 2026-09-18 | **Desktop look range** — `minPan` = PANE_LEFT − 1.15 so empty space / left All Apps is reachable | Pan clamped at Desktop center; left half of drawer unreachable |
+| 2026-09-18 | **0.1.17:** persist Desktop icons + All Apps tile pose via `desk_json` in workspace DataStore | Positions were in-memory only |
 
 ---
 
-*Last updated: 2026-09-18 (extend left Desktop look; host tests)*
+*Last updated: 2026-09-18 (0.1.17 desk persist + release)*

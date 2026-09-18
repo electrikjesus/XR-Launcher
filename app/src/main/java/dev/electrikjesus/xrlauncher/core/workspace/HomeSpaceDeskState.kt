@@ -280,4 +280,47 @@ object HomeSpaceDeskState {
         _drawerPose.value = null
         pendingChrome = null
     }
+
+    fun restore(layout: DeskLayout) {
+        _placed.value = layout.items.map { item ->
+            HomeSpaceDesk.Placed(
+                app = HomeSpaceDesk.AppRef(
+                    componentKey = item.componentKey,
+                    label = item.label,
+                    packageName = item.packageName,
+                ),
+                yawDeg = item.yawDeg,
+                pitchDeg = item.pitchDeg,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+            )
+        }
+        _drawerPose.value = layout.drawerYawDeg?.let { yaw ->
+            yaw to (layout.drawerPitchDeg ?: 0f)
+        }
+        _drag.value = null
+        pendingChrome = null
+    }
+
+    fun toLayout(): DeskLayout = DeskLayout(
+        items = _placed.value.map { item ->
+            DeskPlacedItem(
+                componentKey = item.app.componentKey,
+                label = item.app.label,
+                packageName = item.app.packageName,
+                yawDeg = item.yawDeg,
+                pitchDeg = item.pitchDeg,
+            )
+        },
+        drawerYawDeg = _drawerPose.value?.first,
+        drawerPitchDeg = _drawerPose.value?.second,
+    )
+
+    /** Drop icons whose apps are no longer installed. */
+    fun pruneMissing(validComponentKeys: Set<String>): Boolean {
+        val next = _placed.value.filter { it.app.componentKey in validComponentKeys }
+        if (next.size == _placed.value.size) return false
+        _placed.value = next
+        return true
+    }
 }

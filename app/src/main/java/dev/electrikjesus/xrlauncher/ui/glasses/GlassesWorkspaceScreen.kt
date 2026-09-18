@@ -110,6 +110,7 @@ fun GlassesWorkspaceScreen(
                                 pinnedComponentKeys = pinnedKeys,
                                 panels = panels,
                                 appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
+                                workspaceRepository = workspaceRepository,
                                 onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                                 onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
                                 onPanelsChange = { updated -> panelSaver.save(updated) },

@@ -47,7 +47,10 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneKeyPrefix
 import dev.electrikjesus.xrlauncher.core.workspace.PerspectiveCursorProbe
@@ -95,6 +98,7 @@ fun GlassesSpatialWorkspaceScreen(
     onPopOutEmbedded: (String) -> Unit = {},
     onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
+    workspaceRepository: WorkspaceRepository? = null,
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
@@ -115,6 +119,28 @@ fun GlassesSpatialWorkspaceScreen(
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
     val context = LocalContext.current
+    var deskHydrated by remember { mutableStateOf(workspaceRepository == null) }
+
+    LaunchedEffect(workspaceRepository) {
+        val repo = workspaceRepository ?: run {
+            deskHydrated = true
+            return@LaunchedEffect
+        }
+        HomeSpaceDeskState.restore(repo.deskLayout.first())
+        deskHydrated = true
+    }
+    LaunchedEffect(launchableApps) {
+        val keys = launchableApps.map { it.componentKey() }.toSet()
+        if (HomeSpaceDeskState.pruneMissing(keys) && deskHydrated) {
+            workspaceRepository?.saveDeskLayout(HomeSpaceDeskState.toLayout())
+        }
+    }
+    LaunchedEffect(workspaceRepository, deskPlaced, deskDrawerPose, deskDrag, deskHydrated) {
+        val repo = workspaceRepository ?: return@LaunchedEffect
+        if (!deskHydrated || deskDrag != null) return@LaunchedEffect
+        delay(350)
+        repo.saveDeskLayout(HomeSpaceDeskState.toLayout())
+    }
 
     LaunchedEffect(launchableApps, deskPlaced) {
         val placedKeys = deskPlaced.map { it.app.componentKey }.toSet()

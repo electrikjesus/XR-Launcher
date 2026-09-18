@@ -139,6 +139,7 @@ private fun FlatGlassesWorkspaceScreen(
                 pinnedComponentKeys = pinnedKeys,
                 panels = panels,
                 appearance = appearance,
+                workspaceRepository = workspaceRepository,
                 onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                 onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
                 onPanelsChange = { updatedPanels -> panelSaver.save(updatedPanels) },

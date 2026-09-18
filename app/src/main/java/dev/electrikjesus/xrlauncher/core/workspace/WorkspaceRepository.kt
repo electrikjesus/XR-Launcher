@@ -155,7 +155,20 @@ class WorkspaceRepository(private val context: Context) {
         }
     }
 
+    val deskLayout: Flow<DeskLayout> = context.workspaceDataStore.data.map { prefs ->
+        prefs[DESK_JSON_KEY]?.let { json ->
+            runCatching { DeskJson.decode(json) }.getOrElse { DeskLayout() }
+        } ?: DeskLayout()
+    }
+
+    suspend fun saveDeskLayout(layout: DeskLayout) {
+        context.workspaceDataStore.edit { prefs ->
+            prefs[DESK_JSON_KEY] = DeskJson.encode(layout)
+        }
+    }
+
     companion object {
         private val WORKSPACE_JSON_KEY = stringPreferencesKey("workspace_json")
+        private val DESK_JSON_KEY = stringPreferencesKey("desk_json")
     }
 }
