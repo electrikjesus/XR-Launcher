@@ -51,8 +51,9 @@ class GlassesHomeSpace3dTest {
             viewportHeightPx = 1080f,
         )
         assertTrue(projected.visible)
-        assertTrue(projected.translationXPx > 80f)
-        assertTrue(projected.rotationYDeg < -20f)
+        assertTrue(projected.translationXPx > 700f)
+        assertTrue(projected.rotationYDeg < -40f)
+        assertTrue(projected.scale < 1f)
         assertTrue(projected.viewZ > -GlassesHomeSpace3d.PANE_RADIUS)
     }
 
@@ -82,8 +83,18 @@ class GlassesHomeSpace3dTest {
             viewportHeightPx = 1080f,
         )
         assertTrue(projected.visible)
-        assertTrue(projected.translationYPx < -20f)
-        assertTrue(projected.rotationXDeg < 0f)
+        assertTrue(projected.translationYPx < -80f)
+        assertTrue(projected.rotationXDeg < -15f)
+        val lookingUp = GlassesHomeSpace3d.projectPane(
+            worldX = 0f,
+            look = 0f,
+            cursorX = 0.5f,
+            cursorY = 0.1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        assertTrue(lookingUp.translationYPx > 80f)
+        assertTrue(lookingUp.rotationXDeg > 15f)
     }
 
     @Test

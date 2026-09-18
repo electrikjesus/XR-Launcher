@@ -667,8 +667,8 @@ private fun GlassesFovStage(content: @Composable () -> Unit) {
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(GlassesHomeLook.CONTENT_WIDTH_FRACTION)
-                .fillMaxHeight(GlassesHomeLook.CONTENT_HEIGHT_FRACTION),
+                .fillMaxWidth(GlassesHomeSpace3d.PANE_WIDTH_FRACTION)
+                .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION),
         ) {
             content()
         }

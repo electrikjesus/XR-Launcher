@@ -11,7 +11,7 @@ import kotlin.math.tan
  */
 object GlassesHomeSpace3d {
     /** Angular spacing between Home panes, in degrees. */
-    const val PANE_ARC_DEGREES = 32f
+    const val PANE_ARC_DEGREES = 50f
 
     /** Distance from the camera to each pane (scene units). */
     const val PANE_RADIUS = 1.85f
@@ -20,9 +20,16 @@ object GlassesHomeSpace3d {
     const val ROOM_RADIUS = 3.4f
 
     const val FOV_Y_DEGREES = 52f
-    const val CURSOR_YAW_DEGREES = 10f
-    const val CURSOR_PITCH_DEGREES = 12f
-    const val MAX_PITCH_DEGREES = 18f
+    const val CURSOR_YAW_DEGREES = 8f
+    const val CURSOR_PITCH_DEGREES = 20f
+    const val MAX_PITCH_DEGREES = 24f
+
+    /** Neighbor pane center as a fraction of viewport width when one pane away. */
+    const val NEIGHBOR_SHIFT_FRACTION = 0.48f
+    const val PANE_WIDTH_FRACTION = 0.52f
+    const val PANE_HEIGHT_FRACTION = 0.80f
+    const val CAMERA_DISTANCE_FACTOR = 0.92f
+    const val PITCH_TILT_GAIN = 1.25f
 
     data class WorldPose(
         val x: Float,
@@ -76,7 +83,6 @@ object GlassesHomeSpace3d {
         val yawRad = Math.toRadians(yawDeg.toDouble()).toFloat()
         val pitchRad = Math.toRadians(pitchDeg.toDouble()).toFloat()
 
-        // Match CylinderGlRenderer: p_view = Rx(pitch) * Ry(yaw) * p_world
         val cosY = cos(yawRad)
         val sinY = sin(yawRad)
         val x1 = pose.x * cosY + pose.z * sinY
@@ -87,40 +93,43 @@ object GlassesHomeSpace3d {
         val sinP = sin(pitchRad)
         val y2 = y1 * cosP - z1 * sinP
         val z2 = y1 * sinP + z1 * cosP
-        val x2 = x1
 
         val relYaw = worldX * PANE_ARC_DEGREES - yawDeg
         val inFront = z2 < -0.25f
-        val onScreen = abs(relYaw) < 70f && abs(pitchDeg) <= MAX_PITCH_DEGREES + 1f
-        if (!inFront || !onScreen || viewportWidthPx <= 0f || viewportHeightPx <= 0f) {
+        if (!inFront || viewportWidthPx <= 0f || viewportHeightPx <= 0f) {
+            return ProjectedPane(0f, 0f, 0f, 0f, 1f, 0f, 1f, false, z2)
+        }
+
+        val arcRad = Math.toRadians(PANE_ARC_DEGREES.toDouble()).toFloat()
+        val yawShift = tan(Math.toRadians(relYaw.toDouble()).toFloat()) / tan(arcRad)
+        val fade = paneAlpha(relYaw)
+        if (fade <= 0.02f) {
             return ProjectedPane(0f, 0f, 0f, 0f, 1f, 0f, 1f, false, z2)
         }
 
         val fovy = Math.toRadians(FOV_Y_DEGREES.toDouble()).toFloat()
         val sy = 1f / tan(fovy / 2f)
-        val aspect = viewportWidthPx / viewportHeightPx
-        val ndcX = (sy / aspect) * (x2 / -z2)
         val ndcY = sy * (y2 / -z2)
-        val fade = paneAlpha(relYaw)
+        val pitchNorm = (abs(pitchDeg) / MAX_PITCH_DEGREES).coerceIn(0f, 1f)
         return ProjectedPane(
-            translationXPx = ndcX * viewportWidthPx * 0.5f,
+            translationXPx = yawShift * NEIGHBOR_SHIFT_FRACTION * viewportWidthPx,
             translationYPx = -ndcY * viewportHeightPx * 0.5f,
-            rotationYDeg = pose.rotationYDeg + yawDeg,
-            rotationXDeg = pose.rotationXDeg - pitchDeg,
-            scale = 1f,
+            rotationYDeg = -relYaw,
+            rotationXDeg = -pitchDeg * PITCH_TILT_GAIN,
+            scale = (1f - 0.12f * abs(yawShift) - 0.08f * pitchNorm).coerceIn(0.74f, 1f),
             alpha = fade,
-            cameraDistancePx = viewportWidthPx * 2.4f,
-            visible = fade > 0.02f,
+            cameraDistancePx = viewportWidthPx * CAMERA_DISTANCE_FACTOR,
+            visible = true,
             viewZ = z2,
         )
     }
 
     fun paneAlpha(relativeYawDeg: Float): Float {
-        val distance = abs(relativeYawDeg)
+        val steps = abs(relativeYawDeg) / PANE_ARC_DEGREES
         return when {
-            distance >= 62f -> 0f
-            distance <= 38f -> 1f
-            else -> ((62f - distance) / 24f).coerceIn(0f, 1f)
+            steps >= 1.22f -> 0f
+            steps <= 0.88f -> 1f
+            else -> ((1.22f - steps) / 0.34f).coerceIn(0f, 1f)
         }
     }
 }
