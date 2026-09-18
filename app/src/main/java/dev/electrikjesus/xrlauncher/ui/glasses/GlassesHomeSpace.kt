@@ -58,6 +58,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.PaginatedAppGrid
@@ -90,7 +91,7 @@ fun GlassesHomeSpace(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 48.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         GlassesHomeClock()
@@ -103,7 +104,7 @@ fun GlassesHomeSpace(
             onNotifications = onOpenNotifications,
             onQuickSettings = onOpenQuickSettings,
             onSettings = onOpenSettings,
-            modifier = Modifier.padding(top = 20.dp),
+            modifier = Modifier.padding(top = 28.dp),
         )
         PaginatedAppGrid(
             apps = homeApps,
@@ -117,12 +118,10 @@ fun GlassesHomeSpace(
             columns = 5,
             rows = 2,
             showPageControls = true,
-            iconSize = 92.dp,
-            cellSpacing = 12.dp,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(top = 20.dp),
+                .padding(top = 28.dp),
         )
     }
 }
@@ -144,7 +143,8 @@ fun GlassesXrAllAppsLayer(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .background(Color.Black.copy(alpha = 0.18f))
+            .padding(horizontal = 48.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         GlassesHomeClock()
@@ -172,11 +172,9 @@ fun GlassesXrAllAppsLayer(
             onBoundsChanged = onBoundsChanged,
             onLaunchApp = onLaunchApp,
             onAppContextMenu = onAppContextMenu,
-            columns = 4,
-            rows = 3,
+            columns = 5,
+            rows = 4,
             showPageControls = true,
-            iconSize = 88.dp,
-            cellSpacing = 12.dp,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -449,7 +447,7 @@ private fun GlassesCircleButton(
     hovered: Boolean,
     onBoundsChanged: (String, Rect) -> Unit,
     onClick: () -> Unit,
-    diameter: Dp = 80.dp,
+    diameter: Dp = 56.dp,
 ) {
     Box(
         modifier = Modifier
@@ -531,7 +529,6 @@ private fun GlassesRecentCard(
                 isHovered = hovered,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = { onLaunch() },
-                iconSize = 88.dp,
             )
         }
     }
@@ -596,6 +593,8 @@ private fun GlassesQsTile(icon: ImageVector, label: String, onClick: () -> Unit 
 @Composable
 fun GlassesHomeCarousel(
     panNorm: Float,
+    cursorX: Float,
+    cursorY: Float,
     appPlanes: List<GlassesAppPlane>,
     left: @Composable () -> Unit,
     center: @Composable () -> Unit,
@@ -605,46 +604,54 @@ fun GlassesHomeCarousel(
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
-        CarouselPane(worldX = GlassesHomeLook.PANE_LEFT, look = panNorm, widthPx = widthPx, content = left)
-        CarouselPane(worldX = GlassesHomeLook.PANE_HOME, look = panNorm, widthPx = widthPx, content = center)
-        appPlanes.forEachIndexed { index, plane ->
-            CarouselPane(
-                worldX = GlassesHomeLook.appPane(index),
-                look = panNorm,
-                widthPx = widthPx,
-            ) { appPane(plane) }
+        val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
+        data class Slot(val key: String, val worldX: Float, val content: @Composable () -> Unit)
+        val slots = buildList {
+            add(Slot("all_apps", GlassesHomeLook.PANE_LEFT, left))
+            add(Slot("home", GlassesHomeLook.PANE_HOME, center))
+            appPlanes.forEachIndexed { index, plane ->
+                add(Slot(plane.panelId, GlassesHomeLook.appPane(index)) { appPane(plane) })
+            }
+            add(Slot("tray", GlassesHomeLook.trayPane(), right))
         }
-        CarouselPane(
-            worldX = GlassesHomeLook.trayPane(),
-            look = panNorm,
-            widthPx = widthPx,
-            content = right,
-        )
+        slots
+            .map { slot ->
+                slot to GlassesHomeSpace3d.projectPane(
+                    worldX = slot.worldX,
+                    look = panNorm,
+                    cursorX = cursorX,
+                    cursorY = cursorY,
+                    viewportWidthPx = widthPx,
+                    viewportHeightPx = heightPx,
+                )
+            }
+            .filter { it.second.visible }
+            .sortedBy { it.second.viewZ }
+            .forEach { (slot, projected) ->
+                androidx.compose.runtime.key(slot.key) {
+                    CarouselPane(projected = projected, content = slot.content)
+                }
+            }
     }
 }
 
 @Composable
 private fun CarouselPane(
-    worldX: Float,
-    look: Float,
-    widthPx: Float,
+    projected: GlassesHomeSpace3d.ProjectedPane,
     content: @Composable () -> Unit,
 ) {
-    val delta = GlassesHomeLook.paneDelta(worldX, look)
-    if (!GlassesHomeLook.paneVisible(delta)) return
-    val rotation = GlassesHomeLook.paneRotationY(delta)
-    val scale = GlassesHomeLook.paneScale(delta)
-    val fade = GlassesHomeLook.paneAlpha(delta)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
-                translationX = delta * widthPx * GlassesHomeLook.PANE_SPACING
-                rotationY = rotation
-                scaleX = scale
-                scaleY = scale
-                alpha = fade
-                cameraDistance = widthPx * GlassesHomeLook.CAMERA_DISTANCE_FACTOR
+                translationX = projected.translationXPx
+                translationY = projected.translationYPx
+                rotationY = projected.rotationYDeg
+                rotationX = projected.rotationXDeg
+                scaleX = projected.scale
+                scaleY = projected.scale
+                alpha = projected.alpha
+                cameraDistance = projected.cameraDistancePx
                 transformOrigin = TransformOrigin(0.5f, 0.5f)
             },
     ) {
@@ -758,11 +765,5 @@ fun GlassesHomeTrayPane(
 
 @Composable
 private fun GlassesHomeClock() {
-    ClockWidgetPanel(
-        centered = true,
-        modifier = Modifier.graphicsLayer {
-            scaleX = 1.15f
-            scaleY = 1.15f
-        },
-    )
+    ClockWidgetPanel(centered = true)
 }

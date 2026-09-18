@@ -5,6 +5,7 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.PanelTextureSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
@@ -36,6 +37,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList()
     var showWallpaperCylinder: Boolean = true
 
+    /** Closed 360° room around the camera (BumpDesk-style) so look never shows wallpaper edges. */
+    var surroundRoom: Boolean = false
+
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
     private val sceneMatrix = FloatArray(16)
@@ -65,6 +69,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     private lateinit var wallpaperMeshBuffer: FloatBuffer
     private var wallpaperMeshVertexCount = 0
+    private lateinit var roomCapBuffer: FloatBuffer
+    private var roomCapVertexCount = 0
 
     private val quadBuffer: FloatBuffer = floatArrayOf(
         -0.5f, -0.5f, 0f, 0f, 1f,
@@ -146,8 +152,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         uploadPendingTextures()
         pruneStaleTextures()
 
-        if (showWallpaperCylinder && WorkspaceGlesConfig.showWallpaperCylinder && curvature > 0.01f) {
+        if (shouldDrawRoom()) {
             drawWallpaperCylinder()
+            if (surroundRoom) {
+                drawRoomCaps()
+            }
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
             drawCylinderGuideLine()
@@ -156,6 +165,12 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         if (WorkspaceGlesConfig.texturedPanelsEnabled && curvature > 0.01f) {
             drawTexturedPanels()
         }
+    }
+
+    private fun shouldDrawRoom(): Boolean {
+        if (!showWallpaperCylinder) return false
+        if (surroundRoom) return true
+        return WorkspaceGlesConfig.showWallpaperCylinder && curvature > 0.01f
     }
 
     private fun buildViewMatrix() {
@@ -174,10 +189,13 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         )
         Matrix.rotateM(viewMatrix, 0, camera.pitchDegrees, 1f, 0f, 0f)
         Matrix.rotateM(viewMatrix, 0, camera.yawDegrees, 0f, 1f, 0f)
-        Matrix.translateM(viewMatrix, 0, camera.panNormX * 1.4f, camera.panNormY * 0.9f, 0f)
+        if (!surroundRoom) {
+            Matrix.translateM(viewMatrix, 0, camera.panNormX * 1.4f, camera.panNormY * 0.9f, 0f)
+        }
     }
 
     private fun applySceneSpan() {
+        if (surroundRoom) return
         Matrix.setIdentityM(sceneMatrix, 0)
         Matrix.scaleM(sceneMatrix, 0, workspaceWidth, workspaceHeight, 1f)
         Matrix.multiplyMM(tempMatrix, 0, viewMatrix, 0, sceneMatrix, 0)
@@ -191,6 +209,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private fun rebuildCylinderMeshes() {
         rebuildCylinderGuideLine()
         rebuildWallpaperMesh()
+        rebuildRoomCaps()
     }
 
     private fun rebuildCylinderGuideLine() {
@@ -214,15 +233,27 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun rebuildWallpaperMesh() {
-        val horizSegments = 56
-        val vertSegments = 28
+        val horizSegments = if (surroundRoom) 72 else 56
+        val vertSegments = if (surroundRoom) 36 else 28
         val c = curvature.coerceIn(0f, 1f)
-        val halfArcRad = Math.toRadians(
-            (WorkspaceCylinderGeometry.MAX_ARC_YAW_DEGREES * c * workspaceWidth) / 2.0,
-        ).toFloat()
-        val radius = WorkspaceCylinderGeometry.sceneRadiusX(viewportWidthPx, workspaceWidth, c)
-        val baseDepth = WorkspaceCylinderGeometry.sceneBaseDepth(viewportWidthPx, c)
-        val wallHeight = 2.4f
+        val halfArcRad = if (surroundRoom) {
+            Math.PI.toFloat()
+        } else {
+            Math.toRadians(
+                (WorkspaceCylinderGeometry.MAX_ARC_YAW_DEGREES * c * workspaceWidth) / 2.0,
+            ).toFloat()
+        }
+        val radius = if (surroundRoom) {
+            GlassesHomeSpace3d.ROOM_RADIUS
+        } else {
+            WorkspaceCylinderGeometry.sceneRadiusX(viewportWidthPx, workspaceWidth, c)
+        }
+        val baseDepth = if (surroundRoom) {
+            0f
+        } else {
+            WorkspaceCylinderGeometry.sceneBaseDepth(viewportWidthPx, c)
+        }
+        val wallHeight = if (surroundRoom) 6.4f else 2.4f
         val halfHeight = wallHeight / 2f
 
         val verts = mutableListOf<Float>()
@@ -233,7 +264,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 val t = col / horizSegments.toFloat()
                 val theta = -halfArcRad + t * 2f * halfArcRad
                 val x = radius * sin(theta)
-                val z = -(baseDepth + radius * (1f - cos(theta)))
+                val z = if (surroundRoom) {
+                    -radius * cos(theta)
+                } else {
+                    -(baseDepth + radius * (1f - cos(theta)))
+                }
                 verts += x
                 verts += y
                 verts += z
@@ -270,6 +305,82 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         wallpaperMeshBuffer = interleaved.toFloatBuffer()
         wallpaperMeshVertexCount = indices.size
+    }
+
+    private fun rebuildRoomCaps() {
+        if (!surroundRoom) {
+            roomCapBuffer = floatArrayOf().toFloatBuffer()
+            roomCapVertexCount = 0
+            return
+        }
+        val radius = GlassesHomeSpace3d.ROOM_RADIUS
+        val halfHeight = 3.2f
+        val verts = mutableListOf<Float>()
+        fun addCap(y: Float, yUp: Boolean) {
+            val uvs = if (yUp) {
+                arrayOf(0f to 0f, 1f to 0f, 0f to 1f, 1f to 0f, 1f to 1f, 0f to 1f)
+            } else {
+                arrayOf(0f to 1f, 0f to 0f, 1f to 1f, 0f to 0f, 1f to 0f, 1f to 1f)
+            }
+            val corners = if (yUp) {
+                arrayOf(
+                    -radius to -radius, radius to -radius, -radius to radius,
+                    radius to -radius, radius to radius, -radius to radius,
+                )
+            } else {
+                arrayOf(
+                    -radius to radius, -radius to -radius, radius to radius,
+                    -radius to -radius, radius to -radius, radius to radius,
+                )
+            }
+            corners.forEachIndexed { i, (x, z) ->
+                verts += x
+                verts += y
+                verts += z
+                verts += uvs[i].first
+                verts += uvs[i].second
+            }
+        }
+        addCap(-halfHeight, yUp = true)
+        addCap(halfHeight, yUp = false)
+        roomCapBuffer = verts.toFloatArray().toFloatBuffer()
+        roomCapVertexCount = verts.size / 5
+    }
+
+    private fun drawRoomCaps() {
+        if (wallpaperTextureId == 0 || roomCapVertexCount == 0) return
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(wallpaperProgram)
+        GLES20.glUniformMatrix4fv(wallpaperMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, wallpaperTextureId)
+        GLES20.glUniform1i(wallpaperSamplerHandle, 0)
+        roomCapBuffer.position(0)
+        GLES20.glEnableVertexAttribArray(wallpaperPositionHandle)
+        GLES20.glVertexAttribPointer(
+            wallpaperPositionHandle,
+            3,
+            GLES20.GL_FLOAT,
+            false,
+            20,
+            roomCapBuffer,
+        )
+        GLES20.glEnableVertexAttribArray(wallpaperTexCoordHandle)
+        roomCapBuffer.position(3)
+        GLES20.glVertexAttribPointer(
+            wallpaperTexCoordHandle,
+            2,
+            GLES20.GL_FLOAT,
+            false,
+            20,
+            roomCapBuffer,
+        )
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, roomCapVertexCount)
+        GLES20.glDisableVertexAttribArray(wallpaperPositionHandle)
+        GLES20.glDisableVertexAttribArray(wallpaperTexCoordHandle)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
     }
 
     private fun drawWallpaperCylinder() {
@@ -558,12 +669,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             varying vec2 vTexCoord;
             void main() {
                 vec4 color = texture2D(uTexture, vTexCoord);
-                float vertical = smoothstep(0.0, 0.14, vTexCoord.y) *
-                    smoothstep(1.0, 0.86, vTexCoord.y);
-                float horizontal = smoothstep(0.0, 0.06, vTexCoord.x) *
-                    smoothstep(1.0, 0.94, vTexCoord.x);
-                float vignette = vertical * horizontal;
-                color.rgb *= mix(0.55, 1.0, vignette);
+                float vertical = smoothstep(0.0, 0.12, vTexCoord.y) *
+                    smoothstep(1.0, 0.88, vTexCoord.y);
+                color.rgb *= mix(0.72, 1.0, vertical);
                 gl_FragColor = color;
             }
         """

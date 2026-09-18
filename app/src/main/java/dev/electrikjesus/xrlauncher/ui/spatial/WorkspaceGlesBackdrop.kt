@@ -40,12 +40,13 @@ fun WorkspaceGlesBackdrop(
     wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
     panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
     showWallpaperCylinder: Boolean = true,
+    surroundRoom: Boolean = false,
     modifier: Modifier = Modifier,
-    enabled: Boolean = curvature > 0.01f && (
+    enabled: Boolean = surroundRoom || (curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
             WorkspaceGlesConfig.texturedPanelsEnabled ||
             WorkspaceGlesConfig.showGuideWireframe
-        ),
+        )),
 ) {
     if (!enabled) return
 
@@ -88,15 +89,13 @@ fun WorkspaceGlesBackdrop(
         }
     }
 
-    DisposableEffect(curvature, workspaceWidth, workspaceHeight) {
+    DisposableEffect(curvature, workspaceWidth, workspaceHeight, surroundRoom) {
         renderer.curvature = curvature
         renderer.workspaceWidth = workspaceWidth
         renderer.workspaceHeight = workspaceHeight
+        renderer.surroundRoom = surroundRoom
         renderer.rebuildCylinderMesh()
-        onDispose {
-            WorkspacePanelTextureBus.unregisterRenderCallback(renderCallback)
-            WorkspacePanelTextureBus.clear()
-        }
+        onDispose { }
     }
 
     DisposableEffect(Unit) {
@@ -113,6 +112,7 @@ fun WorkspaceGlesBackdrop(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
                 setEGLContextClientVersion(2)
+                setZOrderOnTop(false)
                 setRenderer(renderer)
                 renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
                 surfaceViewRef.set(this)
@@ -127,6 +127,7 @@ fun WorkspaceGlesBackdrop(
             renderer.setWallpaperBitmap(wallpaperBitmap, wallpaperGeneration.toLong())
             renderer.panelGuideCenters = panelGuideCenters
             renderer.showWallpaperCylinder = showWallpaperCylinder
+            renderer.surroundRoom = surroundRoom
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

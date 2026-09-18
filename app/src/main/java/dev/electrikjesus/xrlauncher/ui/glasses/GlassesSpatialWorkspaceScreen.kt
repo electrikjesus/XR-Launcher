@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -37,6 +36,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.withFrameNanos
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.ui.workspace.DraggableWorkspacePanelShell
@@ -44,10 +44,11 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
-import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
+import dev.electrikjesus.xrlauncher.ui.spatial.WorkspaceGlesBackdrop
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
@@ -58,8 +59,6 @@ import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceDockShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
 import dev.electrikjesus.xrlauncher.ui.workspace.PanelChromeHeader
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspacePanelShell
-import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
-import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWallpaper
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceWraparoundLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.WraparoundPanelContainer
 
@@ -133,26 +132,15 @@ fun GlassesSpatialWorkspaceScreen(
     }
 
     val tuned = appearance.clamped()
-    val densityScale = LocalDensity.current.density
-    // EXTERNAL glasses often report ~100dpi (density 0.625). Keep Home Space readable
-    // in the center 2/3 without relying on the 0.75–2.0 appearance slider alone.
-    val uiScale = if (densityScale < 1.15f) {
-        tuned.uiScale * (1.15f / densityScale).coerceIn(1f, 2.2f)
-    } else {
-        tuned.uiScale
-    }
     val panelGapDp = tuned.panelGapDp
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
-    val lookYaw = WorkspaceWraparound.effectiveLookYaw(tuned)
-    val lookPitch = WorkspaceWraparound.effectiveLookPitch(tuned)
-    val (parallaxX, parallaxY) = WorkspaceWraparound.cursorNorm(cursor.x, cursor.y)
-    val (backdropYaw, backdropPitch) = WorkspaceWraparound.backdropLook(
-        cursorX = cursor.x,
-        cursorY = cursor.y,
-        lookYawDegrees = lookYaw,
-        lookPitchDegrees = lookPitch,
+    val homeCamera = WorkspaceCylinderGeometry.CameraState(
+        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(panNorm, cursor.x),
+        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(cursor.y),
+        panNormX = 0f,
+        panNormY = 0f,
     )
     val openAllApps = { GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT) }
     val launchApp: (LaunchableApp) -> Unit = { app ->
@@ -177,19 +165,23 @@ fun GlassesSpatialWorkspaceScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        WorkspaceWallpaper(
+        WorkspaceGlesBackdrop(
+            camera = homeCamera,
+            curvature = 1f,
+            workspaceWidth = 1f,
+            workspaceHeight = 1f,
             wallpaperChoice = tuned.wallpaperChoice,
-            parallaxX = parallaxX,
-            parallaxY = parallaxY,
-            lookYawDegrees = backdropYaw,
-            lookPitchDegrees = backdropPitch,
+            showWallpaperCylinder = true,
+            surroundRoom = true,
+            enabled = true,
             modifier = Modifier.fillMaxSize(),
         )
 
         val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
-        WorkspaceScaledLayer(uiScale = uiScale) {
-            GlassesHomeCarousel(
+        GlassesHomeCarousel(
             panNorm = panNorm,
+            cursorX = cursor.x,
+            cursorY = cursor.y,
             appPlanes = appPlanes,
             left = {
                 GlassesXrAllAppsLayer(
@@ -242,8 +234,7 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             },
             modifier = Modifier.fillMaxSize(),
-            )
-        }
+        )
 
         if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
             GlassesRecentsLayer(
