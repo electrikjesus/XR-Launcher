@@ -260,6 +260,41 @@ class HomeSpaceDeskTest {
     }
 
     @Test
+    fun layout_openDrawerBackingIsAtLeastAsWideAsTall() {
+        val many = (0 until 20).map { i ->
+            HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
+        }
+        val open = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+        )
+        val backing = open.first { it.isBacking }
+        assertTrue(
+            "backing should be square-or-wider: w=${backing.halfWidth} h=${backing.halfHeight}",
+            backing.halfWidth + 0.001f >= backing.halfHeight,
+        )
+    }
+
+    @Test
+    fun layout_drawerPoseOverridesDefaultYaw() {
+        val icons = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerYawDeg = -55f,
+            drawerPitchDeg = 8f,
+        )
+        val drawer = icons.first { it.isAppDrawer }
+        assertEquals(-55f, drawer.yawDeg, 0.01f)
+        assertEquals(8f, drawer.pitchDeg, 0.01f)
+    }
+
+    @Test
     fun pickAlongRay_prefersPagerControlsOverBacking() {
         val many = (0 until 20).map { i ->
             HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")

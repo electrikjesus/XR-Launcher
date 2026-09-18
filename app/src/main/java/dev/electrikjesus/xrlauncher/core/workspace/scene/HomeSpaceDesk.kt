@@ -28,15 +28,15 @@ object HomeSpaceDesk {
     /** Open-drawer tiles are larger than closed desktop icons for readability. */
     const val DRAWER_OPEN_ICON_SCALE = 1.35f
     /** Horizontal arc spacing between open-drawer icon centers, in icon widths. */
-    const val DRAWER_OPEN_COL_SPACING = 2.65f
-    /** Vertical arc spacing — taller than columns so labels breathe and the frame reads squarer. */
-    const val DRAWER_OPEN_ROW_SPACING = 3.05f
+    const val DRAWER_OPEN_COL_SPACING = 2.85f
+    /** Vertical arc spacing — keep labels readable without making the frame a tall strip. */
+    const val DRAWER_OPEN_ROW_SPACING = 2.95f
     /** Extra pitch gap (in row-spacing units) between bottom icon row and pager. */
-    const val DRAWER_PAGER_GAP = 1.05f
+    const val DRAWER_PAGER_GAP = 1.15f
     /** Padding around grid+pager inside the backing, in icon half-sizes. */
-    const val DRAWER_BACKING_PAD = 0.75f
-    /** Extra horizontal pad so the open widget is wider / more square. */
-    const val DRAWER_BACKING_WIDTH_PAD = 0.35f
+    const val DRAWER_BACKING_PAD = 0.7f
+    /** Extra horizontal pad; backing is then forced at least as wide as tall (square+). */
+    const val DRAWER_BACKING_WIDTH_PAD = 0.55f
     const val MAX_PAGE_DOTS = 7
     /** Inward lift of the expanded All Apps widget (closer to the camera). */
     const val BACKING_LIFT = 0.11f
@@ -203,15 +203,19 @@ object HomeSpaceDesk {
         draggingKey: String? = null,
         dragYawDeg: Float = 0f,
         dragPitchDeg: Float = 0f,
+        drawerYawDeg: Float? = null,
+        drawerPitchDeg: Float = 0f,
     ): List<Icon> {
         val scale = sphereScale.coerceAtLeast(0.01f)
         val iconScale = uiScale.coerceAtLeast(0.01f)
         val halfW = iconHalfWidth(iconScale)
         val halfH = iconHalfHeight(iconScale)
-        val yaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
+        val defaultYaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
+        val yaw = drawerYawDeg ?: defaultYaw
         val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
         val yawStep = Math.toDegrees((halfW * 2.35f / radius).toDouble()).toFloat()
         val pitchStep = Math.toDegrees((halfH * 2.35f / radius).toDouble()).toFloat()
+        val drawerDragging = draggingKey == DRAWER_KEY
         val drawer = iconOf(
             app = AppRef(
                 componentKey = DRAWER_KEY,
@@ -219,11 +223,12 @@ object HomeSpaceDesk {
                 packageName = "",
                 kind = Kind.APP_DRAWER,
             ),
-            yawDeg = yaw,
-            pitchDeg = 0f,
+            yawDeg = if (drawerDragging) dragYawDeg else yaw,
+            pitchDeg = if (drawerDragging) dragPitchDeg else drawerPitchDeg,
             sphereScale = scale,
             halfWidth = halfW * DRAWER_SCALE,
             halfHeight = halfH * DRAWER_SCALE,
+            lift = if (drawerDragging) HOVER_LIFT else 0f,
         )
         val placedIcons = placed.filter { it.app.kind == Kind.APP }.map { item ->
             val pose = if (item.app.componentKey == draggingKey) {
@@ -268,10 +273,12 @@ object HomeSpaceDesk {
                 (openHalfW * (1f + DRAWER_BACKING_PAD + DRAWER_BACKING_WIDTH_PAD) / radius).toDouble(),
             ).toFloat()
         val contentCenterPitch = (topEdgePitch + bottomEdgePitch) * 0.5f
-        val backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
+        var backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
         val backingHalfH = radius * Math.toRadians(
             ((topEdgePitch - bottomEdgePitch) * 0.5f).toDouble(),
         ).toFloat()
+        // Force square-or-wider so the open drawer never reads as a tall strip.
+        backingHalfW = maxOf(backingHalfW, backingHalfH)
         val backing = iconOf(
             app = AppRef(BACKING_KEY, DRAWER_LABEL, "", Kind.DRAWER_BACKING),
             yawDeg = yaw,

@@ -124,4 +124,36 @@ class HomeSpaceDeskStateTest {
         assertTrue(HomeSpaceDeskState.notePointerUp(cursorMoved = false))
         assertEquals(1, AllAppsPaginationState.pageIndex)
     }
+
+    @Test
+    fun pullAllAppsTile_reposesDrawer() {
+        val drawer = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(
+                HomeSpaceDesk.DRAWER_KEY,
+                HomeSpaceDesk.DRAWER_LABEL,
+                "",
+                HomeSpaceDesk.Kind.APP_DRAWER,
+            ),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+        )
+        HomeSpaceDeskState.press(drawer, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(-12f, HomeSpaceDeskState.drawerPose!!.first, 0.01f)
+        assertEquals(6f, HomeSpaceDeskState.drawerPose!!.second, 0.01f)
+        assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
+
+    @Test
+    fun releaseAfterPull_placesAtRestWithoutImpulse() {
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        val placed = HomeSpaceDeskState.placed.first()
+        assertEquals(0f, placed.velYawDeg, 0.001f)
+        assertEquals(0f, placed.velPitchDeg, 0.001f)
+    }
 }

@@ -283,9 +283,17 @@ object CompanionPointerBus {
         _cursor.value = current.copy(isPressed = true)
     }
 
+    /**
+     * Invoked synchronously when Hold-Left goes down so desk grab does not wait for
+     * Compose to observe `isPressed` (touchpad finger may already be moving).
+     */
+    @Volatile
+    var onLeftButtonDown: (() -> Unit)? = null
+
     fun beginLeftButton() {
         leftButtonInGesture = true
         beginPointerGesture()
+        onLeftButtonDown?.invoke()
     }
 
     fun endLeftButton() = finishPointerGesture(fromTouchpad = false)

@@ -37,21 +37,32 @@ object HomeSpaceDeskState {
     val dragFlow: StateFlow<Drag?> = _drag.asStateFlow()
     val drag: Drag? get() = _drag.value
 
+    /** Closed All Apps tile pose; null keeps the default left-of-Home yaw. */
+    private val _drawerPose = MutableStateFlow<Pair<Float, Float>?>(null)
+    val drawerPoseFlow: StateFlow<Pair<Float, Float>?> = _drawerPose.asStateFlow()
+    val drawerPose: Pair<Float, Float>? get() = _drawerPose.value
+
     /** Pager / All Apps tile pressed under Hold-Left — fired on pointer-up if not dragging. */
     private var pendingChrome: HomeSpaceDesk.Icon? = null
+
+    fun hasActiveGesture(): Boolean = _drag.value != null || pendingChrome != null
 
     fun press(icon: HomeSpaceDesk.Icon, cursorX: Float, cursorY: Float) {
         pendingChrome = when {
             icon.isPager || icon.isAppDrawer -> icon
             else -> null
         }
-        if (!icon.isDesktopApp) {
+        if (icon.isPager || icon.isBacking) {
+            _drag.value = null
+            return
+        }
+        if (!icon.isDesktopApp && !icon.isAppDrawer) {
             _drag.value = null
             return
         }
         _drag.value = Drag(
             app = icon.app,
-            fromDrawer = icon.lift > 0f,
+            fromDrawer = icon.isDesktopApp && icon.lift > 0f,
             startX = cursorX,
             startY = cursorY,
             startYawDeg = icon.yawDeg,
@@ -146,19 +157,20 @@ object HomeSpaceDeskState {
             paneBlocks = panes,
             excludeKey = current.app.componentKey,
         ) ?: return true
-        val (impulseYaw, impulsePitch) = DeskPhysics.impulseFromDrag(
-            current.startYawDeg,
-            current.startPitchDeg,
-            resolved.first,
-            resolved.second,
-        )
+        if (current.app.componentKey == HomeSpaceDesk.DRAWER_KEY ||
+            current.app.kind == HomeSpaceDesk.Kind.APP_DRAWER
+        ) {
+            _drawerPose.value = resolved.first to resolved.second
+            return true
+        }
+        // Place at rest — release impulse caused icons to jump after a grab.
         val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
             HomeSpaceDesk.Placed(
                 app = current.app,
                 yawDeg = resolved.first,
                 pitchDeg = resolved.second,
-                velYawDeg = impulseYaw,
-                velPitchDeg = impulsePitch,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
             )
         _placed.value = next
         return true
@@ -265,6 +277,7 @@ object HomeSpaceDeskState {
     fun clear() {
         _placed.value = emptyList()
         _drag.value = null
+        _drawerPose.value = null
         pendingChrome = null
     }
 }

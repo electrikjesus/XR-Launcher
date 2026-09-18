@@ -140,9 +140,10 @@ object DeskPhysics {
         toYaw: Float,
         toPitch: Float,
     ): Pair<Float, Float> {
-        val dy = (toYaw - fromYaw).coerceIn(-25f, 25f)
-        val dp = (toPitch - fromPitch).coerceIn(-25f, 25f)
-        return dy * 2.8f to dp * 2.8f
+        // Soft carry — large impulses made icons jump on release.
+        val dy = (toYaw - fromYaw).coerceIn(-8f, 8f)
+        val dp = (toPitch - fromPitch).coerceIn(-8f, 8f)
+        return dy * 0.35f to dp * 0.35f
     }
 
     fun separationDistance(a: Body, b: Body): Float {

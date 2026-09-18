@@ -124,8 +124,14 @@ fun LauncherWorkspacePointerEffects(
             }
         }
         CompanionPointerBus.addClickListener(listener)
-        onDispose { CompanionPointerBus.removeClickListener(listener) }
+        bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        onDispose {
+            CompanionPointerBus.removeClickListener(listener)
+            clearDeskLeftButtonGrab()
+        }
     }
+    // Keep sync Left-down grab params current without tearing down the click listener.
+    bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale)
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
@@ -588,6 +594,40 @@ private fun deskIconAt(
     return HomeSpaceDesk.pickAlongRay(ray, icons)
 }
 
+private var lastDeskRootWidthPx = 1920f
+private var lastDeskRootHeightPx = 1080f
+private var lastDeskPanelScale = 1f
+private var lastDeskSphereScale = 1f
+
+/** Sync grab from [CompanionPointerBus.beginLeftButton] while touchpad may already be moving. */
+fun bindDeskLeftButtonGrab(
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+) {
+    lastDeskRootWidthPx = rootWidthPx
+    lastDeskRootHeightPx = rootHeightPx
+    lastDeskPanelScale = panelScale
+    lastDeskSphereScale = sphereScale
+    CompanionPointerBus.onLeftButtonDown = {
+        val c = CompanionPointerBus.cursor.value
+        trackDeskDrag(
+            cursorX = c.x,
+            cursorY = c.y,
+            pressed = true,
+            rootWidthPx = lastDeskRootWidthPx,
+            rootHeightPx = lastDeskRootHeightPx,
+            panelScale = lastDeskPanelScale,
+            sphereScale = lastDeskSphereScale,
+        )
+    }
+}
+
+fun clearDeskLeftButtonGrab() {
+    CompanionPointerBus.onLeftButtonDown = null
+}
+
 private fun trackDeskDrag(
     cursorX: Float,
     cursorY: Float,
@@ -597,21 +637,29 @@ private fun trackDeskDrag(
     panelScale: Float,
     sphereScale: Float,
 ) {
-    if (pressed && !deskGesturePressed) {
-        deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { icon ->
-            HomeSpaceDeskState.press(icon, cursorX, cursorY)
+    lastDeskRootWidthPx = rootWidthPx
+    lastDeskRootHeightPx = rootHeightPx
+    lastDeskPanelScale = panelScale
+    lastDeskSphereScale = sphereScale
+    if (pressed) {
+        // Grab on Left-down even if the touchpad finger was already moving (missed rising edge).
+        if (!HomeSpaceDeskState.hasActiveGesture()) {
+            deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { icon ->
+                HomeSpaceDeskState.press(icon, cursorX, cursorY)
+            }
         }
-    } else if (pressed) {
-        val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-        val hit = HomeSpaceScene.sphereHit(
-            cursorX = cursorX,
-            cursorY = cursorY,
-            camera = camera,
-            viewportWidthPx = rootWidthPx,
-            viewportHeightPx = rootHeightPx,
-            sphereScale = sphereScale,
-        )
-        HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
+        if (HomeSpaceDeskState.drag != null) {
+            val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+            val hit = HomeSpaceScene.sphereHit(
+                cursorX = cursorX,
+                cursorY = cursorY,
+                camera = camera,
+                viewportWidthPx = rootWidthPx,
+                viewportHeightPx = rootHeightPx,
+                sphereScale = sphereScale,
+            )
+            HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
+        }
     } else if (deskGesturePressed) {
         val drag = HomeSpaceDeskState.drag
         val draggingKey = drag?.app?.componentKey

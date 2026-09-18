@@ -20,6 +20,10 @@ object DeskIconTextureBus {
     private val snapshotsRef = AtomicReference<List<DeskIconSnapshot>>(emptyList())
     private val hoveredKeyRef = AtomicReference<String?>(null)
 
+    /** Last All Apps page baked into [snapshots]; forces rebuild when only the page index changes. */
+    @Volatile
+    var lastDrawerPage: Int = -1
+
     fun registerRenderCallback(callback: () -> Unit) {
         renderCallbacks += callback
     }
@@ -57,6 +61,7 @@ object DeskIconTextureBus {
         iconsRef.set(emptyList())
         snapshotsRef.set(emptyList())
         hoveredKeyRef.set(null)
+        lastDrawerPage = -1
         renderCallbacks.forEach { it.invoke() }
     }
 }

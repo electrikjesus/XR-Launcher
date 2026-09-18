@@ -110,13 +110,16 @@ fun GlassesSpatialWorkspaceScreen(
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
     val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
     val deskDrag by HomeSpaceDeskState.dragFlow.collectAsState()
+    val deskDrawerPose by HomeSpaceDeskState.drawerPoseFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(launchableApps.size) {
-        AllAppsPaginationState.updatePageCount(launchableApps.size, pageSize = HomeSpaceDesk.DRAWER_PAGE_SIZE)
+    LaunchedEffect(launchableApps, deskPlaced) {
+        val placedKeys = deskPlaced.map { it.app.componentKey }.toSet()
+        val unplaced = launchableApps.count { it.componentKey() !in placedKeys }
+        AllAppsPaginationState.updatePageCount(unplaced, pageSize = HomeSpaceDesk.DRAWER_PAGE_SIZE)
     }
     val visiblePanels = remember(panels) { Workspace.spatialHomePanels(panels) }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
@@ -190,6 +193,7 @@ fun GlassesSpatialWorkspaceScreen(
         allAppsPage,
         deskPlaced,
         deskDrag,
+        deskDrawerPose,
     ) {
         if (!tuned.desktopIcons) {
             DeskIconTextureBus.clear()
@@ -215,10 +219,14 @@ fun GlassesSpatialWorkspaceScreen(
             draggingKey = deskDrag?.app?.componentKey,
             dragYawDeg = deskDrag?.yawDeg ?: 0f,
             dragPitchDeg = deskDrag?.pitchDeg ?: 0f,
+            drawerYawDeg = deskDrawerPose?.first,
+            drawerPitchDeg = deskDrawerPose?.second ?: 0f,
         )
         val iconKeys = icons.map { it.componentKey }
         val existingKeys = DeskIconTextureBus.snapshots().map { it.componentKey }.toSet()
-        if (iconKeys.toSet() == existingKeys && DeskIconTextureBus.snapshots().isNotEmpty()) {
+        // Always rebuild when the All Apps page changes — page dots share keys across pages.
+        val pageChanged = DeskIconTextureBus.lastDrawerPage != allAppsPage
+        if (iconKeys.toSet() == existingKeys && DeskIconTextureBus.snapshots().isNotEmpty() && !pageChanged) {
             DeskIconTextureBus.setIcons(icons)
             return@LaunchedEffect
         }
@@ -232,6 +240,7 @@ fun GlassesSpatialWorkspaceScreen(
             }
         }
         DeskIconTextureBus.set(icons, snapshots)
+        DeskIconTextureBus.lastDrawerPage = allAppsPage
     }
     LaunchedEffect(hotseatApps) {
         GlassesRecentApps.seedIfEmpty(hotseatApps)
@@ -252,7 +261,10 @@ fun GlassesSpatialWorkspaceScreen(
                     GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
                     val appearance = currentTuned.value
                     val icons = DeskIconTextureBus.icons()
-                    val pinned = icons.filter { it.isAppDrawer || it.isBacking }
+                    val draggingKey = HomeSpaceDeskState.drag?.app?.componentKey
+                    val pinned = icons.filter {
+                        (it.isAppDrawer || it.isBacking) && it.componentKey != draggingKey
+                    }
                     val panes = GlassesHomeLook.homeSpaceSlots(currentAppPlanes.value).map { slot ->
                         HomeSpaceScene.pane(
                             worldX = slot.worldX,
