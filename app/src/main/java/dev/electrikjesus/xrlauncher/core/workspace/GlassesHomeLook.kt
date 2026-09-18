@@ -26,6 +26,12 @@ object GlassesHomeLook {
     const val PANE_HOME = 0f
     const val PANE_RIGHT = 1f
 
+    /**
+     * Extra pan left of [PANE_LEFT] so the camera can face empty Desktop space
+     * and the left half of the All Apps widget (FPS locks the cursor to center).
+     */
+    const val DESKTOP_LOOK_EXTRA = 1.15f
+
     const val EDGE_START = 0.12f
     const val PAN_SPEED = 0.85f
 
@@ -77,7 +83,7 @@ object GlassesHomeLook {
     val appPlanes: List<GlassesAppPlane>
         get() = _appPlanes.value
 
-    fun minPan(): Float = PANE_LEFT
+    fun minPan(): Float = PANE_LEFT - DESKTOP_LOOK_EXTRA
 
     fun maxPan(): Float = PANE_RIGHT + appPlanes.size
 
@@ -106,6 +112,7 @@ object GlassesHomeLook {
         panNorm = pane
     }
 
+    /** Desktop / All Apps wall, including empty space left of the drawer. */
     fun lookingAtDesktop(): Boolean = panNorm <= PANE_LEFT + 0.28f
 
     fun lookingAtAllApps(): Boolean = lookingAtDesktop()

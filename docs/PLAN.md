@@ -600,11 +600,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed: hide All Apps backing; fix mouse-look up/down; companion mouse-look toggle above touchpad.
+Landed: hide All Apps backing; mouse-look pitch + companion toggle; extend left pan past Desktop for empty space / left half of the drawer.
 
 **Do this next (after on-device check). One concern per change.**
 
-1. **On-device recheck** — mouse-look pitch + companion toggle; Edit dialog still camera-stuck.
+1. **On-device recheck** — look far left past All Apps; select left-side icons; Edit dialog still camera-stuck.
 2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
 3. **Persist placed desktop icons + drawer pose** — `DeskRepository` analog (yaw/pitch on the sphere).
 4. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
@@ -769,7 +769,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Shrink open All Apps** so pager stays in cursor pitch FOV | Widget too tall to reach bottom pagination |
 | 2026-09-18 | **Hide All Apps backing texture** — pick/physics only, no stretched panel | Low-res rounded panel looked mottled / blotchy |
 | 2026-09-18 | **Mouse-look pitch sign + companion toggle** — finger up looks up; 3D-rotation icon above touchpad | FPS look inverted; no phone control for look mode |
+| 2026-09-18 | **Desktop look range** — `minPan` = PANE_LEFT − 1.15 so empty space / left All Apps is reachable | Pan clamped at Desktop center; left half of drawer unreachable |
 
 ---
 
-*Last updated: 2026-09-18 (mouse-look pitch + companion toggle; host tests)*
+*Last updated: 2026-09-18 (extend left Desktop look; host tests)*

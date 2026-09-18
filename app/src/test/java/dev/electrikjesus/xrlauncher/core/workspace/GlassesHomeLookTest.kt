@@ -52,9 +52,29 @@ class GlassesHomeLookTest {
     @Test
     fun pan_clampsToPanes() {
         GlassesHomeLook.lookAt(-4f)
-        assertEquals(GlassesHomeLook.PANE_LEFT, GlassesHomeLook.panNorm, 0.001f)
+        assertEquals(GlassesHomeLook.minPan(), GlassesHomeLook.panNorm, 0.001f)
         GlassesHomeLook.lookAt(4f)
         assertEquals(GlassesHomeLook.PANE_RIGHT, GlassesHomeLook.panNorm, 0.001f)
+    }
+
+    @Test
+    fun pan_allowsLookingLeftOfDesktopForEmptySpace() {
+        assertTrue(GlassesHomeLook.minPan() < GlassesHomeLook.PANE_LEFT)
+        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT - 0.8f)
+        assertEquals(GlassesHomeLook.PANE_LEFT - 0.8f, GlassesHomeLook.panNorm, 0.001f)
+        assertTrue(GlassesHomeLook.lookingAtDesktop())
+    }
+
+    @Test
+    fun leftEdge_canPanPastDesktopCenter() {
+        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
+        repeat(120) {
+            GlassesHomeLook.tickEdgePan(cursorX = 0.02f, deltaSeconds = 0.016f)
+        }
+        assertTrue(
+            "edge pan should reach empty space left of Desktop",
+            GlassesHomeLook.panNorm < GlassesHomeLook.PANE_LEFT - 0.2f,
+        )
     }
 
     @Test
