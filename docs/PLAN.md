@@ -600,11 +600,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed desk interaction fixes: square-or-wider All Apps backing; pager pageCount from unplaced apps; Hold-Left grab while touchpad is already moving; movable All Apps tile pose; place icons at rest (no release jump).
+Landed: shrink open All Apps so pager stays in cursor pitch reach (smaller icons/spacing + lift).
 
 **Do this next (after on-device check). One concern per change.**
 
-1. **On-device recheck** — square widget, pager, Hold-Left grab, All Apps tile drag, no release jump.
+1. **On-device recheck** — shrunk widget pager reachable; then mouse-look invert / Edit dismiss / companion FPS button.
 2. **Persist placed desktop icons + drawer pose** — `DeskRepository` analog (yaw/pitch on the sphere).
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Unify panes as pinned widgets** — after the desk feels right.
@@ -766,7 +766,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Desk drag pointer-up:** snapshot/suppress companion click before clearing `isPressed` | Compose release raced and clicked at the drop point |
 | 2026-09-18 | **All Apps frame + pager chrome + DeskPhysics:** wider/squarer backing, row gap; Hold-Left pager via pending chrome; BumpDesk mass/impulse on sphere (panes pinned) | Tall cramped widget; highlight without click; icons passed through each other/panels |
 | 2026-09-18 | **Desk grab/pager/pose:** square backing; unplaced pageCount; sync Left-down grab; movable All Apps tile; zero release velocity | Pager no-op; jump on drop; Hold-Left only after lift; All Apps tile stuck |
+| 2026-09-18 | **Shrink open All Apps** so pager stays in cursor pitch FOV | Widget too tall to reach bottom pagination |
 
 ---
 
-*Last updated: 2026-09-18 (desk grab/pager/square/pose; host tests)*
+*Last updated: 2026-09-18 (shrink open All Apps for pager reach; host tests)*

@@ -91,8 +91,8 @@ class HomeSpaceDeskTest {
         assertEquals(2 + 2, pager.size) // prev + next + 2 page dots for 20 apps
         assertTrue(appsOnPage.first().center.length() < backing.center.length())
         assertTrue(
-            "open drawer icons should be larger than the closed All Apps tile",
-            appsOnPage.first().halfWidth > closedDrawer.halfWidth / HomeSpaceDesk.DRAWER_SCALE,
+            "open drawer icons stay readable vs desktop scale",
+            appsOnPage.first().halfWidth >= HomeSpaceDesk.ICON_HALF_WIDTH * 0.95f,
         )
         assertTrue(
             "backing should be wider for a squarer widget",
@@ -107,6 +107,15 @@ class HomeSpaceDeskTest {
         assertTrue(
             "pager sits below the grid with a gap",
             topApp.pitchDeg > bottomPager.pitchDeg + 2f,
+        )
+        assertTrue(
+            "pager stays within cursor pitch reach",
+            bottomPager.pitchDeg >= -HomeSpaceDesk.DRAWER_MAX_HALF_PITCH_DEG - 0.5f,
+        )
+        assertTrue(
+            "open drawer half-height stays within FOV budget",
+            HomeSpaceDesk.angularHalfPitch(backing.halfHeight, 1f) <=
+                HomeSpaceDesk.DRAWER_MAX_HALF_PITCH_DEG + 0.25f,
         )
         assertTrue(
             "backing contains the top row",

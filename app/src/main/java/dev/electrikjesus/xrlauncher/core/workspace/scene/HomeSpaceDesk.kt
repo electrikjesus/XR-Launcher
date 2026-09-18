@@ -25,19 +25,24 @@ object HomeSpaceDesk {
     const val BACKING_KEY = "__desk_all_apps_widget__"
     const val PAGE_PREV_KEY = "__desk_page_prev__"
     const val PAGE_NEXT_KEY = "__desk_page_next__"
-    /** Open-drawer tiles are larger than closed desktop icons for readability. */
-    const val DRAWER_OPEN_ICON_SCALE = 1.35f
+    /** Open-drawer tiles — keep modest so the full grid + pager stay in cursor FOV. */
+    const val DRAWER_OPEN_ICON_SCALE = 1.05f
     /** Horizontal arc spacing between open-drawer icon centers, in icon widths. */
-    const val DRAWER_OPEN_COL_SPACING = 2.85f
-    /** Vertical arc spacing — keep labels readable without making the frame a tall strip. */
-    const val DRAWER_OPEN_ROW_SPACING = 2.95f
+    const val DRAWER_OPEN_COL_SPACING = 2.45f
+    /** Vertical arc spacing between open-drawer icon centers, in icon heights. */
+    const val DRAWER_OPEN_ROW_SPACING = 2.55f
     /** Extra pitch gap (in row-spacing units) between bottom icon row and pager. */
-    const val DRAWER_PAGER_GAP = 1.15f
+    const val DRAWER_PAGER_GAP = 0.85f
     /** Padding around grid+pager inside the backing, in icon half-sizes. */
-    const val DRAWER_BACKING_PAD = 0.7f
+    const val DRAWER_BACKING_PAD = 0.45f
     /** Extra horizontal pad; backing is then forced at least as wide as tall (square+). */
-    const val DRAWER_BACKING_WIDTH_PAD = 0.55f
-    const val MAX_PAGE_DOTS = 7
+    const val DRAWER_BACKING_WIDTH_PAD = 0.35f
+    const val MAX_PAGE_DOTS = 5
+    /**
+     * Soft cap on open-drawer angular half-height (degrees) so the pager stays
+     * inside companion mouse-look / cursor pitch reach ([HomeSpaceScene.MAX_PITCH_DEGREES]).
+     */
+    const val DRAWER_MAX_HALF_PITCH_DEG = 16f
     /** Inward lift of the expanded All Apps widget (closer to the camera). */
     const val BACKING_LIFT = 0.11f
     /** Extra lift so app icons and pager sit on top of the widget. */
@@ -264,19 +269,26 @@ object HomeSpaceDesk {
         val gridTopPitch = (DRAWER_ROWS - 1) * 0.5f * openPitchStep
         val gridBottomPitch = -gridTopPitch
         val pagerPitch = gridBottomPitch - (DRAWER_PAGER_GAP + 0.5f) * openPitchStep
-        val topEdgePitch = gridTopPitch +
+        val topEdgePitchRaw = gridTopPitch +
             Math.toDegrees((openHalfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
-        val bottomEdgePitch = pagerPitch -
+        val bottomEdgePitchRaw = pagerPitch -
             Math.toDegrees((pagerHalfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+        // Lift the whole open drawer so the pager stays above the cursor pitch floor.
+        val pitchShift = ((-DRAWER_MAX_HALF_PITCH_DEG) - bottomEdgePitchRaw).coerceAtLeast(0f)
+        val topEdgePitch = topEdgePitchRaw + pitchShift
+        val bottomEdgePitch = bottomEdgePitchRaw + pitchShift
+        val gridPitchShift = pitchShift
         val sideEdgeYaw = (DRAWER_COLS - 1) * 0.5f * openYawStep +
             Math.toDegrees(
                 (openHalfW * (1f + DRAWER_BACKING_PAD + DRAWER_BACKING_WIDTH_PAD) / radius).toDouble(),
             ).toFloat()
         val contentCenterPitch = (topEdgePitch + bottomEdgePitch) * 0.5f
         var backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
-        val backingHalfH = radius * Math.toRadians(
+        var backingHalfH = radius * Math.toRadians(
             ((topEdgePitch - bottomEdgePitch) * 0.5f).toDouble(),
         ).toFloat()
+        val maxHalfH = radius * Math.toRadians(DRAWER_MAX_HALF_PITCH_DEG.toDouble()).toFloat()
+        backingHalfH = minOf(backingHalfH, maxHalfH)
         // Force square-or-wider so the open drawer never reads as a tall strip.
         backingHalfW = maxOf(backingHalfW, backingHalfH)
         val backing = iconOf(
@@ -293,7 +305,7 @@ object HomeSpaceDesk {
             val col = index % DRAWER_COLS
             val row = index / DRAWER_COLS
             val iconYaw = yaw + (col - (DRAWER_COLS - 1) * 0.5f) * openYawStep
-            val iconPitch = gridTopPitch - row * openPitchStep
+            val iconPitch = gridTopPitch - row * openPitchStep + gridPitchShift
             val dragging = app.componentKey == draggingKey
             iconOf(
                 app = app,
@@ -307,12 +319,13 @@ object HomeSpaceDesk {
         }
         val firstDot = page.coerceIn(0, (pageCount - MAX_PAGE_DOTS).coerceAtLeast(0))
         val visibleDots = (pageCount - firstDot).coerceAtMost(MAX_PAGE_DOTS)
+        val pagerPitchShifted = pagerPitch + gridPitchShift
         val pager = buildList {
             add(
                 iconOf(
                     app = AppRef(PAGE_PREV_KEY, "Previous", "", Kind.PAGE_PREV),
                     yawDeg = yaw - sideEdgeYaw * 0.78f,
-                    pitchDeg = pagerPitch,
+                    pitchDeg = pagerPitchShifted,
                     sphereScale = scale,
                     halfWidth = pagerHalfW,
                     halfHeight = pagerHalfH,
@@ -325,7 +338,7 @@ object HomeSpaceDesk {
                     iconOf(
                         app = AppRef(pageKey(index), "${index + 1}", "", Kind.PAGE),
                         yawDeg = yaw + (offset - (visibleDots - 1) * 0.5f) * openYawStep * 0.48f,
-                        pitchDeg = pagerPitch,
+                        pitchDeg = pagerPitchShifted,
                         sphereScale = scale,
                         halfWidth = dotHalf,
                         halfHeight = dotHalf,
@@ -337,7 +350,7 @@ object HomeSpaceDesk {
                 iconOf(
                     app = AppRef(PAGE_NEXT_KEY, "Next", "", Kind.PAGE_NEXT),
                     yawDeg = yaw + sideEdgeYaw * 0.78f,
-                    pitchDeg = pagerPitch,
+                    pitchDeg = pagerPitchShifted,
                     sphereScale = scale,
                     halfWidth = pagerHalfW,
                     halfHeight = pagerHalfH,
