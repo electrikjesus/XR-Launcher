@@ -20,6 +20,15 @@ object HomeSpaceDesk {
     const val ICON_HALF_WIDTH = 0.13f
     const val ICON_HALF_HEIGHT = 0.16f
     const val ICON_HALF_THICK = 0.012f
+    /** BumpDesk expanded-pile page: 4×4. */
+    const val DRAWER_COLS = 4
+    const val DRAWER_PAGE_SIZE = 16
+
+    fun iconHalfWidth(uiScale: Float): Float =
+        ICON_HALF_WIDTH * uiScale.coerceAtLeast(0.01f)
+
+    fun iconHalfHeight(uiScale: Float): Float =
+        ICON_HALF_HEIGHT * uiScale.coerceAtLeast(0.01f)
 
     enum class Kind { APP_DRAWER, APP }
 
@@ -116,12 +125,20 @@ object HomeSpaceDesk {
         viewportWidthPx: Float,
         viewportHeightPx: Float,
         panelScale: Float = 1f,
+        uiScale: Float = 1f,
+        drawerOpen: Boolean = false,
+        drawerApps: List<AppRef> = emptyList(),
+        drawerPage: Int = 0,
     ): List<Icon> = layout(
         placed = emptyList(),
         sphereScale = sphereScale,
         viewportWidthPx = viewportWidthPx,
         viewportHeightPx = viewportHeightPx,
         panelScale = panelScale,
+        uiScale = uiScale,
+        drawerOpen = drawerOpen,
+        drawerApps = drawerApps,
+        drawerPage = drawerPage,
     )
 
     fun layout(
@@ -130,8 +147,15 @@ object HomeSpaceDesk {
         viewportWidthPx: Float,
         viewportHeightPx: Float,
         panelScale: Float = 1f,
+        uiScale: Float = 1f,
+        drawerOpen: Boolean = false,
+        drawerApps: List<AppRef> = emptyList(),
+        drawerPage: Int = 0,
     ): List<Icon> {
         val scale = sphereScale.coerceAtLeast(0.01f)
+        val iconScale = uiScale.coerceAtLeast(0.01f)
+        val halfW = iconHalfWidth(iconScale)
+        val halfH = iconHalfHeight(iconScale)
         val yaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
         val drawer = iconOf(
             app = AppRef(
@@ -143,20 +167,47 @@ object HomeSpaceDesk {
             yawDeg = yaw,
             pitchDeg = 0f,
             sphereScale = scale,
-            halfWidth = ICON_HALF_WIDTH * DRAWER_SCALE,
-            halfHeight = ICON_HALF_HEIGHT * DRAWER_SCALE,
+            halfWidth = halfW * DRAWER_SCALE,
+            halfHeight = halfH * DRAWER_SCALE,
         )
+        val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
+        val yawStep = Math.toDegrees((halfW * 2.4f / radius).toDouble()).toFloat()
+        val pitchStep = Math.toDegrees((halfH * 2.4f / radius).toDouble()).toFloat()
         val placedIcons = placed.filter { it.kind == Kind.APP }.mapIndexed { index, app ->
-            val col = (index % 4) - 1.5f
-            val row = 1 + index / 4
+            val col = (index % DRAWER_COLS) - 1.5f
+            val row = 1 + index / DRAWER_COLS
             iconOf(
                 app = app,
-                yawDeg = yaw + col * 8f,
-                pitchDeg = -row * 7f,
+                yawDeg = yaw + col * yawStep,
+                pitchDeg = -row * pitchStep,
                 sphereScale = scale,
+                halfWidth = halfW,
+                halfHeight = halfH,
             )
         }
-        return listOf(drawer) + placedIcons
+        val placedKeys = placedIcons.map { it.componentKey }.toSet()
+        val openIcons = if (!drawerOpen) {
+            emptyList()
+        } else {
+            val page = drawerPage.coerceAtLeast(0)
+            drawerApps
+                .filter { it.kind == Kind.APP && it.componentKey !in placedKeys }
+                .drop(page * DRAWER_PAGE_SIZE)
+                .take(DRAWER_PAGE_SIZE)
+                .mapIndexed { index, app ->
+                    val col = index % DRAWER_COLS
+                    val row = index / DRAWER_COLS
+                    iconOf(
+                        app = app,
+                        yawDeg = yaw + (col - 1.5f) * yawStep,
+                        pitchDeg = (1.5f - row) * pitchStep,
+                        sphereScale = scale,
+                        halfWidth = halfW,
+                        halfHeight = halfH,
+                    )
+                }
+        }
+        return listOf(drawer) + placedIcons + openIcons
     }
 
     fun moved(icon: Icon, yawDeg: Float, pitchDeg: Float, sphereScale: Float): Icon =
@@ -229,7 +280,19 @@ object HomeSpaceDesk {
         return HomeSpacePaneMesh(verts.toFloatArray(), 6)
     }
 
-    fun iconMesh(icon: Icon, lift: Float = 0f): HomeSpacePaneMesh {
+    data class InwardFace(
+        val bl: Vec3,
+        val br: Vec3,
+        val tr: Vec3,
+        val tl: Vec3,
+        val inward: Vec3,
+        val outBl: Vec3,
+        val outBr: Vec3,
+        val outTr: Vec3,
+        val outTl: Vec3,
+    )
+
+    fun inwardFace(icon: Icon, lift: Float = 0f): InwardFace {
         val right = rightAxis(icon.yawDeg)
         val up = upAxis(icon.yawDeg, icon.pitchDeg)
         val out = outward(icon.yawDeg, icon.pitchDeg)
@@ -240,6 +303,25 @@ object HomeSpaceDesk {
             center.y + right.y * sx * icon.halfWidth + up.y * sy * icon.halfHeight + out.y * sz * icon.halfThick,
             center.z + right.z * sx * icon.halfWidth + up.z * sy * icon.halfHeight + out.z * sz * icon.halfThick,
         )
+        return InwardFace(
+            bl = point(-1f, -1f, -1f),
+            br = point(1f, -1f, -1f),
+            tr = point(1f, 1f, -1f),
+            tl = point(-1f, 1f, -1f),
+            inward = inward,
+            outBl = point(-1f, -1f, 1f),
+            outBr = point(1f, -1f, 1f),
+            outTr = point(1f, 1f, 1f),
+            outTl = point(-1f, 1f, 1f),
+        )
+    }
+
+    fun iconMesh(icon: Icon, lift: Float = 0f): HomeSpacePaneMesh {
+        val right = rightAxis(icon.yawDeg)
+        val up = upAxis(icon.yawDeg, icon.pitchDeg)
+        val out = outward(icon.yawDeg, icon.pitchDeg)
+        val inward = out * -1f
+        val face = inwardFace(icon, lift)
         val verts = ArrayList<Float>(36 * HomeSpacePaneMesh.STRIDE)
         fun add(p: Vec3, n: Vec3, u: Float, v: Float) {
             verts += p.x
@@ -253,12 +335,14 @@ object HomeSpaceDesk {
         }
         fun quad(a: Vec3, b: Vec3, c: Vec3, d: Vec3, n: Vec3, textured: Boolean) {
             if (textured) {
-                add(a, n, 0f, 1f)
-                add(b, n, 1f, 1f)
-                add(c, n, 1f, 0f)
-                add(a, n, 0f, 1f)
-                add(c, n, 1f, 0f)
-                add(d, n, 0f, 0f)
+                // Shader samples (u, 1-v). Mesh V=0 is the bottom of the camera-facing
+                // pancake so the bitmap top (grid) lands on the top of the tile.
+                add(a, n, 0f, 0f)
+                add(b, n, 1f, 0f)
+                add(c, n, 1f, 1f)
+                add(a, n, 0f, 0f)
+                add(c, n, 1f, 1f)
+                add(d, n, 0f, 1f)
             } else {
                 add(a, n, -1f, 0f)
                 add(b, n, -1f, 0f)
@@ -268,20 +352,12 @@ object HomeSpaceDesk {
                 add(d, n, -1f, 0f)
             }
         }
-        val pInBl = point(-1f, -1f, -1f)
-        val pInBr = point(1f, -1f, -1f)
-        val pInTr = point(1f, 1f, -1f)
-        val pInTl = point(-1f, 1f, -1f)
-        val pOutBl = point(-1f, -1f, 1f)
-        val pOutBr = point(1f, -1f, 1f)
-        val pOutTr = point(1f, 1f, 1f)
-        val pOutTl = point(-1f, 1f, 1f)
-        quad(pInBl, pInBr, pInTr, pInTl, inward, textured = true)
-        quad(pOutBr, pOutBl, pOutTl, pOutTr, out, textured = false)
-        quad(pInBl, pInTl, pOutTl, pOutBl, up * -1f, textured = false)
-        quad(pInTr, pInBr, pOutBr, pOutTr, up, textured = false)
-        quad(pInTl, pInTr, pOutTr, pOutTl, right * -1f, textured = false)
-        quad(pInBr, pInBl, pOutBl, pOutBr, right, textured = false)
+        quad(face.bl, face.br, face.tr, face.tl, inward, textured = true)
+        quad(face.outBr, face.outBl, face.outTl, face.outTr, out, textured = false)
+        quad(face.bl, face.tl, face.outTl, face.outBl, up * -1f, textured = false)
+        quad(face.tr, face.br, face.outBr, face.outTr, up, textured = false)
+        quad(face.tl, face.tr, face.outTr, face.outTl, right * -1f, textured = false)
+        quad(face.br, face.bl, face.outBl, face.outBr, right, textured = false)
         return HomeSpacePaneMesh(verts.toFloatArray(), 36)
     }
 }

@@ -101,10 +101,6 @@ fun GlassesSpatialWorkspaceScreen(
     val filteredApps = remember(launchableApps, searchQuery) {
         AppRepository.filterLaunchableApps(launchableApps, searchQuery)
     }
-    var allAppsSearchQuery by remember { mutableStateOf("") }
-    val filteredAllApps = remember(launchableApps, allAppsSearchQuery) {
-        AppRepository.filterLaunchableApps(launchableApps, allAppsSearchQuery)
-    }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
     val editingHomeSpace by GlassesSessionState.homeSpaceEditFlow.collectAsState()
@@ -114,14 +110,8 @@ fun GlassesSpatialWorkspaceScreen(
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(allAppsOverlayVisible) {
-        if (allAppsOverlayVisible) {
-            allAppsSearchQuery = ""
-            AllAppsPaginationState.reset()
-        }
-    }
-    LaunchedEffect(filteredAllApps.size) {
-        AllAppsPaginationState.updatePageCount(filteredAllApps.size, pageSize = 12)
+    LaunchedEffect(launchableApps.size) {
+        AllAppsPaginationState.updatePageCount(launchableApps.size, pageSize = HomeSpaceDesk.DRAWER_PAGE_SIZE)
     }
     val visiblePanels = remember(panels) { Workspace.spatialHomePanels(panels) }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
@@ -170,22 +160,43 @@ fun GlassesSpatialWorkspaceScreen(
         panNormX = 0f,
         panNormY = 0f,
     )
-    val openAllApps = { GlassesSessionState.showAllAppsOverlay() }
+    val openAllApps = { GlassesSessionState.toggleAllAppsOverlay() }
     val launchApp: (LaunchableApp) -> Unit = { app ->
         GlassesRecentApps.record(app)
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp?.invoke(app)
     }
-    LaunchedEffect(tuned.panelScale, tuned.sphereScale, tuned.desktopIcons) {
+    val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
+    LaunchedEffect(
+        tuned.panelScale,
+        tuned.sphereScale,
+        tuned.desktopIcons,
+        tuned.uiScale,
+        launchableApps,
+        allAppsOverlayVisible,
+        allAppsPage,
+    ) {
         if (!tuned.desktopIcons) {
             DeskIconTextureBus.clear()
             return@LaunchedEffect
         }
-        val icons = HomeSpaceDesk.defaultIcons(
+        val drawerApps = launchableApps.map { app ->
+            HomeSpaceDesk.AppRef(
+                componentKey = app.componentKey(),
+                label = app.label,
+                packageName = app.packageName,
+            )
+        }
+        val icons = HomeSpaceDesk.layout(
+            placed = emptyList(),
             sphereScale = tuned.sphereScale,
             viewportWidthPx = 1920f,
             viewportHeightPx = 1080f,
             panelScale = tuned.panelScale,
+            uiScale = tuned.uiScale,
+            drawerOpen = allAppsOverlayVisible,
+            drawerApps = drawerApps,
+            drawerPage = allAppsPage,
         )
         val snapshots = withContext(Dispatchers.Default) {
             icons.map { icon ->
@@ -241,7 +252,6 @@ fun GlassesSpatialWorkspaceScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
         val prefixBounds: (String) -> ((String, Rect) -> Unit) = { paneId ->
             { key, rect -> onBoundsChanged(HomeSpaceScene.paneKeyPrefix(paneId) + key, rect) }
         }
@@ -293,23 +303,6 @@ fun GlassesSpatialWorkspaceScreen(
             },
             modifier = Modifier.fillMaxSize(),
         )
-
-        if (homeOverlay == GlassesHomeOverlay.ALL_APPS && onLaunchApp != null) {
-            GlassesXrAllAppsLayer(
-                apps = filteredAllApps,
-                hoveredLabel = cursor.hoveredLabel,
-                pinnedComponentKeys = pinnedComponentKeys,
-                pageIndex = allAppsPage,
-                onPageChange = { AllAppsPaginationState.goToPage(it) },
-                onBoundsChanged = onBoundsChanged,
-                onLaunchApp = launchApp,
-                onDismiss = { GlassesSessionState.hideAllAppsOverlay() },
-                onAppContextMenu = onAppContextMenu,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(3f),
-            )
-        }
 
         if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
             GlassesRecentsLayer(

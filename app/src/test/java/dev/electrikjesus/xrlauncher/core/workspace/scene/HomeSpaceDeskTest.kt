@@ -49,6 +49,98 @@ class HomeSpaceDeskTest {
     }
 
     @Test
+    fun layout_scalesDeskIconsWithUiScale() {
+        val atOne = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1f).first()
+        val atUi = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1.2f).first()
+        assertEquals(atOne.halfWidth * 1.2f, atUi.halfWidth, 0.001f)
+        assertEquals(atOne.halfHeight * 1.2f, atUi.halfHeight, 0.001f)
+    }
+
+    @Test
+    fun layout_opensABumpDeskFourByFourDrawer() {
+        val closed = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = false,
+            drawerApps = apps,
+        )
+        assertEquals(1, closed.size)
+        val many = (0 until 20).map { i ->
+            HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
+        }
+        val open = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+            drawerPage = 0,
+        )
+        assertEquals(1 + HomeSpaceDesk.DRAWER_PAGE_SIZE, open.size)
+        assertTrue(open.first().isAppDrawer)
+        assertEquals(many[0].componentKey, open[1].componentKey)
+        val page1 = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+            drawerPage = 1,
+        )
+        assertEquals(1 + 4, page1.size)
+        assertEquals(many[16].componentKey, page1[1].componentKey)
+    }
+
+    @Test
+    fun iconMesh_inwardFaceUvsPutBitmapTopOnCameraTop() {
+        val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f).first()
+        val mesh = HomeSpaceDesk.iconMesh(drawer)
+        assertEquals(0f, mesh.interleaved[6], 0.001f)
+        assertEquals(0f, mesh.interleaved[7], 0.001f)
+        assertEquals(1f, mesh.interleaved[6 + HomeSpacePaneMesh.STRIDE], 0.001f)
+        assertEquals(0f, mesh.interleaved[7 + HomeSpacePaneMesh.STRIDE], 0.001f)
+    }
+
+    @Test
+    fun inwardFace_looksAtTheCameraAsATopDownPancakeNotRotated180Z() {
+        val poses = listOf(-48f to 0f, 0f to 0f, 35f to 8f, -20f to -12f)
+        poses.forEach { (yaw, pitch) ->
+            val icon = HomeSpaceDesk.iconOf(
+                app = HomeSpaceDesk.AppRef("desk/.Tile", "Tile", "desk", HomeSpaceDesk.Kind.APP_DRAWER),
+                yawDeg = yaw,
+                pitchDeg = pitch,
+                sphereScale = 1f,
+            )
+            val camera = HomeSpaceScene.Camera(yawDeg = yaw, pitchDeg = pitch)
+            val face = HomeSpaceDesk.inwardFace(icon)
+            val bl = camera.viewPoint(face.bl)
+            val br = camera.viewPoint(face.br)
+            val tl = camera.viewPoint(face.tl)
+            val tr = camera.viewPoint(face.tr)
+            val inMid = camera.viewPoint((face.bl + face.tr) * 0.5f)
+            val outMid = camera.viewPoint((face.outBl + face.outTr) * 0.5f)
+            val towardCamera = camera.viewPoint(icon.center + face.inward) -
+                camera.viewPoint(icon.center)
+            val rightX = br.x - bl.x
+            val upY = tl.y - bl.y
+            val ccw = rightX * (tl.y - bl.y) - (br.y - bl.y) * (tl.x - bl.x)
+            val thinZ = kotlin.math.abs(outMid.z - inMid.z)
+            val wideX = kotlin.math.abs(br.x - bl.x)
+            assertTrue("yaw=$yaw right should be +viewX, not 180Z", rightX > 0.05f)
+            assertTrue("yaw=$yaw up should be +viewY, not 180Z", upY > 0.05f)
+            assertTrue("yaw=$yaw inward winding faces the camera (CCW)", ccw > 0f)
+            assertTrue("yaw=$yaw inward normal points at the camera", towardCamera.z > 0.5f)
+            assertTrue("yaw=$yaw inward face is closer than the back face", inMid.z > outMid.z)
+            assertTrue("yaw=$yaw pancake is thin toward the camera", thinZ * 4f < wideX)
+            assertEquals("yaw=$yaw top-right is right and up of bottom-left", true, tr.x > bl.x && tr.y > bl.y)
+        }
+    }
+
+    @Test
     fun layout_keepsTheDrawerWhenPlacingApps() {
         val icons = HomeSpaceDesk.layout(apps, 1f, 1920f, 1080f)
         assertEquals(1 + apps.size, icons.size)

@@ -305,7 +305,7 @@ private fun handleLeftClick(
     deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { desk ->
         if (desk.isAppDrawer) {
             Log.d(LOG_TAG, "left-click hit desk all-apps tile")
-            onOpenAllApps()
+            GlassesSessionState.toggleAllAppsOverlay()
             return
         }
         apps.find { it.componentKey() == desk.componentKey }?.let { app ->

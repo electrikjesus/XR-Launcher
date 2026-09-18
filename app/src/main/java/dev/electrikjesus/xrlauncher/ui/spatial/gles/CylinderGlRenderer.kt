@@ -360,7 +360,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             homeSpaceSphereScale,
             homeSpacePanelScale,
             deskHoveredKey.orEmpty(),
-            deskIcons.joinToString { "${it.componentKey}:${it.yawDeg}:${it.pitchDeg}:${it.center.x}" },
+            deskIcons.joinToString {
+                "${it.componentKey}:${it.yawDeg}:${it.pitchDeg}:${it.halfWidth}:${it.center.x}"
+            },
         ).joinToString("|")
         if (key == deskMeshKey && deskIconBuffers.isNotEmpty()) return
         deskMeshKey = key

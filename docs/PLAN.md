@@ -578,10 +578,10 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — 0.1.14 All Apps tile sits on the sphere; Edit has a Desktop page for icons/piles/tiles/widgets. No DND/lasso/radial/widgets yet |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — 0.1.15 All Apps tile expands a 4×4 BumpDesk drawer on the sphere (no Compose overlay). No DND/lasso/radial/widgets yet |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
-| 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. | ☑ Partial — 0.1.14 two-page Edit card; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
+| 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.14 two-page Edit card; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -600,9 +600,9 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 #### Phase 2 — Next steps (immediate)
 
 1. **Pin 0.1.10 mouse-look + sphere-ray hover.** Do not change look/selection except as BumpDesk desktop needs.
-2. **On-device check of 0.1.14** — looking left faces the All Apps tile on the sphere (visible from Home on the left); Edit → Desktop page toggles icons/piles/tiles/widgets.
+2. **On-device check of 0.1.15** — All Apps tile is upright; click expands a 4×4 sphere drawer (not the old overlay); desktop icons follow Icons & elements scale.
 3. **Unify panes as pinned widgets** — Home / Tray / app planes are `WidgetItem`-style pinned boxes on the inner sphere (same scene as desktop icons). Do not keep a second panel renderer.
-4. **2.21 BumpDesk port (next)** — `InteractionManager` drag, `APP_DRAWER` pull-out, `Pile`, lasso, radial menu, then widgets + `DeskRepository`. Port from BumpDesk; do not reinvent.
+4. **2.21 BumpDesk port (next)** — `InteractionManager` drag (pull apps out of the drawer), `Pile`, lasso, radial menu, then widgets + `DeskRepository`. Port from BumpDesk; do not reinvent.
 5. **2.20 pinned-widget contents** — Recreate Home/Tray chrome as child GLES items on those widgets.
 6. **Stop** — Do not start 6.9 onboarding in this pass.
 
@@ -754,7 +754,9 @@ Record major choices here as they are made.
 | 2026-09-18 | **BumpDesk is the engine.** Port the majority of BumpDesk (items, piles, lasso, radial menu, drawer, widgets, physics, persist) onto the inner Home Space sphere; XR workspace is built on that | Floor/top-down was a dead end; looking left must face Desktop like Home |
 | 2026-09-18 | **0.1.14:** All Apps tile on the inner sphere; Edit has a second Desktop page for BumpDesk types | Desk was hidden below FOV as a look-down floor |
 | 2026-09-18 | **Panels = pinned BumpDesk widgets** on the inner sphere wall (Home, Tray, app planes). Desktop icons/piles are movable items on the same surface | One scene graph; BumpDesk `WidgetItem` + `isPinned` is the panel model |
+| 2026-09-18 | **0.1.15:** All Apps tile upright; click expands BumpDesk 4×4 drawer on the sphere; desktop icons use Icons & elements scale 1:1 | Tile was 180° Z; Compose All Apps overlay is not the drawer |
+| 2026-09-18 | **Desk tile facing:** inward pancake looks at the camera (right=+viewX, up=+viewY); shader 1−v UVs put bitmap top on camera top | The box was not 180° Z; the texture UVs were |
 
 ---
 
-*Last updated: 2026-09-18 (panels are pinned BumpDesk widgets on the sphere; 0.1.14 sphere Desktop + Edit Desktop page)*
+*Last updated: 2026-09-18 (0.1.15 BumpDesk All Apps drawer; desk tiles face the camera; uiScale 1:1)*

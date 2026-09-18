@@ -2,7 +2,7 @@ package dev.electrikjesus.xrlauncher.core.workspace
 
 /** Visual tuning for the glasses launcher shell (Tier 1). */
 data class WorkspaceAppearance(
-    /** Scales launcher panels, text, and icons (0.75–2.0). */
+    /** Scales launcher panels, text, Home icons, and Desktop BumpDesk tiles (0.75–2.0). */
     val uiScale: Float = DEFAULT_UI_SCALE,
     /** Gap between panels in dp (0–200). */
     val panelGapDp: Float = 12f,

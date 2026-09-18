@@ -101,7 +101,9 @@ object GlassesSessionState {
         get() = _homeOverlay.value
         set(value) {
             _homeOverlay.value = value
-            _allAppsOverlayVisible.value = value == GlassesHomeOverlay.ALL_APPS
+            if (value != GlassesHomeOverlay.NONE && value != GlassesHomeOverlay.ALL_APPS) {
+                deskDrawerOpen = false
+            }
         }
 
     fun showHomeOverlay(overlay: GlassesHomeOverlay) {
@@ -110,34 +112,49 @@ object GlassesSessionState {
 
     fun hideHomeOverlays() {
         homeOverlay = GlassesHomeOverlay.NONE
+        hideAllAppsOverlay()
     }
 
     fun toggleHomeOverlay(overlay: GlassesHomeOverlay) {
+        if (overlay == GlassesHomeOverlay.ALL_APPS) {
+            toggleAllAppsOverlay()
+            return
+        }
         homeOverlay = if (homeOverlay == overlay) GlassesHomeOverlay.NONE else overlay
     }
 
     private val _allAppsOverlayVisible = MutableStateFlow(false)
     val allAppsOverlayVisibleFlow: StateFlow<Boolean> = _allAppsOverlayVisible.asStateFlow()
 
+    /** BumpDesk All Apps drawer is expanded on the inner sphere. */
+    var deskDrawerOpen: Boolean
+        get() = _allAppsOverlayVisible.value
+        set(value) {
+            _allAppsOverlayVisible.value = value
+        }
+
     var allAppsOverlayVisible: Boolean
         get() = _allAppsOverlayVisible.value
         set(value) {
-            homeOverlay = if (value) GlassesHomeOverlay.ALL_APPS else GlassesHomeOverlay.NONE
+            if (value) showAllAppsOverlay() else hideAllAppsOverlay()
         }
 
     fun showAllAppsOverlay() {
         AllAppsPaginationState.reset()
-        homeOverlay = GlassesHomeOverlay.ALL_APPS
+        _homeOverlay.value = GlassesHomeOverlay.NONE
+        deskDrawerOpen = true
+        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
     }
 
     fun hideAllAppsOverlay() {
+        deskDrawerOpen = false
         if (homeOverlay == GlassesHomeOverlay.ALL_APPS) {
-            homeOverlay = GlassesHomeOverlay.NONE
+            _homeOverlay.value = GlassesHomeOverlay.NONE
         }
     }
 
     fun toggleAllAppsOverlay() {
-        toggleHomeOverlay(GlassesHomeOverlay.ALL_APPS)
+        if (deskDrawerOpen) hideAllAppsOverlay() else showAllAppsOverlay()
     }
 
     private val _layoutPresetsVisible = MutableStateFlow(false)
