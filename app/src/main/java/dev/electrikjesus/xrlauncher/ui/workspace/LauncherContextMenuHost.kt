@@ -31,6 +31,7 @@ import dev.electrikjesus.xrlauncher.core.capability.SpatialEmbedCapability
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
@@ -115,6 +116,9 @@ fun LauncherContextMenuHost(
                         onSnapPanelToGrid = onSnapPanelToGrid,
                         onDismiss = { LauncherContextMenuState.dismiss() },
                     )
+                    is LauncherContextMenuTarget.Desktop -> DesktopContextMenuItems(
+                        onDismiss = { LauncherContextMenuState.dismiss() },
+                    )
                 }
             }
         }
@@ -196,6 +200,20 @@ private fun PanelContextMenuItems(
         onClick = {
             onDismiss()
             onHidePanel(panelId)
+        },
+    )
+}
+
+@Composable
+private fun DesktopContextMenuItems(
+    onDismiss: () -> Unit,
+) {
+    ContextMenuHeader(stringResource(R.string.xr_desktop))
+    ContextMenuItem(
+        label = stringResource(R.string.context_menu_open_all_apps),
+        onClick = {
+            onDismiss()
+            GlassesSessionState.showAllAppsOverlay()
         },
     )
 }

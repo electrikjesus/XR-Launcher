@@ -155,7 +155,7 @@ object HomeSpaceScene {
         val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
         val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
-        return Camera(yawDeg = yaw, pitchDeg = cursorPitch + HomeSpaceDesk.lookPitchDegrees(look))
+        return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
     }
 
     fun pane(

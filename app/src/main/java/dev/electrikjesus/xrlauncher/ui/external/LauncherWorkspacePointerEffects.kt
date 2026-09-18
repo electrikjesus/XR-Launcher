@@ -25,6 +25,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
@@ -36,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.overlayPx
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
 import dev.electrikjesus.xrlauncher.core.workspace.scene.pickPane
+import dev.electrikjesus.xrlauncher.core.workspace.scene.sphereHit
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceTitleBar
 import dev.electrikjesus.xrlauncher.ui.glasses.WorkspaceLayoutPresetBar
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
@@ -153,16 +155,7 @@ fun LauncherWorkspacePointerEffects(
         )
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
-            GlassesHomeLook.lookingAtDesktop() && deskIcon != null -> deskIcon.label
-            GlassesHomeLook.lookingAtDesktop() &&
-                deskHit(
-                    cursor.x,
-                    cursor.y,
-                    rootWidthPx,
-                    rootHeightPx,
-                    panelScale,
-                    sphereScale,
-                ) != null -> HomeSpaceDesk.HOVER_LABEL
+            deskIcon != null -> deskIcon.label
             homeHover != null -> homeHover
             allAppsOverlayVisible &&
                 itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
@@ -191,6 +184,7 @@ fun LauncherWorkspacePointerEffects(
                 findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label
             findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) } != null ->
                 findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) }
+            pick == null -> HomeSpaceDesk.HOVER_LABEL
             else -> null
         }
         DeskIconTextureBus.setHoveredKey(deskIcon?.componentKey)
@@ -270,6 +264,10 @@ private fun handleRightClick(
                     anchorX = click.x,
                     anchorY = click.y,
                 )
+            } else if (
+                homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null
+            ) {
+                LauncherContextMenuState.openDesktop(click.x, click.y)
             }
         }
     }
@@ -421,6 +419,14 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.EDIT_SPHERE_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_ELEMENT_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_ELEMENT_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_PAGE_PERSPECTIVE ->
+            GlassesSessionState.homeSpaceEditPage = HomeSpaceEditPage.PERSPECTIVE
+        GlassesHomeHits.EDIT_PAGE_DESKTOP ->
+            GlassesSessionState.homeSpaceEditPage = HomeSpaceEditPage.DESKTOP
+        GlassesHomeHits.EDIT_DESK_ICONS -> onTuneAppearance(HomeSpaceTuneAxis.DESK_ICONS, 0f)
+        GlassesHomeHits.EDIT_DESK_PILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_PILES, 0f)
+        GlassesHomeHits.EDIT_DESK_TILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_TILES, 0f)
+        GlassesHomeHits.EDIT_DESK_WIDGETS -> onTuneAppearance(HomeSpaceTuneAxis.DESK_WIDGETS, 0f)
         else -> return false
     }
     return true
@@ -521,14 +527,14 @@ private fun Rect.containsWithSlop(point: Offset, slopPx: Float = CONTROL_HIT_SLO
     point.x >= left - slopPx && point.x <= right + slopPx &&
         point.y >= top - slopPx && point.y <= bottom + slopPx
 
-private fun deskHit(
+private fun deskIconAt(
     cursorX: Float,
     cursorY: Float,
     rootWidthPx: Float,
     rootHeightPx: Float,
     panelScale: Float,
     sphereScale: Float,
-): dev.electrikjesus.xrlauncher.core.workspace.scene.Vec3? {
+): HomeSpaceDesk.Icon? {
     val camera = HomeSpaceScene.camera(
         look = GlassesHomeLook.panNorm,
         cursorX = cursorX,
@@ -538,36 +544,18 @@ private fun deskHit(
         panelScale = panelScale,
         sphereScale = sphereScale,
     )
-    val hit = HomeSpaceDesk.planeHit(
-        camera = camera,
+    val hit = HomeSpaceScene.sphereHit(
         cursorX = cursorX,
         cursorY = cursorY,
+        camera = camera,
         viewportWidthPx = rootWidthPx,
         viewportHeightPx = rootHeightPx,
         sphereScale = sphereScale,
-        panelScale = panelScale,
-    ) ?: return null
-    if (!HomeSpaceDesk.containsHit(hit, sphereScale, rootWidthPx, rootHeightPx, panelScale)) {
-        return null
-    }
-    return hit
-}
-
-private fun deskIconAt(
-    cursorX: Float,
-    cursorY: Float,
-    rootWidthPx: Float,
-    rootHeightPx: Float,
-    panelScale: Float,
-    sphereScale: Float,
-): HomeSpaceDesk.Icon? {
-    if (!GlassesHomeLook.lookingAtDesktop()) return null
-    val hit = deskHit(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) ?: return null
+    )
     val icons = DeskIconTextureBus.icons().ifEmpty {
         HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
     }
-    val yaw = HomeSpaceDesk.yawDegrees(rootWidthPx, rootHeightPx, panelScale, sphereScale)
-    return HomeSpaceDesk.pickIcon(hit, icons, yaw)
+    return HomeSpaceDesk.pickIcon(hit.world, icons)
 }
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {

@@ -59,7 +59,6 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var showSphereCursor: Boolean = false
     var deskIcons: List<HomeSpaceDesk.Icon> = emptyList()
     var deskHoveredKey: String? = null
-    var showDesk: Boolean = false
 
     @Volatile
     private var pendingDeskTextures: List<DeskIconSnapshot> = emptyList()
@@ -230,9 +229,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
-            if (showDesk) {
-                drawDesk()
-            }
+            drawDesk()
             drawSphereCursor()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
@@ -359,32 +356,21 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun rebuildDeskMeshes() {
-        val yaw = HomeSpaceDesk.yawDegrees(
-            viewportWidthPx,
-            viewportHeightPx,
-            homeSpacePanelScale,
-            homeSpaceSphereScale,
-        )
         val key = listOf(
             homeSpaceSphereScale,
             homeSpacePanelScale,
-            yaw,
             deskHoveredKey.orEmpty(),
-            deskIcons.joinToString { "${it.componentKey}:${it.center.x}:${it.center.z}" },
+            deskIcons.joinToString { "${it.componentKey}:${it.yawDeg}:${it.pitchDeg}:${it.center.x}" },
         ).joinToString("|")
-        if (key == deskMeshKey && deskPlaneBuffer != null) return
+        if (key == deskMeshKey && deskIconBuffers.isNotEmpty()) return
         deskMeshKey = key
-        val plane = HomeSpaceDesk.planeMesh(homeSpaceSphereScale, yaw)
-        deskPlaneBuffer = plane.interleaved.toFloatBuffer()
-        deskPlaneVertexCount = plane.vertexCount
+        deskPlaneBuffer = null
+        deskPlaneVertexCount = 0
         deskIconBuffers.clear()
         deskIconVertexCounts.clear()
         deskIcons.forEach { icon ->
-            val mesh = HomeSpaceDesk.iconMesh(
-                icon,
-                yaw,
-                liftY = if (icon.componentKey == deskHoveredKey) HomeSpaceDesk.HOVER_LIFT else 0f,
-            )
+            val lift = if (icon.componentKey == deskHoveredKey) HomeSpaceDesk.HOVER_LIFT else 0f
+            val mesh = HomeSpaceDesk.iconMesh(icon, lift)
             deskIconBuffers[icon.componentKey] = mesh.interleaved.toFloatBuffer()
             deskIconVertexCounts[icon.componentKey] = mesh.vertexCount
         }
@@ -433,22 +419,16 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
         }
 
-        deskPlaneBuffer?.let { buffer ->
-            drawMesh(buffer, deskPlaneVertexCount, 0, ambient = 0.22f, useTexture = false)
-        }
-        val yaw = HomeSpaceDesk.yawDegrees(
-            viewportWidthPx,
-            viewportHeightPx,
-            homeSpacePanelScale,
-            homeSpaceSphereScale,
-        )
         deskIcons.forEach { icon ->
             val buffer = deskIconBuffers[icon.componentKey] ?: return@forEach
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
             val hovered = icon.componentKey == deskHoveredKey
             if (hovered) {
-                val pad = HomeSpaceDesk.hoverPadMesh(icon, yaw)
+                val pad = HomeSpaceDesk.hoverPadMesh(
+                    icon,
+                    lift = HomeSpaceDesk.HOVER_LIFT,
+                )
                 drawMesh(
                     pad.interleaved.toFloatBuffer(),
                     pad.vertexCount,
@@ -484,36 +464,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             viewportHeightPx = viewportHeightPx,
             sphereScale = homeSpaceSphereScale,
         )
-        val deskWorld = if (showDesk) {
-            HomeSpaceDesk.planeHit(
-                camera = sceneCamera,
-                cursorX = cursorX,
-                cursorY = cursorY,
-                viewportWidthPx = viewportWidthPx,
-                viewportHeightPx = viewportHeightPx,
-                sphereScale = homeSpaceSphereScale,
-                panelScale = homeSpacePanelScale,
-            )
-        } else {
-            null
-        }
-        val onDesk = deskWorld != null && HomeSpaceDesk.containsHit(
-            deskWorld,
-            homeSpaceSphereScale,
-            viewportWidthPx,
-            viewportHeightPx,
-            homeSpacePanelScale,
-        )
-        val origin = if (onDesk) deskWorld!! else sphere.world
-        val radial = if (onDesk) Vec3(0f, 1f, 0f) else origin.normalized()
-        val up = if (onDesk) HomeSpaceDesk.awayAxis(
-            HomeSpaceDesk.yawDegrees(
-                viewportWidthPx,
-                viewportHeightPx,
-                homeSpacePanelScale,
-                homeSpaceSphereScale,
-            ),
-        ) else Vec3(0f, 1f, 0f)
+        val origin = sphere.world
+        val radial = origin.normalized()
+        val up = Vec3(0f, 1f, 0f)
         var tangent = Vec3(
             up.y * radial.z - up.z * radial.y,
             up.z * radial.x - up.x * radial.z,
@@ -530,7 +483,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             radial.x * tangent.y - radial.y * tangent.x,
         )
         val radius = 0.038f * homeSpaceSphereScale.coerceAtLeast(0.5f)
-        val center = if (onDesk) origin + Vec3(0f, 0.02f, 0f) else origin * 0.988f
+        val center = origin * 0.988f
         fun corner(sx: Float, sy: Float): Vec3 = Vec3(
             center.x + tangent.x * sx * radius + bitangent.x * sy * radius,
             center.y + tangent.y * sx * radius + bitangent.y * sy * radius,
@@ -548,7 +501,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             br.x, br.y, br.z,
             tr.x, tr.y, tr.z,
         ).toFloatBuffer()
-        val near = (if (onDesk) origin.normalized() else radial) * 0.14f
+        val near = radial * 0.14f
         val shaft = floatArrayOf(
             near.x, near.y, near.z,
             origin.x, origin.y, origin.z,

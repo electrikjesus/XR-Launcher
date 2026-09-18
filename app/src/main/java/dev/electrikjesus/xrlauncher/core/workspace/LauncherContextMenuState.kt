@@ -15,6 +15,8 @@ sealed class LauncherContextMenuTarget {
         val panelId: String,
         val kind: PanelKind,
     ) : LauncherContextMenuTarget()
+
+    data object Desktop : LauncherContextMenuTarget()
 }
 
 data class LauncherContextMenuRequest(
@@ -59,6 +61,16 @@ object LauncherContextMenuState {
         open(
             LauncherContextMenuRequest(
                 target = LauncherContextMenuTarget.Panel(panelId, kind),
+                anchorX = anchorX.coerceIn(0f, 1f),
+                anchorY = anchorY.coerceIn(0f, 1f),
+            ),
+        )
+    }
+
+    fun openDesktop(anchorX: Float, anchorY: Float) {
+        open(
+            LauncherContextMenuRequest(
+                target = LauncherContextMenuTarget.Desktop,
                 anchorX = anchorX.coerceIn(0f, 1f),
                 anchorY = anchorY.coerceIn(0f, 1f),
             ),

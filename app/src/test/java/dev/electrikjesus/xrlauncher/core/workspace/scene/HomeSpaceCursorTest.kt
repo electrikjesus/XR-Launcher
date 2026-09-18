@@ -10,7 +10,6 @@ import kotlin.math.hypot
 
 class HomeSpaceCursorTest {
     private val slots = listOf(
-        HomeSpacePaneSlot("all_apps", -1f),
         HomeSpacePaneSlot("home", 0f),
         HomeSpacePaneSlot("tray", 1f),
     )
@@ -136,9 +135,9 @@ class HomeSpaceCursorTest {
             viewportHeightPx = 1080f,
         )
         assertNull(pick)
-        val hit = HomeSpaceDesk.planeHit(camera, 0.5f, 0.5f, 1920f, 1080f)
-        assertNotNull(hit)
-        assertTrue(HomeSpaceDesk.containsHit(hit!!, 1f, 1920f, 1080f))
+        val hit = HomeSpaceScene.sphereHit(0.5f, 0.5f, camera, 1920f, 1080f)
+        val icons = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f)
+        assertNotNull(HomeSpaceDesk.pickIcon(hit.world, icons))
     }
 
     @Test

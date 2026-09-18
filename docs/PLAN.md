@@ -24,35 +24,37 @@ A Play Store–friendly Android launcher that provides a **3D spatial workspace*
 
 ## Current direction (2026-09-18)
 
-Home Space on glasses must feel like an **FPS camera inside a room**, not a 2D carousel with a fake 3D tilt.
+**XR-Launcher’s glasses Home Space is BumpDesk, remapped onto the inner Home Space sphere.** We are not borrowing a couple of visual tricks. We port the **majority of BumpDesk** (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) into this GLES engine and then build the XR workspace (Home / Tray panes, companion pointer, embed) on top of that.
 
-**What failed.** Compose `graphicsLayer { rotationY / rotationX / cameraDistance }` draws a **screen-space rectangle**. Parallel panel edges stay straight; there is no mesh thickness and no sphere tessellation, so you never see converging sides or an **inner bevel**. More `cameraDistance` / scale sliders will not fix that. Stop iterating Compose as the spatial renderer.
+BumpDesk already has the product: physical icons, All Apps drawer tile, piles, lasso, radial menu, widgets, physics/DND, `DeskRepository`, themes. Those stay the interaction model. The surface changes: **everything lives on the inner Home Space sphere** (BumpDesk’s floor/walls become that sphere wall).
 
-**What we will build.** Port BumpDesk’s working GLES engine (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) and **recreate our Home / Desktop / Tray panels as scene objects** in that engine:
+**Panels are pinned BumpDesk widgets.** Home, Tray, and each app plane are the same kind of object as a BumpDesk `WidgetItem` with `isPinned = true`, posed on the sphere (the analog of pinning a widget to the floor or a wall). They are large textured boxes on the inner wall, not a separate Compose carousel and not a second renderer. Desktop icons, piles, tiles, and the All Apps drawer are the *unpinned / movable* items on that same surface. Empty sphere space is the desktop (drag, right/long-click, lasso). Looking left faces Desktop items the same way looking at Home faces the Home widget.
 
-| BumpDesk piece | Use in XR-Launcher |
-|----------------|--------------------|
-| `BumpRenderer.onDrawFrame` | Frame loop: `Matrix.perspectiveM` + `CameraManager.setLookAtM` → true FPS view-projection |
-| `CameraManager` | Yaw/pitch look, FOV, zoom; companion cursor drives look like BumpDesk pan/look |
-| `RoomRenderer` + `Plane` | Surround room / wallpaper (replace the fake Compose “cylinder”) |
-| `Box` (6-face, ~0.04 thickness) | Panel bodies and icons so look-away shows **inner edges / bevel** |
-| Tessellated sphere patch | Panel **faces curve** with the invisible Home-Space sphere (bowed edges, not a flat billboard) |
-| `ItemRenderer` + `TextureUtils` | App icons, shortcuts, labels as posed 3D items on a panel surface |
-| `WidgetRenderer` | Live `AppWidgetHostView` → bitmap → GL texture on the Desktop pane |
-| `UIRenderer` / `OverlayRenderer` | Close, pagination, Edit-mode chrome as GLES controls |
-| `InteractionManager` | Ray-pick from inverted VP matrix (drag, piles, widget hit) |
+| BumpDesk piece | XR-Launcher Home Space |
+|----------------|-------------------------|
+| `BumpRenderer` + `CameraManager` | Already: `perspectiveM` + `setLookAtM` FPS camera; companion cursor mouse-looks |
+| `RoomRenderer` | Surround wallpaper room |
+| `Box` / `ItemRenderer` / `TextureUtils` | Icons, drawer tile, shortcuts as thin boxes on the sphere |
+| `WidgetItem` (`isPinned`, wall/floor) | **Home / Tray / app planes** — large pinned widgets on the inner sphere wall |
+| `APP_DRAWER` | Default Desktop item; click expands All Apps; pull apps onto the sphere |
+| `Pile` + `PileRenderer` | Groups on the sphere (stack/grid/carousel) |
+| `Lasso` + `LassoRenderer` | Multi-select on the sphere |
+| `RadialMenuView` | Right/long-click empty space and items (replace 2D context menus over time) |
+| `WidgetRenderer` | Live app-widget bitmaps; same path as pinned Home/Tray faces |
+| `InteractionManager` + `PhysicsEngine` | Ray-pick, drag, bump, arrange; pinned widgets stay put until unpinned |
+| `DeskRepository` | Persist desk + panel poses (yaw/pitch on the sphere instead of floor XYZ) |
+| `UIRenderer` / `OverlayRenderer` | Close, pagination, Edit chrome — GLES when we get there |
+| Edit → **Desktop page** | Toggle which BumpDesk types are live: icons, piles, tiles, widgets — do not crowd the Perspective page |
 
-**Cursor.** Companion (x, y) is a **camera ray** onto the inner Home Space sphere for hover/click. The same cursor also **mouse-looks** the FPS camera (yaw + pitch); edge-pan still turns further. Do not treat the cursor as a HUD on a flat plane.
+There is one scene graph. Do not keep a “panel renderer” and a “desktop renderer.” Compose is capture/texture source for a pinned widget until that widget’s contents are native GLES items.
 
-Compose stays as: phone companion UI, offscreen content for textures if needed, and hit-test overlay **after** GLES poses are authoritative.
+**Build order**
 
-**Build order (do not skip ahead to a device APK until 2.22 GLES panels exist):**
-
-1. **2.22** — GLES Home Space: FPS camera, room, **curved/thick panels** (clock, pills, grids are textures or child items — not `graphicsLayer` cards).
-2. **2.20** — Recreate icons, shortcuts, controls, and widgets with BumpDesk `ItemRenderer` / `WidgetRenderer` / `TextureUtils` parented to those panels.
-3. **2.21** — Desktop pane (favorites + widgets) with BumpDesk DND / piles / arrange.
-4. **2.23** — Keep glasses + companion awake (`FLAG_KEEP_SCREEN_ON`); phone sleep was blanking SmartGlasses.
-5. **2.24** — In-scene Edit mode (panel / sphere / icon scale) **on the GLES view**, persist as `WorkspaceAppearance`.
+1. **2.22** — GLES room + FPS camera + sphere-pinned widgets (today’s panes are the first pinned widgets).
+2. **2.21** — Port BumpDesk desktop onto the same sphere: drawer tile, DND, piles, lasso, radial menu, live widgets, persist. Edit dialog page 2 for those types.
+3. **2.20** — Recreate Home/Tray *contents* as child BumpDesk items on those pinned widgets.
+4. **2.24** — Edit stays two pages: Perspective (panel/sphere/icon scale) vs Desktop (BumpDesk types). Do not dump both onto one card.
+5. **2.23** — Keep-awake (partial).
 
 **Do not implement 6.9 onboarding in this pass.**
 
@@ -575,11 +577,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☑ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
-| 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☑ Partial — 0.1.13 Desktop All Apps tile is a thin GLES box; Home pane still captured Compose |
-| 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and `DeskRepository`. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☑ Partial — 0.1.13 left look faces a GLES desk with one All Apps drawer tile; hover uses desk-local pick + selection pad. No DND/piles/widgets yet |
-| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☑ Partial — 0.1.9 sphere-ray cursor + transparent pane faces; icons/widgets still captured Compose, not `ItemRenderer` |
-| 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☑ Partial — 0.1.7 on-device: companion + glasses windows have `KEEP_SCREEN_ON`; WM holds `SCREEN_BRIGHT_WAKE_LOCK` on display 0 and 46. Override display can still report OFF (OEM quirk). |
-| 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☑ Partial — 0.1.12 close on the centered Edit card; defaults panel 0.70 / sphere 1.00 / icons 1.20; sphere scale is distance |
+| 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — 0.1.14 All Apps tile sits on the sphere; Edit has a Desktop page for icons/piles/tiles/widgets. No DND/lasso/radial/widgets yet |
+| 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
+| 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
+| 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. | ☑ Partial — 0.1.14 two-page Edit card; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -597,11 +599,12 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-1. **Pin 0.1.10 mouse-look + sphere-ray hover.** Do not change look/selection.
-2. **On-device check of 0.1.13** — look left *at* the Desktop; only the All Apps tile; thin boxes; hover pad on the tile; click opens All Apps overlay.
-3. **2.21 Desktop DND** — pull apps out of the All Apps tile onto the desk (BumpDesk `InteractionManager` + `Pile` + arrange); widgets on the plane.
-4. **2.20 Home pane items** — Recreate Home chrome/icons with GLES items (Desktop icons already boxes).
-5. **Stop** — Do not start 6.9 onboarding in this pass.
+1. **Pin 0.1.10 mouse-look + sphere-ray hover.** Do not change look/selection except as BumpDesk desktop needs.
+2. **On-device check of 0.1.14** — looking left faces the All Apps tile on the sphere (visible from Home on the left); Edit → Desktop page toggles icons/piles/tiles/widgets.
+3. **Unify panes as pinned widgets** — Home / Tray / app planes are `WidgetItem`-style pinned boxes on the inner sphere (same scene as desktop icons). Do not keep a second panel renderer.
+4. **2.21 BumpDesk port (next)** — `InteractionManager` drag, `APP_DRAWER` pull-out, `Pile`, lasso, radial menu, then widgets + `DeskRepository`. Port from BumpDesk; do not reinvent.
+5. **2.20 pinned-widget contents** — Recreate Home/Tray chrome as child GLES items on those widgets.
+6. **Stop** — Do not start 6.9 onboarding in this pass.
 
 ---
 
@@ -748,7 +751,10 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.11:** Edit dialog centered over the focused pane | Corner stack hid the panel behind the controls |
 | 2026-09-18 | **0.1.12:** sphere scale is distance; Edit close; Home pagination; Desktop floor of physical icons | Sphere scale used to keep angular size fixed; Home arrows updated All Apps pages; All Apps pane hid the desk |
 | 2026-09-18 | **0.1.13:** Desktop faces the left look; All Apps drawer tile only; thin boxes; desk-local hover | 0.1.12 desk was a side-on infinite floor of thick cubes; hover used world AABB |
+| 2026-09-18 | **BumpDesk is the engine.** Port the majority of BumpDesk (items, piles, lasso, radial menu, drawer, widgets, physics, persist) onto the inner Home Space sphere; XR workspace is built on that | Floor/top-down was a dead end; looking left must face Desktop like Home |
+| 2026-09-18 | **0.1.14:** All Apps tile on the inner sphere; Edit has a second Desktop page for BumpDesk types | Desk was hidden below FOV as a look-down floor |
+| 2026-09-18 | **Panels = pinned BumpDesk widgets** on the inner sphere wall (Home, Tray, app planes). Desktop icons/piles are movable items on the same surface | One scene graph; BumpDesk `WidgetItem` + `isPinned` is the panel model |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.13 Desktop All Apps tile faces the left look; next desk DND)*
+*Last updated: 2026-09-18 (panels are pinned BumpDesk widgets on the sphere; 0.1.14 sphere Desktop + Edit Desktop page)*

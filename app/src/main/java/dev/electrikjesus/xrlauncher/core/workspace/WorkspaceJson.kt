@@ -61,6 +61,10 @@ object WorkspaceJson {
             clamped.wallpaperChoice.name,
             clamped.panelScale.toCompactString(),
             clamped.sphereScale.toCompactString(),
+            if (clamped.desktopIcons) "1" else "0",
+            if (clamped.desktopPiles) "1" else "0",
+            if (clamped.desktopTiles) "1" else "0",
+            if (clamped.desktopWidgets) "1" else "0",
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -82,6 +86,10 @@ object WorkspaceJson {
                 ?: WorkspaceAppearance.DEFAULT_PANEL_SCALE,
             sphereScale = fields.getOrNull(9)?.toFloatOrNull()
                 ?: WorkspaceAppearance.DEFAULT_SPHERE_SCALE,
+            desktopIcons = fields.getOrNull(10) != "0",
+            desktopPiles = fields.getOrNull(11) != "0",
+            desktopTiles = fields.getOrNull(12) != "0",
+            desktopWidgets = fields.getOrNull(13) != "0",
         ).clamped()
     }
 

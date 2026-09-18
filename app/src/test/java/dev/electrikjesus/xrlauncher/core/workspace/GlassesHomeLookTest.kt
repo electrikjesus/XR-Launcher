@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -11,6 +12,14 @@ class GlassesHomeLookTest {
     @Before
     fun reset() {
         GlassesHomeLook.reset()
+    }
+
+    @Test
+    fun homeSpaceSlots_arePinnedWidgetsHomeAndTray_notAnAllAppsPane() {
+        val ids = GlassesHomeLook.homeSpaceSlots().map { it.panelId }
+        assertEquals(listOf("home", "tray"), ids)
+        assertFalse(ids.contains("all_apps"))
+        assertFalse(ids.contains(HomeSpaceDesk.PANEL_ID))
     }
 
     @Test

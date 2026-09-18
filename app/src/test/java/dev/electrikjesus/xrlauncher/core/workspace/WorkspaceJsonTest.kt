@@ -66,6 +66,27 @@ class WorkspaceJsonTest {
         assertEquals(-4f, decoded.appearance.lookPitchDegrees, 0.001f)
         assertEquals(WorkspaceAppearance.DEFAULT_PANEL_SCALE, decoded.appearance.panelScale, 0.001f)
         assertEquals(WorkspaceAppearance.DEFAULT_SPHERE_SCALE, decoded.appearance.sphereScale, 0.001f)
+        assertEquals(true, decoded.appearance.desktopIcons)
+        assertEquals(true, decoded.appearance.desktopPiles)
+        assertEquals(true, decoded.appearance.desktopTiles)
+        assertEquals(true, decoded.appearance.desktopWidgets)
+    }
+
+    @Test
+    fun encodeDecode_preservesDesktopItemToggles() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(
+                desktopIcons = false,
+                desktopPiles = true,
+                desktopTiles = false,
+                desktopWidgets = true,
+            ),
+        )
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(false, decoded.appearance.desktopIcons)
+        assertEquals(true, decoded.appearance.desktopPiles)
+        assertEquals(false, decoded.appearance.desktopTiles)
+        assertEquals(true, decoded.appearance.desktopWidgets)
     }
 
     @Test

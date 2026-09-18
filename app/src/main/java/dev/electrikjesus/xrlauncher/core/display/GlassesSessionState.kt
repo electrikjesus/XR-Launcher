@@ -5,6 +5,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
 import dev.electrikjesus.xrlauncher.core.launcher.PendingGlassesAppLaunch
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -159,11 +160,23 @@ object GlassesSessionState {
         get() = _homeSpaceEdit.value
         set(value) {
             _homeSpaceEdit.value = value
+            if (!value) {
+                homeSpaceEditPage = HomeSpaceEditPage.PERSPECTIVE
+            }
         }
 
     fun toggleHomeSpaceEdit() {
         homeSpaceEdit = !homeSpaceEdit
     }
+
+    private val _homeSpaceEditPage = MutableStateFlow(HomeSpaceEditPage.PERSPECTIVE)
+    val homeSpaceEditPageFlow: StateFlow<HomeSpaceEditPage> = _homeSpaceEditPage.asStateFlow()
+
+    var homeSpaceEditPage: HomeSpaceEditPage
+        get() = _homeSpaceEditPage.value
+        set(value) {
+            _homeSpaceEditPage.value = value
+        }
 
     private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
     val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
@@ -205,6 +218,7 @@ object GlassesSessionState {
         allAppsOverlayVisible = false
         layoutPresetsVisible = false
         homeSpaceEdit = false
+        homeSpaceEditPage = HomeSpaceEditPage.PERSPECTIVE
         AllAppsPaginationState.reset()
         GlassesHomeLook.reset()
         pendingAppLaunch = null

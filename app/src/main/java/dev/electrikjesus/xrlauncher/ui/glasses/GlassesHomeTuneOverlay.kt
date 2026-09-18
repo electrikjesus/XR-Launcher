@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,7 +35,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.R
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
@@ -54,6 +58,7 @@ fun BoxScope.GlassesHomeTuneOverlay(
     onNudge: (HomeSpaceTuneAxis, Float) -> Unit,
 ) {
     val tuned = appearance.clamped()
+    val editPage by GlassesSessionState.homeSpaceEditPageFlow.collectAsState()
     WorkspaceScaledLayer(uiScale = tuned.uiScale) {
         if (editing) {
             Column(
@@ -74,7 +79,13 @@ fun BoxScope.GlassesHomeTuneOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = stringResource(R.string.xr_edit_space_title),
+                        text = stringResource(
+                            if (editPage == HomeSpaceEditPage.DESKTOP) {
+                                R.string.xr_edit_space_desktop_title
+                            } else {
+                                R.string.xr_edit_space_title
+                            },
+                        ),
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall,
                     )
@@ -87,36 +98,79 @@ fun BoxScope.GlassesHomeTuneOverlay(
                         onClick = onToggleEdit,
                     )
                 }
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_panel_scale),
-                    value = tuned.panelScale,
-                    minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
+                EditPageTabs(
+                    page = editPage,
                     hoveredLabel = hoveredLabel,
                     onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
                 )
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_sphere_scale),
-                    value = tuned.sphereScale,
-                    minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
-                )
-                TuneRow(
-                    label = stringResource(R.string.xr_edit_element_scale),
-                    value = tuned.uiScale,
-                    minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
-                    plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                    onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
-                    onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
-                )
+                when (editPage) {
+                    HomeSpaceEditPage.PERSPECTIVE -> {
+                        TuneRow(
+                            label = stringResource(R.string.xr_edit_panel_scale),
+                            value = tuned.panelScale,
+                            minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
+                            plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
+                            onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
+                        )
+                        TuneRow(
+                            label = stringResource(R.string.xr_edit_sphere_scale),
+                            value = tuned.sphereScale,
+                            minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
+                            plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
+                            onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
+                        )
+                        TuneRow(
+                            label = stringResource(R.string.xr_edit_element_scale),
+                            value = tuned.uiScale,
+                            minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
+                            plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
+                            onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
+                        )
+                    }
+                    HomeSpaceEditPage.DESKTOP -> {
+                        DeskToggleRow(
+                            label = stringResource(R.string.xr_edit_desk_icons),
+                            enabled = tuned.desktopIcons,
+                            boundsKey = GlassesHomeHits.EDIT_DESK_ICONS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_ICONS, 0f) },
+                        )
+                        DeskToggleRow(
+                            label = stringResource(R.string.xr_edit_desk_piles),
+                            enabled = tuned.desktopPiles,
+                            boundsKey = GlassesHomeHits.EDIT_DESK_PILES,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_PILES, 0f) },
+                        )
+                        DeskToggleRow(
+                            label = stringResource(R.string.xr_edit_desk_tiles),
+                            enabled = tuned.desktopTiles,
+                            boundsKey = GlassesHomeHits.EDIT_DESK_TILES,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_TILES, 0f) },
+                        )
+                        DeskToggleRow(
+                            label = stringResource(R.string.xr_edit_desk_widgets),
+                            enabled = tuned.desktopWidgets,
+                            boundsKey = GlassesHomeHits.EDIT_DESK_WIDGETS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_WIDGETS, 0f) },
+                        )
+                    }
+                }
             }
         }
         Box(
@@ -147,6 +201,111 @@ fun BoxScope.GlassesHomeTuneOverlay(
                 ),
                 color = Color.White,
                 style = MaterialTheme.typography.headlineSmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditPageTabs(
+    page: HomeSpaceEditPage,
+    hoveredLabel: String?,
+    onBoundsChanged: (String, Rect) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EditPageTab(
+            label = stringResource(R.string.xr_edit_page_perspective),
+            boundsKey = GlassesHomeHits.EDIT_PAGE_PERSPECTIVE,
+            selected = page == HomeSpaceEditPage.PERSPECTIVE,
+            hovered = hoveredLabel == GlassesHomeHits.EDIT_PAGE_PERSPECTIVE_LABEL,
+            onBoundsChanged = onBoundsChanged,
+            onClick = { GlassesSessionState.homeSpaceEditPage = HomeSpaceEditPage.PERSPECTIVE },
+            modifier = Modifier.weight(1f),
+        )
+        EditPageTab(
+            label = stringResource(R.string.xr_edit_page_desktop),
+            boundsKey = GlassesHomeHits.EDIT_PAGE_DESKTOP,
+            selected = page == HomeSpaceEditPage.DESKTOP,
+            hovered = hoveredLabel == GlassesHomeHits.EDIT_PAGE_DESKTOP_LABEL,
+            onBoundsChanged = onBoundsChanged,
+            onClick = { GlassesSessionState.homeSpaceEditPage = HomeSpaceEditPage.DESKTOP },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun EditPageTab(
+    label: String,
+    boundsKey: String,
+    selected: Boolean,
+    hovered: Boolean,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                when {
+                    hovered -> Accent.copy(alpha = 0.55f)
+                    selected -> Accent.copy(alpha = 0.28f)
+                    else -> Color(0xFF3A3A3C)
+                },
+            )
+            .clickable(onClick = onClick)
+            .onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, color = Color.White, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun DeskToggleRow(
+    label: String,
+    enabled: Boolean,
+    boundsKey: String,
+    hoveredLabel: String?,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onToggle: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.9f),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    if (hoveredLabel == GlassesHomeHits.hoverLabel(boundsKey)) {
+                        Accent.copy(alpha = 0.55f)
+                    } else if (enabled) {
+                        Accent.copy(alpha = 0.28f)
+                    } else {
+                        Color(0xFF3A3A3C)
+                    },
+                )
+                .clickable(onClick = onToggle)
+                .onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
+                .padding(horizontal = 28.dp, vertical = 14.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(if (enabled) R.string.xr_edit_on else R.string.xr_edit_off),
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
             )
         }
     }

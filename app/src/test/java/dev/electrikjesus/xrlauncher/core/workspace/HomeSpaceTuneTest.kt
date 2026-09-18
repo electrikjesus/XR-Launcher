@@ -24,4 +24,14 @@ class HomeSpaceTuneTest {
         )
         assertEquals(WorkspaceAppearance.MAX_SPHERE_SCALE, maxed.sphereScale, 0.001f)
     }
+
+    @Test
+    fun apply_togglesDesktopItemKinds() {
+        val base = WorkspaceAppearance.default()
+        val iconsOff = HomeSpaceTune.apply(base, HomeSpaceTuneAxis.DESK_ICONS, 0f)
+        assertEquals(false, iconsOff.desktopIcons)
+        val pilesOff = HomeSpaceTune.apply(iconsOff, HomeSpaceTuneAxis.DESK_PILES, 0f)
+        assertEquals(false, pilesOff.desktopPiles)
+        assertEquals(true, pilesOff.desktopTiles)
+    }
 }

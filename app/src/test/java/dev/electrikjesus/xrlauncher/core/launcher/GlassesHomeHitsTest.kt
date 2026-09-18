@@ -19,6 +19,8 @@ class GlassesHomeHitsTest {
         assertEquals("Edit space", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_TOGGLE))
         assertEquals("Close", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_CLOSE))
         assertEquals("Farther sphere", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_SPHERE_PLUS))
+        assertEquals("Desktop items", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_PAGE_DESKTOP))
+        assertEquals("Piles", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_DESK_PILES))
     }
 
     @Test

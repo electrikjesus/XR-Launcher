@@ -22,6 +22,11 @@ data class WorkspaceAppearance(
     val panelScale: Float = DEFAULT_PANEL_SCALE,
     /** Multiplies pane-sphere and room radius so the same-size panes sit farther from the camera (0.8–2.5). */
     val sphereScale: Float = DEFAULT_SPHERE_SCALE,
+    /** BumpDesk item types allowed on the inner-sphere Desktop. */
+    val desktopIcons: Boolean = true,
+    val desktopPiles: Boolean = true,
+    val desktopTiles: Boolean = true,
+    val desktopWidgets: Boolean = true,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
         uiScale = uiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE),
@@ -34,6 +39,10 @@ data class WorkspaceAppearance(
         wallpaperChoice = wallpaperChoice,
         panelScale = panelScale.coerceIn(MIN_PANEL_SCALE, MAX_PANEL_SCALE),
         sphereScale = sphereScale.coerceIn(MIN_SPHERE_SCALE, MAX_SPHERE_SCALE),
+        desktopIcons = desktopIcons,
+        desktopPiles = desktopPiles,
+        desktopTiles = desktopTiles,
+        desktopWidgets = desktopWidgets,
     )
 
     companion object {

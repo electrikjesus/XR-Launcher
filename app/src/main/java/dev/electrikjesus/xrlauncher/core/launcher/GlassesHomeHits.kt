@@ -20,6 +20,12 @@ object GlassesHomeHits {
     const val EDIT_ELEMENT_MINUS = "__xr_edit_element_minus__"
     const val EDIT_ELEMENT_PLUS = "__xr_edit_element_plus__"
     const val EDIT_CLOSE = "__xr_edit_close__"
+    const val EDIT_PAGE_PERSPECTIVE = "__xr_edit_page_perspective__"
+    const val EDIT_PAGE_DESKTOP = "__xr_edit_page_desktop__"
+    const val EDIT_DESK_ICONS = "__xr_edit_desk_icons__"
+    const val EDIT_DESK_PILES = "__xr_edit_desk_piles__"
+    const val EDIT_DESK_TILES = "__xr_edit_desk_tiles__"
+    const val EDIT_DESK_WIDGETS = "__xr_edit_desk_widgets__"
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -37,6 +43,12 @@ object GlassesHomeHits {
     const val SPHERE_FARTHER_LABEL = "Farther sphere"
     const val ELEMENT_SMALLER_LABEL = "Smaller icons"
     const val ELEMENT_LARGER_LABEL = "Larger icons"
+    const val EDIT_PAGE_PERSPECTIVE_LABEL = "Perspective"
+    const val EDIT_PAGE_DESKTOP_LABEL = "Desktop items"
+    const val DESK_ICONS_LABEL = "App icons"
+    const val DESK_PILES_LABEL = "Piles"
+    const val DESK_TILES_LABEL = "Tiles"
+    const val DESK_WIDGETS_LABEL = "Widgets"
 
     fun appCloseKey(panelId: String): String = APP_CLOSE_PREFIX + panelId
 
@@ -66,12 +78,24 @@ object GlassesHomeHits {
             EDIT_SPHERE_PLUS -> SPHERE_FARTHER_LABEL
             EDIT_ELEMENT_MINUS -> ELEMENT_SMALLER_LABEL
             EDIT_ELEMENT_PLUS -> ELEMENT_LARGER_LABEL
+            EDIT_PAGE_PERSPECTIVE -> EDIT_PAGE_PERSPECTIVE_LABEL
+            EDIT_PAGE_DESKTOP -> EDIT_PAGE_DESKTOP_LABEL
+            EDIT_DESK_ICONS -> DESK_ICONS_LABEL
+            EDIT_DESK_PILES -> DESK_PILES_LABEL
+            EDIT_DESK_TILES -> DESK_TILES_LABEL
+            EDIT_DESK_WIDGETS -> DESK_WIDGETS_LABEL
             else -> null
         }
     }
 
     fun actionKeyAt(contains: (String) -> Boolean): String? = listOf(
         EDIT_CLOSE,
+        EDIT_PAGE_PERSPECTIVE,
+        EDIT_PAGE_DESKTOP,
+        EDIT_DESK_ICONS,
+        EDIT_DESK_PILES,
+        EDIT_DESK_TILES,
+        EDIT_DESK_WIDGETS,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,
         EDIT_SPHERE_MINUS,
