@@ -30,6 +30,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
@@ -59,6 +60,8 @@ fun PaginatedAppGrid(
     rows: Int = AllAppsGridConfig.rows,
     useDarkTheme: Boolean = true,
     showPageControls: Boolean = true,
+    iconSize: Dp = 52.dp,
+    cellSpacing: Dp = 4.dp,
 ) {
     val textColor = if (useDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
     val mutedColor = textColor.copy(alpha = 0.65f)
@@ -101,7 +104,7 @@ fun PaginatedAppGrid(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(cellSpacing),
             ) {
                 if (apps.isEmpty()) {
                     Box(
@@ -120,7 +123,7 @@ fun PaginatedAppGrid(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(cellSpacing),
                         ) {
                             for (colIndex in 0 until columns) {
                                 val cellIndex = rowIndex * columns + colIndex
@@ -139,6 +142,7 @@ fun PaginatedAppGrid(
                                             onBoundsChanged = onBoundsChanged,
                                             onLaunchApp = onLaunchApp,
                                             onContextMenu = onAppContextMenu,
+                                            iconSize = iconSize,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }

@@ -27,6 +27,33 @@ object GlassesHomeLook {
     const val EDGE_START = 0.12f
     const val PAN_SPEED = 1.35f
 
+    /** Fraction of the viewport between pane centers so neighbors stay in view. */
+    const val PANE_SPACING = 0.56f
+    const val PANE_TILT_DEGREES = 48f
+    const val PANE_MAX_TILT = 58f
+    const val CONTENT_WIDTH_FRACTION = 0.66f
+    const val CONTENT_HEIGHT_FRACTION = 0.84f
+    const val CAMERA_DISTANCE_FACTOR = 0.88f
+
+    fun paneDelta(worldX: Float, look: Float = panNorm): Float = worldX - look
+
+    fun paneRotationY(delta: Float): Float =
+        (delta * PANE_TILT_DEGREES).coerceIn(-PANE_MAX_TILT, PANE_MAX_TILT)
+
+    fun paneScale(delta: Float): Float =
+        (1f - abs(delta).coerceAtMost(1.15f) * 0.18f).coerceAtLeast(0.72f)
+
+    fun paneAlpha(delta: Float): Float {
+        val distance = abs(delta)
+        return when {
+            distance >= 1.45f -> 0f
+            distance <= 0.85f -> 1f
+            else -> ((1.45f - distance) / 0.6f).coerceIn(0f, 1f)
+        }
+    }
+
+    fun paneVisible(delta: Float): Boolean = abs(delta) < 1.5f
+
     private val _panNorm = MutableStateFlow(0f)
     val panNormFlow: StateFlow<Float> = _panNorm.asStateFlow()
 

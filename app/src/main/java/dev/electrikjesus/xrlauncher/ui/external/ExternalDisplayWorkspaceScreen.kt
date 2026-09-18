@@ -29,7 +29,6 @@ import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
-import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 import dev.electrikjesus.xrlauncher.ui.workspace.openAppContextMenuFromBounds
 import kotlinx.coroutines.launch
@@ -53,16 +52,12 @@ fun ExternalDisplayWorkspaceScreen(
     }
 
     if (GlassesSessionState.preferSubspaceShell) {
-        GlassesWorkspaceScreen(
-            launcherPackageName = launcherPackageName,
-            workspaceRepository = workspaceRepository,
-            onLaunchApp = onLaunchApp,
-            onToggleHotseatPin = onToggleHotseatPin,
-            onCloseEmbedded = onCloseEmbedded,
-            onPopOutEmbedded = onPopOutEmbedded,
-            modifier = modifier,
+        SubspaceSpike.logCompositionStage(
+            stage = "route_flat_forced",
+            displayId = GlassesSessionState.secondaryDisplayId,
+            decision = GlassesSessionState.subspaceDecision,
+            detail = "EXTERNAL glasses stay on the 2D Home Space; Subspace hid it in a 960dp panel",
         )
-        return
     }
 
     FlatGlassesWorkspaceScreen(

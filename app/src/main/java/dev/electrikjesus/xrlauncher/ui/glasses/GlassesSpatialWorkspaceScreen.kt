@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
@@ -132,7 +133,14 @@ fun GlassesSpatialWorkspaceScreen(
     }
 
     val tuned = appearance.clamped()
-    val uiScale = tuned.uiScale
+    val densityScale = LocalDensity.current.density
+    // EXTERNAL glasses often report ~100dpi (density 0.625). Keep Home Space readable
+    // in the center 2/3 without relying on the 0.75–2.0 appearance slider alone.
+    val uiScale = if (densityScale < 1.15f) {
+        tuned.uiScale * (1.15f / densityScale).coerceIn(1f, 2.2f)
+    } else {
+        tuned.uiScale
+    }
     val panelGapDp = tuned.panelGapDp
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
@@ -179,7 +187,8 @@ fun GlassesSpatialWorkspaceScreen(
         )
 
         val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
-        GlassesHomeCarousel(
+        WorkspaceScaledLayer(uiScale = uiScale) {
+            GlassesHomeCarousel(
             panNorm = panNorm,
             appPlanes = appPlanes,
             left = {
@@ -233,7 +242,8 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             },
             modifier = Modifier.fillMaxSize(),
-        )
+            )
+        }
 
         if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
             GlassesRecentsLayer(

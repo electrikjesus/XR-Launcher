@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
@@ -40,6 +41,7 @@ fun AppIconCell(
     isPinned: Boolean = false,
     onLaunchApp: ((LaunchableApp) -> Unit)? = null,
     onContextMenu: ((LaunchableApp, Rect) -> Unit)? = null,
+    iconSize: Dp = 52.dp,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -89,11 +91,15 @@ fun AppIconCell(
                 }
             },
             update = { it.setImageDrawable(icon) },
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.size(iconSize),
         )
         Text(
             text = app.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = if (iconSize >= 72.dp) {
+                MaterialTheme.typography.titleSmall
+            } else {
+                MaterialTheme.typography.labelSmall
+            },
             color = if (isHovered) Color(0xFF03DAC5) else Color.White.copy(alpha = 0.9f),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

@@ -117,4 +117,21 @@ class GlassesHomeLookTest {
         assertEquals(GlassesHomeLook.PANE_HOME, GlassesHomeLook.panNorm, 0.001f)
         assertEquals(1, GlassesHomeLook.appPlanes.size)
     }
+
+    @Test
+    fun paneToTheRight_tiltsInwardTowardTheViewer() {
+        val delta = GlassesHomeLook.paneDelta(worldX = 1f, look = 0f)
+        assertEquals(1f, delta, 0.001f)
+        assertTrue(GlassesHomeLook.paneRotationY(delta) > 40f)
+        assertTrue(GlassesHomeLook.paneScale(delta) < 1f)
+        assertTrue(GlassesHomeLook.paneVisible(delta))
+    }
+
+    @Test
+    fun focusedPane_facesTheViewer() {
+        val delta = GlassesHomeLook.paneDelta(worldX = 0f, look = 0f)
+        assertEquals(0f, GlassesHomeLook.paneRotationY(delta), 0.001f)
+        assertEquals(1f, GlassesHomeLook.paneScale(delta), 0.001f)
+        assertEquals(1f, GlassesHomeLook.paneAlpha(delta), 0.001f)
+    }
 }
