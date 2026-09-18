@@ -772,7 +772,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Mouse-look pitch sign + companion toggle** — finger up looks up; 3D-rotation icon above touchpad | FPS look inverted; no phone control for look mode |
 | 2026-09-18 | **Desktop look range** — `minPan` = PANE_LEFT − 1.15 so empty space / left All Apps is reachable | Pan clamped at Desktop center; left half of drawer unreachable |
 | 2026-09-18 | **0.1.17:** persist Desktop icons + All Apps tile pose via `desk_json` in workspace DataStore | Positions were in-memory only |
+| 2026-09-18 | **Desk pager + open speed:** incremental icon bitmaps; drag effect ignores mouse-look; desk owns pageCount | Full rebuild on page; FPS look restarted drag and ate pager clicks |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.17 desk persist + release)*
+*Last updated: 2026-09-18 (pager click + desk texture speed)*

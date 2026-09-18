@@ -142,10 +142,13 @@ fun GlassesSpatialWorkspaceScreen(
         repo.saveDeskLayout(HomeSpaceDeskState.toLayout())
     }
 
-    LaunchedEffect(launchableApps, deskPlaced) {
+    LaunchedEffect(launchableApps, deskPlaced, allAppsOverlayVisible, appearance.desktopIcons) {
         val placedKeys = deskPlaced.map { it.app.componentKey }.toSet()
         val unplaced = launchableApps.count { it.componentKey() !in placedKeys }
-        AllAppsPaginationState.updatePageCount(unplaced, pageSize = HomeSpaceDesk.DRAWER_PAGE_SIZE)
+        // Own pageCount for the GLES desk drawer so Compose grids cannot clamp pager clicks.
+        if (allAppsOverlayVisible || appearance.desktopIcons) {
+            AllAppsPaginationState.updatePageCount(unplaced, pageSize = HomeSpaceDesk.DRAWER_PAGE_SIZE)
+        }
     }
     val visiblePanels = remember(panels) { Workspace.spatialHomePanels(panels) }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
@@ -248,16 +251,14 @@ fun GlassesSpatialWorkspaceScreen(
             drawerYawDeg = deskDrawerPose?.first,
             drawerPitchDeg = deskDrawerPose?.second ?: 0f,
         )
-        val iconKeys = icons.map { it.componentKey }
-        val existingKeys = DeskIconTextureBus.snapshots().map { it.componentKey }.toSet()
-        // Always rebuild when the All Apps page changes — page dots share keys across pages.
-        val pageChanged = DeskIconTextureBus.lastDrawerPage != allAppsPage
-        if (iconKeys.toSet() == existingKeys && DeskIconTextureBus.snapshots().isNotEmpty() && !pageChanged) {
-            DeskIconTextureBus.setIcons(icons)
-            return@LaunchedEffect
-        }
-        val snapshots = withContext(Dispatchers.Default) {
-            icons.map { icon ->
+        // Publish poses immediately so pager/app picks work while bitmaps catch up.
+        DeskIconTextureBus.setIcons(icons)
+        DeskIconTextureBus.lastDrawerPage = allAppsPage
+        val existing = DeskIconTextureBus.snapshots().associateBy { it.componentKey }
+        val missing = icons.filter { it.componentKey !in existing }
+        if (missing.isEmpty()) return@LaunchedEffect
+        val created = withContext(Dispatchers.Default) {
+            missing.map { icon ->
                 DeskIconSnapshot(
                     componentKey = icon.componentKey,
                     bitmap = DeskIconBitmaps.create(context, icon),
@@ -265,8 +266,10 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             }
         }
-        DeskIconTextureBus.set(icons, snapshots)
-        DeskIconTextureBus.lastDrawerPage = allAppsPage
+        val merged = icons.map { icon ->
+            existing[icon.componentKey] ?: created.first { it.componentKey == icon.componentKey }
+        }
+        DeskIconTextureBus.set(icons, merged)
     }
     LaunchedEffect(hotseatApps) {
         GlassesRecentApps.seedIfEmpty(hotseatApps)

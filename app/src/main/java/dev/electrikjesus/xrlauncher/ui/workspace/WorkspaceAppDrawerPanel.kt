@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -58,7 +59,8 @@ fun WorkspaceAppDrawerPanel(
     }
 
     LaunchedEffect(apps.size, gridDimensions.pageSize, useSharedPagination) {
-        if (useSharedPagination) {
+        // GLES Home Space desk owns AllAppsPaginationState while the sphere drawer is open.
+        if (useSharedPagination && !GlassesSessionState.allAppsOverlayVisible) {
             AllAppsPaginationState.updatePageCount(apps.size, gridDimensions.pageSize)
         }
     }

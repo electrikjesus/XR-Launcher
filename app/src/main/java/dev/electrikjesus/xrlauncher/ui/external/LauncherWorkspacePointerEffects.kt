@@ -137,6 +137,18 @@ fun LauncherWorkspacePointerEffects(
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
+    // Drag tracking must NOT restart on mouse-look yaw/pitch — that cleared pager chrome mid-click.
+    LaunchedEffect(
+        cursor.x,
+        cursor.y,
+        cursor.isPressed,
+        rootWidthPx,
+        rootHeightPx,
+        panelScale,
+        sphereScale,
+    ) {
+        trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    }
     LaunchedEffect(
         cursor.x,
         cursor.y,
@@ -152,7 +164,6 @@ fun LauncherWorkspacePointerEffects(
         lookPitch,
         panNorm,
     ) {
-        trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val screenPoint = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
         val pick = homeSpacePick(cursor.x, cursor.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
