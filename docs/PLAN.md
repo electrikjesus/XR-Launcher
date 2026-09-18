@@ -538,6 +538,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☑ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
+| 2.20 | **Borrow BumpDesk icon + widget paths** (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) that already work in a real 3D scene, instead of re-solving them. Icons: `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture). Widgets: `WidgetRenderer` (`AppWidgetHostView` measure/layout → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`, posed on a wall/floor with XYZ). Port the working methods into XR-Launcher’s Home Space objects (each with a Z) and keep Compose hit-testing. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -639,6 +640,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 6.6 | Privacy policy (minimal collection; no analytics or explicit opt-in only). | ☐ |
 | 6.7 | Play listing: screenshots, supported devices, honest “embedding limitations” note. | ☐ |
 | 6.8 | Beta via internal / closed testing; file bugs against `device-matrix.md` gaps. | ☐ |
+| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. | ☐ |
 
 ---
 
@@ -650,7 +652,7 @@ Must ship before public beta:
 - Phase 1 (all tasks — Tier 0 3D desktop + Tier 0c phone shell + companion stub)
 - Phase 2: tasks **2.1–2.8**, **2.11**, **2.13–2.15** (glasses real launcher: model, persistence, hotseat, drawer, widgets)
 - Phase 4: tasks 4.1–4.6, 4.8 (desktop input + companion + glasses head-mouse optional)
-- Phase 6: tasks 6.1–6.3, 6.6–6.8
+- Phase 6: tasks 6.1–6.3, 6.6–6.9
 
 Can defer post-v1:
 
@@ -695,7 +697,9 @@ Record major choices here as they are made.
 | 2026-06-11 | **Phase 1.5** tracks SmartGlasses Desktop Mode bugs | Tap click, motion calibrate, freeform → fullscreen |
 | 2026-06-12 | **Unified glasses pointer** — one Desktop gesture set; launcher foreground hit-test | Removed mode toggle; Subspace shell when spatial API present |
 | 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
+| 2026-09-18 | **Onboarding 6.9 (backlog):** full permission check + App Info restricted-settings path for desktop cursor accessibility | Sideloaded builds cannot enable the accessibility service until Restricted settings is allowed on App Info |
+| 2026-09-18 | **2.20 (backlog):** reuse BumpDesk `ItemRenderer` / `WidgetRenderer` for 3D launcher icons and live AppWidget textures | Those paths already bind icons and host widgets onto posed 3D surfaces |
 
 ---
 
-*Last updated: 2026-06-12 (Phase 2.3–2.15 glasses panels)*
+*Last updated: 2026-09-18 (6.9 onboarding permissions; 2.20 BumpDesk icons/widgets)*
