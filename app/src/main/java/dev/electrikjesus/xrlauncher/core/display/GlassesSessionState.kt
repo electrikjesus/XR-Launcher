@@ -143,7 +143,6 @@ object GlassesSessionState {
         AllAppsPaginationState.reset()
         _homeOverlay.value = GlassesHomeOverlay.NONE
         deskDrawerOpen = true
-        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
     }
 
     fun hideAllAppsOverlay() {

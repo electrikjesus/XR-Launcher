@@ -578,7 +578,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — 0.1.16 hover lift, smaller tiles, closer All Apps widget + pager, drag onto desktop. Still missing piles, lasso, radial menu, persist |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — open drawer ~1.4× icons + fitted backing, no forced look; still missing piles, lasso, radial menu, persist |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -600,11 +600,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed 0.1.16: hover is lift + cyan selection (no grey pad); desktop tiles match Icons & elements; expanded All Apps is a closer backing widget with icons/pagination stacked toward the camera; drag from the widget onto empty sphere space; look mode A/B (FPS only while the launcher is in front).
+Landed desk polish: open All Apps no longer snaps the camera left; expanded drawer icons/widget are ~1.4× desktop tiles with backing sized to the 4×4 + pager.
 
 **Do this next (desk polish after on-device check). One concern per change.**
 
-1. **On-device 0.1.16** — confirm tile size vs Home chrome, All Apps widget Z-stack, hover, DND, and both look modes.
+1. **On-device recheck** — open All Apps size/layout vs Home chrome; confirm no forced look.
 2. **Persist placed desktop icons** — `DeskRepository` analog (yaw/pitch on the sphere).
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Unify panes as pinned widgets** — after the desk feels right.
@@ -761,7 +761,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.15:** All Apps tile upright; click expands BumpDesk 4×4 drawer on the sphere; desktop icons use Icons & elements scale 1:1 | Tile was 180° Z; Compose All Apps overlay is not the drawer |
 | 2026-09-18 | **Desk tile facing:** inward pancake looks at the camera (right=+viewX, up=+viewY); shader 1−v UVs put bitmap top on camera top | The box was not 180° Z; the texture UVs were |
 | 2026-09-18 | **0.1.16:** hover lift + selection; smaller desktop tiles; closer All Apps widget Z-stack; drag onto desktop; look mode A/B (FPS while launcher is in front) | Grey pad, huge tiles, same-radius drawer, no DND, only gradient look |
+| 2026-09-18 | **All Apps expand:** no camera snap to Desktop; open-drawer icons 1.4× with backing fitted to 4×4 + pager | Forced `lookAt(PANE_LEFT)` stole view; widget/icons read too small on glasses |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.16 desk polish + look modes; host tests)*
+*Last updated: 2026-09-18 (All Apps expand size + drop forced look; host tests)*
