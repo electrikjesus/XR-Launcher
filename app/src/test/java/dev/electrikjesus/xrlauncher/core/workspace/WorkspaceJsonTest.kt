@@ -70,6 +70,16 @@ class WorkspaceJsonTest {
         assertEquals(true, decoded.appearance.desktopPiles)
         assertEquals(true, decoded.appearance.desktopTiles)
         assertEquals(true, decoded.appearance.desktopWidgets)
+        assertEquals(GlassesLookMode.GRADIENT, decoded.appearance.lookMode)
+    }
+
+    @Test
+    fun encodeDecode_preservesLookMode() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(lookMode = GlassesLookMode.FPS),
+        )
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(GlassesLookMode.FPS, decoded.appearance.lookMode)
     }
 
     @Test

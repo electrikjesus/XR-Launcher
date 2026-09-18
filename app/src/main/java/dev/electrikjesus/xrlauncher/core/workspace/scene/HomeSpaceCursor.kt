@@ -69,6 +69,16 @@ fun HomeSpaceScene.viewRay(
     return Vec3(ndcX * aspect * tanHalf, ndcY * tanHalf, -1f)
 }
 
+fun HomeSpaceScene.worldRay(
+    cursorX: Float,
+    cursorY: Float,
+    camera: HomeSpaceScene.Camera,
+    viewportWidthPx: Float,
+    viewportHeightPx: Float,
+): Vec3 = camera.worldDirection(
+    viewRay(cursorX, cursorY, viewportWidthPx, viewportHeightPx),
+).normalized()
+
 fun HomeSpaceScene.sphereHit(
     cursorX: Float,
     cursorY: Float,
@@ -77,9 +87,7 @@ fun HomeSpaceScene.sphereHit(
     viewportHeightPx: Float,
     sphereScale: Float = 1f,
 ): HomeSpaceSphereHit {
-    val worldDir = camera.worldDirection(
-        viewRay(cursorX, cursorY, viewportWidthPx, viewportHeightPx),
-    )
+    val worldDir = worldRay(cursorX, cursorY, camera, viewportWidthPx, viewportHeightPx)
     val hit = worldDir.normalized() * innerSphereRadius(sphereScale)
     return HomeSpaceSphereHit(
         world = hit,

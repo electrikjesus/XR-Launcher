@@ -27,6 +27,8 @@ data class WorkspaceAppearance(
     val desktopPiles: Boolean = true,
     val desktopTiles: Boolean = true,
     val desktopWidgets: Boolean = true,
+    /** Persisted Home Space look: gradient mouse-look vs FPS capture. */
+    val lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
         uiScale = uiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE),
@@ -43,6 +45,7 @@ data class WorkspaceAppearance(
         desktopPiles = desktopPiles,
         desktopTiles = desktopTiles,
         desktopWidgets = desktopWidgets,
+        lookMode = lookMode,
     )
 
     companion object {

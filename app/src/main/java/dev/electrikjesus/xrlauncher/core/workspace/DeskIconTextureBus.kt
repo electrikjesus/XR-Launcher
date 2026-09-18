@@ -35,6 +35,12 @@ object DeskIconTextureBus {
         renderCallbacks.forEach { it.invoke() }
     }
 
+    fun setIcons(icons: List<HomeSpaceDesk.Icon>) {
+        iconsRef.set(icons)
+        generation.incrementAndGet()
+        renderCallbacks.forEach { it.invoke() }
+    }
+
     fun setHoveredKey(key: String?) {
         if (hoveredKeyRef.get() == key) return
         hoveredKeyRef.set(key)

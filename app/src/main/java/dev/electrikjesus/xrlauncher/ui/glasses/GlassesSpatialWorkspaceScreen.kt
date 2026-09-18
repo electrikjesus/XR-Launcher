@@ -43,7 +43,8 @@ import kotlinx.coroutines.withContext
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
-import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
@@ -105,6 +106,9 @@ fun GlassesSpatialWorkspaceScreen(
     val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
     val editingHomeSpace by GlassesSessionState.homeSpaceEditFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
+    val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
+    val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
+    val deskDrag by HomeSpaceDeskState.dragFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
@@ -144,19 +148,21 @@ fun GlassesSpatialWorkspaceScreen(
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
+    val lookMode = if (launcherForeground) tuned.lookMode else GlassesLookMode.GRADIENT
+    val sceneCamera = HomeSpaceScene.camera(
+        look = panNorm,
+        cursorX = cursor.x,
+        cursorY = cursor.y,
+        viewportWidthPx = 1920f,
+        viewportHeightPx = 1080f,
+        panelScale = tuned.panelScale,
+        sphereScale = tuned.sphereScale,
+        lookMode = lookMode,
+        lookPitchDeg = lookPitch,
+    )
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
-        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(
-            panNorm,
-            cursor.x,
-            panelScale = tuned.panelScale,
-            sphereScale = tuned.sphereScale,
-        ),
-        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(
-            cursor.y,
-            panNorm,
-            panelScale = tuned.panelScale,
-            sphereScale = tuned.sphereScale,
-        ),
+        yawDegrees = sceneCamera.yawDeg,
+        pitchDegrees = sceneCamera.pitchDeg,
         panNormX = 0f,
         panNormY = 0f,
     )
@@ -167,6 +173,12 @@ fun GlassesSpatialWorkspaceScreen(
         onLaunchApp?.invoke(app)
     }
     val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
+    LaunchedEffect(tuned.lookMode, launcherForeground) {
+        GlassesLookMode.preference = tuned.lookMode
+        if (launcherForeground && tuned.lookMode == GlassesLookMode.FPS) {
+            CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        }
+    }
     LaunchedEffect(
         tuned.panelScale,
         tuned.sphereScale,
@@ -175,6 +187,8 @@ fun GlassesSpatialWorkspaceScreen(
         launchableApps,
         allAppsOverlayVisible,
         allAppsPage,
+        deskPlaced,
+        deskDrag,
     ) {
         if (!tuned.desktopIcons) {
             DeskIconTextureBus.clear()
@@ -188,7 +202,7 @@ fun GlassesSpatialWorkspaceScreen(
             )
         }
         val icons = HomeSpaceDesk.layout(
-            placed = emptyList(),
+            placed = deskPlaced,
             sphereScale = tuned.sphereScale,
             viewportWidthPx = 1920f,
             viewportHeightPx = 1080f,
@@ -197,7 +211,16 @@ fun GlassesSpatialWorkspaceScreen(
             drawerOpen = allAppsOverlayVisible,
             drawerApps = drawerApps,
             drawerPage = allAppsPage,
+            draggingKey = deskDrag?.app?.componentKey,
+            dragYawDeg = deskDrag?.yawDeg ?: 0f,
+            dragPitchDeg = deskDrag?.pitchDeg ?: 0f,
         )
+        val iconKeys = icons.map { it.componentKey }
+        val existingKeys = DeskIconTextureBus.snapshots().map { it.componentKey }.toSet()
+        if (iconKeys.toSet() == existingKeys && DeskIconTextureBus.snapshots().isNotEmpty()) {
+            DeskIconTextureBus.setIcons(icons)
+            return@LaunchedEffect
+        }
         val snapshots = withContext(Dispatchers.Default) {
             icons.map { icon ->
                 DeskIconSnapshot(

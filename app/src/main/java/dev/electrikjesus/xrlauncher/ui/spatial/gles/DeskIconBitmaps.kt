@@ -22,30 +22,82 @@ object DeskIconBitmaps {
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.TRANSPARENT)
 
-        if (icon.isAppDrawer) {
-            drawAppDrawer(canvas, width, ICON_SIZE)
-        } else {
-            val drawable = runCatching { AppIconCache.getIcon(context, icon.packageName) }.getOrNull()
-            if (drawable != null) {
-                val pad = 8
-                drawable.setBounds(pad, pad, width - pad, ICON_SIZE - pad)
-                drawable.draw(canvas)
-            } else {
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(180, 80, 90, 110) }
-                canvas.drawRoundRect(RectF(12f, 12f, width - 12f, ICON_SIZE - 12f), 24f, 24f, paint)
+        when {
+            icon.isBacking -> drawBacking(canvas, width, ICON_SIZE)
+            icon.kind == HomeSpaceDesk.Kind.PAGE_PREV -> drawChevron(canvas, width, ICON_SIZE, left = true)
+            icon.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> drawChevron(canvas, width, ICON_SIZE, left = false)
+            icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
+            icon.isAppDrawer -> drawAppDrawer(canvas, width, ICON_SIZE)
+            else -> {
+                val drawable = runCatching { AppIconCache.getIcon(context, icon.packageName) }.getOrNull()
+                if (drawable != null) {
+                    val pad = 8
+                    drawable.setBounds(pad, pad, width - pad, ICON_SIZE - pad)
+                    drawable.draw(canvas)
+                } else {
+                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(180, 80, 90, 110) }
+                    canvas.drawRoundRect(RectF(12f, 12f, width - 12f, ICON_SIZE - 12f), 24f, 24f, paint)
+                }
             }
         }
 
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            textSize = 22f
-            typeface = Typeface.DEFAULT_BOLD
-            textAlign = Paint.Align.CENTER
+        if (!icon.isBacking && icon.kind != HomeSpaceDesk.Kind.PAGE) {
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textSize = 22f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+            val label = icon.label.take(16)
+            val textY = ICON_SIZE + LABEL_HEIGHT * 0.72f
+            canvas.drawText(label, width / 2f, textY, textPaint)
         }
-        val label = icon.label.take(16)
-        val textY = ICON_SIZE + LABEL_HEIGHT * 0.72f
-        canvas.drawText(label, width / 2f, textY, textPaint)
         return bitmap
+    }
+
+    private fun drawBacking(canvas: Canvas, width: Int, iconSize: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.argb(200, 28, 32, 44)
+        canvas.drawRoundRect(RectF(4f, 4f, width - 4f, iconSize + 28f), 36f, 36f, paint)
+        paint.color = Color.argb(70, 138, 180, 248)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 6f
+        canvas.drawRoundRect(RectF(10f, 10f, width - 10f, iconSize + 22f), 30f, 30f, paint)
+        paint.style = Paint.Style.FILL
+    }
+
+    private fun drawChevron(canvas: Canvas, width: Int, iconSize: Int, left: Boolean) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(220, 230, 236, 248) }
+        val cx = width / 2f
+        val cy = iconSize / 2f
+        val arm = iconSize * 0.22f
+        val path = android.graphics.Path()
+        if (left) {
+            path.moveTo(cx + arm * 0.4f, cy - arm)
+            path.lineTo(cx - arm * 0.6f, cy)
+            path.lineTo(cx + arm * 0.4f, cy + arm)
+        } else {
+            path.moveTo(cx - arm * 0.4f, cy - arm)
+            path.lineTo(cx + arm * 0.6f, cy)
+            path.lineTo(cx - arm * 0.4f, cy + arm)
+        }
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 12f
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        canvas.drawPath(path, paint)
+    }
+
+    private fun drawPageDot(canvas: Canvas, width: Int, iconSize: Int, label: String) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(200, 138, 180, 248) }
+        val cx = width / 2f
+        val cy = iconSize / 2f
+        canvas.drawCircle(cx, cy, iconSize * 0.22f, paint)
+        paint.color = Color.WHITE
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 36f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        canvas.drawText(label, cx, cy + 13f, paint)
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

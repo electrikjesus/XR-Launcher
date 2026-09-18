@@ -8,6 +8,7 @@ enum class HomeSpaceTuneAxis {
     DESK_PILES,
     DESK_TILES,
     DESK_WIDGETS,
+    LOOK_FPS,
 }
 
 enum class HomeSpaceEditPage {
@@ -31,6 +32,13 @@ object HomeSpaceTune {
         HomeSpaceTuneAxis.DESK_PILES -> appearance.copy(desktopPiles = !appearance.desktopPiles)
         HomeSpaceTuneAxis.DESK_TILES -> appearance.copy(desktopTiles = !appearance.desktopTiles)
         HomeSpaceTuneAxis.DESK_WIDGETS -> appearance.copy(desktopWidgets = !appearance.desktopWidgets)
+        HomeSpaceTuneAxis.LOOK_FPS -> appearance.copy(
+            lookMode = if (appearance.lookMode == GlassesLookMode.FPS) {
+                GlassesLookMode.GRADIENT
+            } else {
+                GlassesLookMode.FPS
+            },
+        )
     }.clamped()
 
     fun enabled(appearance: WorkspaceAppearance, axis: HomeSpaceTuneAxis): Boolean = when (axis) {
@@ -38,6 +46,7 @@ object HomeSpaceTune {
         HomeSpaceTuneAxis.DESK_PILES -> appearance.desktopPiles
         HomeSpaceTuneAxis.DESK_TILES -> appearance.desktopTiles
         HomeSpaceTuneAxis.DESK_WIDGETS -> appearance.desktopWidgets
+        HomeSpaceTuneAxis.LOOK_FPS -> appearance.lookMode == GlassesLookMode.FPS
         else -> true
     }
 }

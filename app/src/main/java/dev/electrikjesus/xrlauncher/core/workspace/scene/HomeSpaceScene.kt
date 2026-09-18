@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.sin
@@ -141,6 +142,7 @@ object HomeSpaceScene {
     /**
      * Mouse-look on top of [look]: companion cursor yaws/pitches the FPS camera a little,
      * while hover still uses a ray through that same view onto the inner sphere.
+     * [GlassesLookMode.FPS] ignores cursor offset and uses [lookPitchDeg] instead.
      */
     fun camera(
         look: Float,
@@ -150,13 +152,39 @@ object HomeSpaceScene {
         viewportHeightPx: Float,
         panelScale: Float = 1f,
         sphereScale: Float = 1f,
+        lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
+        lookPitchDeg: Float = 0f,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
+        if (lookMode == GlassesLookMode.FPS) {
+            return Camera(
+                yawDeg = look * arc,
+                pitchDeg = lookPitchDeg.coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES),
+            )
+        }
         val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
         val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
         return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
     }
+
+    /** Normalized pointer delta → panNorm units so a full-width swipe matches horizontal FOV. */
+    fun fpsPanNormDelta(
+        deltaX: Float,
+        viewportWidthPx: Float = 1920f,
+        viewportHeightPx: Float = 1080f,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
+    ): Float {
+        val aspect = viewportWidthPx / viewportHeightPx.coerceAtLeast(1f)
+        val halfFovY = Math.toRadians(FOV_Y_DEGREES / 2.0)
+        val hfovDeg = (2.0 * Math.toDegrees(atan(aspect * tan(halfFovY)))).toFloat()
+        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
+            .coerceAtLeast(1f)
+        return deltaX * hfovDeg / arc
+    }
+
+    fun fpsPitchDelta(deltaY: Float): Float = -deltaY * FOV_Y_DEGREES
 
     fun pane(
         worldX: Float,

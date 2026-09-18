@@ -33,5 +33,9 @@ class HomeSpaceTuneTest {
         val pilesOff = HomeSpaceTune.apply(iconsOff, HomeSpaceTuneAxis.DESK_PILES, 0f)
         assertEquals(false, pilesOff.desktopPiles)
         assertEquals(true, pilesOff.desktopTiles)
+        val fps = HomeSpaceTune.apply(base, HomeSpaceTuneAxis.LOOK_FPS, 0f)
+        assertEquals(GlassesLookMode.FPS, fps.lookMode)
+        val gradient = HomeSpaceTune.apply(fps, HomeSpaceTuneAxis.LOOK_FPS, 0f)
+        assertEquals(GlassesLookMode.GRADIENT, gradient.lookMode)
     }
 }

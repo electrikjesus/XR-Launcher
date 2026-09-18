@@ -40,6 +40,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import java.util.Locale
@@ -134,6 +135,14 @@ fun BoxScope.GlassesHomeTuneOverlay(
                             onBoundsChanged = onBoundsChanged,
                             onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
                             onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
+                        )
+                        DeskToggleRow(
+                            label = stringResource(R.string.xr_edit_look_fps),
+                            enabled = tuned.lookMode == GlassesLookMode.FPS,
+                            boundsKey = GlassesHomeHits.EDIT_LOOK_FPS,
+                            hoveredLabel = hoveredLabel,
+                            onBoundsChanged = onBoundsChanged,
+                            onToggle = { onNudge(HomeSpaceTuneAxis.LOOK_FPS, 0f) },
                         )
                     }
                     HomeSpaceEditPage.DESKTOP -> {

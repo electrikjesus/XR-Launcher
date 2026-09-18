@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlin.math.abs
 
 /** An app hosted as a spatial plane in the Home Space carousel. */
@@ -54,6 +55,18 @@ object GlassesHomeLook {
     }
 
     fun paneVisible(delta: Float): Boolean = abs(delta) < 1.5f
+
+    private val _lookPitch = MutableStateFlow(0f)
+    val lookPitchFlow: StateFlow<Float> = _lookPitch.asStateFlow()
+
+    var lookPitch: Float
+        get() = _lookPitch.value
+        set(value) {
+            _lookPitch.value = value.coerceIn(
+                -HomeSpaceScene.MAX_PITCH_DEGREES,
+                HomeSpaceScene.MAX_PITCH_DEGREES,
+            )
+        }
 
     private val _panNorm = MutableStateFlow(0f)
     val panNormFlow: StateFlow<Float> = _panNorm.asStateFlow()
@@ -140,6 +153,7 @@ object GlassesHomeLook {
      * pans toward the neighboring pane. Stronger the closer to the bezel.
      */
     fun tickEdgePan(cursorX: Float, deltaSeconds: Float) {
+        if (GlassesLookMode.effective() == GlassesLookMode.FPS) return
         val dt = deltaSeconds.coerceIn(0f, 0.05f)
         if (dt <= 0f) return
         val x = cursorX.coerceIn(0f, 1f)
@@ -159,13 +173,20 @@ object GlassesHomeLook {
         }
     }
 
+    fun addFpsLook(deltaX: Float, deltaY: Float) {
+        panNorm += HomeSpaceScene.fpsPanNormDelta(deltaX)
+        lookPitch += HomeSpaceScene.fpsPitchDelta(deltaY)
+    }
+
     /** Recenter on Home without closing spatial app planes. */
     fun lookHome() {
         panNorm = PANE_HOME
+        lookPitch = 0f
     }
 
     fun reset() {
         _appPlanes.value = emptyList()
         panNorm = PANE_HOME
+        lookPitch = 0f
     }
 }

@@ -13,16 +13,28 @@ object HomeSpaceDesk {
     const val DRAWER_KEY = "__desk_all_apps__"
     const val HOVER_LABEL = "Desktop"
     const val DRAWER_LABEL = "All apps"
-    const val HOVER_LIFT = 0.03f
-    const val HOVER_PAD_SCALE = 1.28f
-    const val DRAWER_SCALE = 1.2f
-    /** Face size on the sphere (BumpDesk pancake, XY toward the camera). */
-    const val ICON_HALF_WIDTH = 0.13f
-    const val ICON_HALF_HEIGHT = 0.16f
-    const val ICON_HALF_THICK = 0.012f
-    /** BumpDesk expanded-pile page: 4×4. */
+    const val HOVER_LIFT = 0.04f
+    const val DRAWER_SCALE = 1.15f
+    /** Face size on the sphere — matches Home chrome at uiScale 1. */
+    const val ICON_HALF_WIDTH = 0.048f
+    const val ICON_HALF_HEIGHT = 0.058f
+    const val ICON_HALF_THICK = 0.008f
     const val DRAWER_COLS = 4
     const val DRAWER_PAGE_SIZE = 16
+    const val BACKING_KEY = "__desk_all_apps_widget__"
+    const val PAGE_PREV_KEY = "__desk_page_prev__"
+    const val PAGE_NEXT_KEY = "__desk_page_next__"
+    /** Inward lift of the expanded All Apps widget (closer to the camera). */
+    const val BACKING_LIFT = 0.11f
+    /** Extra lift so app icons and pager sit on top of the widget. */
+    const val ICON_STACK_LIFT = 0.045f
+
+    fun pageKey(index: Int): String = "__desk_page_${index}__"
+
+    fun pageIndex(componentKey: String): Int? {
+        if (!componentKey.startsWith("__desk_page_") || !componentKey.endsWith("__")) return null
+        return componentKey.removePrefix("__desk_page_").removeSuffix("__").toIntOrNull()
+    }
 
     fun iconHalfWidth(uiScale: Float): Float =
         ICON_HALF_WIDTH * uiScale.coerceAtLeast(0.01f)
@@ -30,13 +42,19 @@ object HomeSpaceDesk {
     fun iconHalfHeight(uiScale: Float): Float =
         ICON_HALF_HEIGHT * uiScale.coerceAtLeast(0.01f)
 
-    enum class Kind { APP_DRAWER, APP }
+    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE }
 
     data class AppRef(
         val componentKey: String,
         val label: String,
         val packageName: String,
         val kind: Kind = Kind.APP,
+    )
+
+    data class Placed(
+        val app: AppRef,
+        val yawDeg: Float,
+        val pitchDeg: Float,
     )
 
     data class Icon(
@@ -46,6 +64,7 @@ object HomeSpaceDesk {
         val halfWidth: Float = ICON_HALF_WIDTH,
         val halfHeight: Float = ICON_HALF_HEIGHT,
         val halfThick: Float = ICON_HALF_THICK,
+        val lift: Float = 0f,
         val center: Vec3,
     ) {
         val componentKey: String get() = app.componentKey
@@ -53,6 +72,9 @@ object HomeSpaceDesk {
         val packageName: String get() = app.packageName
         val kind: Kind get() = app.kind
         val isAppDrawer: Boolean get() = kind == Kind.APP_DRAWER
+        val isBacking: Boolean get() = kind == Kind.DRAWER_BACKING
+        val isPager: Boolean get() = kind == Kind.PAGE_PREV || kind == Kind.PAGE_NEXT || kind == Kind.PAGE
+        val isDesktopApp: Boolean get() = kind == Kind.APP
     }
 
     fun yawDegrees(
@@ -110,15 +132,21 @@ object HomeSpaceDesk {
         halfWidth: Float = ICON_HALF_WIDTH,
         halfHeight: Float = ICON_HALF_HEIGHT,
         halfThick: Float = ICON_HALF_THICK,
-    ): Icon = Icon(
-        app = app,
-        yawDeg = yawDeg,
-        pitchDeg = pitchDeg,
-        halfWidth = halfWidth,
-        halfHeight = halfHeight,
-        halfThick = halfThick,
-        center = pointOnSphere(yawDeg, pitchDeg, sphereScale),
-    )
+        lift: Float = 0f,
+    ): Icon {
+        val onWall = pointOnSphere(yawDeg, pitchDeg, sphereScale)
+        val inward = outward(yawDeg, pitchDeg) * -1f
+        return Icon(
+            app = app,
+            yawDeg = yawDeg,
+            pitchDeg = pitchDeg,
+            halfWidth = halfWidth,
+            halfHeight = halfHeight,
+            halfThick = halfThick,
+            lift = lift,
+            center = onWall + inward * lift,
+        )
+    }
 
     fun defaultIcons(
         sphereScale: Float,
@@ -142,7 +170,7 @@ object HomeSpaceDesk {
     )
 
     fun layout(
-        placed: List<AppRef>,
+        placed: List<Placed>,
         sphereScale: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
@@ -151,12 +179,18 @@ object HomeSpaceDesk {
         drawerOpen: Boolean = false,
         drawerApps: List<AppRef> = emptyList(),
         drawerPage: Int = 0,
+        draggingKey: String? = null,
+        dragYawDeg: Float = 0f,
+        dragPitchDeg: Float = 0f,
     ): List<Icon> {
         val scale = sphereScale.coerceAtLeast(0.01f)
         val iconScale = uiScale.coerceAtLeast(0.01f)
         val halfW = iconHalfWidth(iconScale)
         val halfH = iconHalfHeight(iconScale)
         val yaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
+        val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
+        val yawStep = Math.toDegrees((halfW * 2.35f / radius).toDouble()).toFloat()
+        val pitchStep = Math.toDegrees((halfH * 2.35f / radius).toDouble()).toFloat()
         val drawer = iconOf(
             app = AppRef(
                 componentKey = DRAWER_KEY,
@@ -170,44 +204,94 @@ object HomeSpaceDesk {
             halfWidth = halfW * DRAWER_SCALE,
             halfHeight = halfH * DRAWER_SCALE,
         )
-        val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
-        val yawStep = Math.toDegrees((halfW * 2.4f / radius).toDouble()).toFloat()
-        val pitchStep = Math.toDegrees((halfH * 2.4f / radius).toDouble()).toFloat()
-        val placedIcons = placed.filter { it.kind == Kind.APP }.mapIndexed { index, app ->
-            val col = (index % DRAWER_COLS) - 1.5f
-            val row = 1 + index / DRAWER_COLS
+        val placedIcons = placed.filter { it.app.kind == Kind.APP }.map { item ->
+            val pose = if (item.app.componentKey == draggingKey) {
+                item.copy(yawDeg = dragYawDeg, pitchDeg = dragPitchDeg)
+            } else {
+                item
+            }
             iconOf(
-                app = app,
-                yawDeg = yaw + col * yawStep,
-                pitchDeg = -row * pitchStep,
+                app = pose.app,
+                yawDeg = pose.yawDeg,
+                pitchDeg = pose.pitchDeg,
                 sphereScale = scale,
                 halfWidth = halfW,
                 halfHeight = halfH,
+                lift = if (item.app.componentKey == draggingKey) HOVER_LIFT else 0f,
             )
         }
-        val placedKeys = placedIcons.map { it.componentKey }.toSet()
-        val openIcons = if (!drawerOpen) {
-            emptyList()
-        } else {
-            val page = drawerPage.coerceAtLeast(0)
-            drawerApps
-                .filter { it.kind == Kind.APP && it.componentKey !in placedKeys }
-                .drop(page * DRAWER_PAGE_SIZE)
-                .take(DRAWER_PAGE_SIZE)
-                .mapIndexed { index, app ->
-                    val col = index % DRAWER_COLS
-                    val row = index / DRAWER_COLS
-                    iconOf(
-                        app = app,
-                        yawDeg = yaw + (col - 1.5f) * yawStep,
-                        pitchDeg = (1.5f - row) * pitchStep,
-                        sphereScale = scale,
-                        halfWidth = halfW,
-                        halfHeight = halfH,
-                    )
-                }
+        val placedKeys = placed.map { it.app.componentKey }.toSet()
+        if (!drawerOpen) return listOf(drawer) + placedIcons
+
+        val page = drawerPage.coerceAtLeast(0)
+        val unplaced = drawerApps.filter { it.kind == Kind.APP && it.componentKey !in placedKeys }
+        val pageApps = unplaced.drop(page * DRAWER_PAGE_SIZE).take(DRAWER_PAGE_SIZE)
+        val pageCount = ((unplaced.size + DRAWER_PAGE_SIZE - 1) / DRAWER_PAGE_SIZE).coerceAtLeast(1)
+        val backing = iconOf(
+            app = AppRef(BACKING_KEY, DRAWER_LABEL, "", Kind.DRAWER_BACKING),
+            yawDeg = yaw,
+            pitchDeg = 0f,
+            sphereScale = scale,
+            halfWidth = halfW * DRAWER_COLS * 1.35f,
+            halfHeight = halfH * (DRAWER_COLS + 1.4f) * 0.72f,
+            lift = BACKING_LIFT,
+        )
+        val stackLift = BACKING_LIFT + ICON_STACK_LIFT
+        val openIcons = pageApps.mapIndexed { index, app ->
+            val col = index % DRAWER_COLS
+            val row = index / DRAWER_COLS
+            val iconYaw = yaw + (col - 1.5f) * yawStep
+            val iconPitch = (1.5f - row) * pitchStep
+            val dragging = app.componentKey == draggingKey
+            iconOf(
+                app = app,
+                yawDeg = if (dragging) dragYawDeg else iconYaw,
+                pitchDeg = if (dragging) dragPitchDeg else iconPitch,
+                sphereScale = scale,
+                halfWidth = halfW,
+                halfHeight = halfH,
+                lift = if (dragging) stackLift + 0.03f else stackLift,
+            )
         }
-        return listOf(drawer) + placedIcons + openIcons
+        val pagerPitch = -2.35f * pitchStep
+        val pager = buildList {
+            add(
+                iconOf(
+                    app = AppRef(PAGE_PREV_KEY, "Previous", "", Kind.PAGE_PREV),
+                    yawDeg = yaw - 1.7f * yawStep,
+                    pitchDeg = pagerPitch,
+                    sphereScale = scale,
+                    halfWidth = halfW * 0.72f,
+                    halfHeight = halfH * 0.55f,
+                    lift = stackLift,
+                ),
+            )
+            repeat(pageCount.coerceAtMost(8)) { index ->
+                add(
+                    iconOf(
+                        app = AppRef(pageKey(index), "${index + 1}", "", Kind.PAGE),
+                        yawDeg = yaw + (index - (pageCount - 1) / 2f) * yawStep * 0.7f,
+                        pitchDeg = pagerPitch,
+                        sphereScale = scale,
+                        halfWidth = halfW * 0.42f,
+                        halfHeight = halfH * 0.42f,
+                        lift = stackLift,
+                    ),
+                )
+            }
+            add(
+                iconOf(
+                    app = AppRef(PAGE_NEXT_KEY, "Next", "", Kind.PAGE_NEXT),
+                    yawDeg = yaw + 1.7f * yawStep,
+                    pitchDeg = pagerPitch,
+                    sphereScale = scale,
+                    halfWidth = halfW * 0.72f,
+                    halfHeight = halfH * 0.55f,
+                    lift = stackLift,
+                ),
+            )
+        }
+        return listOf(drawer, backing) + openIcons + pager + placedIcons
     }
 
     fun moved(icon: Icon, yawDeg: Float, pitchDeg: Float, sphereScale: Float): Icon =
@@ -219,7 +303,36 @@ object HomeSpaceDesk {
             halfWidth = icon.halfWidth,
             halfHeight = icon.halfHeight,
             halfThick = icon.halfThick,
+            lift = icon.lift,
         )
+
+    fun pickAlongRay(rayDir: Vec3, icons: List<Icon>): Icon? {
+        val dir = rayDir.normalized()
+        var best: Icon? = null
+        var bestT = Float.MAX_VALUE
+        icons.forEach { icon ->
+            val n = (icon.center * -1f).normalized()
+            val denom = dir.dot(n)
+            if (abs(denom) < 1e-4f) return@forEach
+            val t = icon.center.dot(n) / denom
+            if (t < 0.05f) return@forEach
+            val hit = dir * t
+            val right = rightAxis(icon.yawDeg)
+            val up = upAxis(icon.yawDeg, icon.pitchDeg)
+            val dx = hit.x - icon.center.x
+            val dy = hit.y - icon.center.y
+            val dz = hit.z - icon.center.z
+            val localX = dx * right.x + dy * right.y + dz * right.z
+            val localY = dx * up.x + dy * up.y + dz * up.z
+            if (abs(localX) > icon.halfWidth * 1.12f) return@forEach
+            if (abs(localY) > icon.halfHeight * 1.12f) return@forEach
+            if (t < bestT) {
+                bestT = t
+                best = icon
+            }
+        }
+        return best
+    }
 
     fun pickIcon(hit: Vec3, icons: List<Icon>): Icon? {
         var best: Icon? = null
@@ -249,12 +362,12 @@ object HomeSpaceDesk {
         val inward = outward(icon.yawDeg, icon.pitchDeg) * -1f
         val center = icon.center + inward * (icon.halfThick + 0.004f + lift)
         fun corner(sx: Float, sy: Float) = Vec3(
-            center.x + right.x * sx * icon.halfWidth * HOVER_PAD_SCALE +
-                up.x * sy * icon.halfHeight * HOVER_PAD_SCALE,
-            center.y + right.y * sx * icon.halfWidth * HOVER_PAD_SCALE +
-                up.y * sy * icon.halfHeight * HOVER_PAD_SCALE,
-            center.z + right.z * sx * icon.halfWidth * HOVER_PAD_SCALE +
-                up.z * sy * icon.halfHeight * HOVER_PAD_SCALE,
+            center.x + right.x * sx * icon.halfWidth * 1.28f +
+                up.x * sy * icon.halfHeight * 1.28f,
+            center.y + right.y * sx * icon.halfWidth * 1.28f +
+                up.y * sy * icon.halfHeight * 1.28f,
+            center.z + right.z * sx * icon.halfWidth * 1.28f +
+                up.z * sy * icon.halfHeight * 1.28f,
         )
         val bl = corner(-1f, -1f)
         val br = corner(1f, -1f)

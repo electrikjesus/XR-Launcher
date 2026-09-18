@@ -79,9 +79,15 @@ class HomeSpaceDeskTest {
             drawerApps = many,
             drawerPage = 0,
         )
-        assertEquals(1 + HomeSpaceDesk.DRAWER_PAGE_SIZE, open.size)
+        val appsOnPage = open.filter { it.isDesktopApp }
+        val backing = open.first { it.isBacking }
+        val pager = open.filter { it.isPager }
         assertTrue(open.first().isAppDrawer)
-        assertEquals(many[0].componentKey, open[1].componentKey)
+        assertEquals(HomeSpaceDesk.DRAWER_PAGE_SIZE, appsOnPage.size)
+        assertEquals(many[0].componentKey, appsOnPage.first().componentKey)
+        assertEquals(4, pager.size)
+        assertTrue(backing.center.length() < open.first().center.length() - 0.04f)
+        assertTrue(appsOnPage.first().center.length() < backing.center.length())
         val page1 = HomeSpaceDesk.layout(
             placed = emptyList(),
             sphereScale = 1f,
@@ -91,8 +97,8 @@ class HomeSpaceDeskTest {
             drawerApps = many,
             drawerPage = 1,
         )
-        assertEquals(1 + 4, page1.size)
-        assertEquals(many[16].componentKey, page1[1].componentKey)
+        assertEquals(4, page1.filter { it.isDesktopApp }.size)
+        assertEquals(many[16].componentKey, page1.first { it.isDesktopApp }.componentKey)
     }
 
     @Test
@@ -142,7 +148,10 @@ class HomeSpaceDeskTest {
 
     @Test
     fun layout_keepsTheDrawerWhenPlacingApps() {
-        val icons = HomeSpaceDesk.layout(apps, 1f, 1920f, 1080f)
+        val placed = apps.mapIndexed { index, app ->
+            HomeSpaceDesk.Placed(app, yawDeg = -40f + index * 8f, pitchDeg = -6f)
+        }
+        val icons = HomeSpaceDesk.layout(placed, 1f, 1920f, 1080f)
         assertEquals(1 + apps.size, icons.size)
         assertTrue(icons.first().isAppDrawer)
         assertTrue(icons[1].yawDeg != icons[2].yawDeg || icons[1].pitchDeg != icons[2].pitchDeg)
@@ -150,7 +159,10 @@ class HomeSpaceDeskTest {
 
     @Test
     fun pickIcon_hitsTheIconUnderTheRay() {
-        val icons = HomeSpaceDesk.layout(apps, 1f, 1920f, 1080f)
+        val placed = apps.mapIndexed { index, app ->
+            HomeSpaceDesk.Placed(app, yawDeg = -40f + index * 8f, pitchDeg = -6f)
+        }
+        val icons = HomeSpaceDesk.layout(placed, 1f, 1920f, 1080f)
         val first = icons.first()
         val picked = HomeSpaceDesk.pickIcon(first.center, icons)
         assertEquals(first.componentKey, picked!!.componentKey)
@@ -192,17 +204,34 @@ class HomeSpaceDeskTest {
     }
 
     @Test
-    fun hoverPad_isLargerThanTheIcon() {
+    fun hoverLift_movesTheIconTowardTheCamera() {
         val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f).first()
-        val pad = HomeSpaceDesk.hoverPadMesh(drawer)
-        assertEquals(6, pad.vertexCount)
-        assertEquals(-2f, pad.interleaved[6], 0.001f)
-        val alongRight = HomeSpaceDesk.rightAxis(drawer.yawDeg)
-        val locals = (0 until pad.vertexCount).map { i ->
-            val p = pad.position(i)
-            (p.x - drawer.center.x) * alongRight.x + (p.z - drawer.center.z) * alongRight.z
-        }
-        assertTrue(locals.maxOrNull()!! - locals.minOrNull()!! > drawer.halfWidth * 2f)
+        val face = HomeSpaceDesk.inwardFace(drawer, HomeSpaceDesk.HOVER_LIFT)
+        val mid = (face.bl + face.tr) * 0.5f
+        assertTrue(mid.length() < drawer.center.length() - 0.02f)
+    }
+
+    @Test
+    fun layout_keepsDeskTilesSmallerThanHomeChromeAtUiScaleOne() {
+        assertTrue(HomeSpaceDesk.ICON_HALF_WIDTH < 0.07f)
+        val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1f).first()
+        assertTrue(drawer.halfWidth * 2f < 0.12f)
+    }
+
+    @Test
+    fun pickAlongRay_hitsALiftedWidgetCloserThanTheSphereWall() {
+        val open = HomeSpaceDesk.defaultIcons(
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = apps,
+        )
+        val backing = open.first { it.isBacking }
+        val camera = HomeSpaceScene.camera(-1f, 0.5f, 0.5f, 1920f, 1080f)
+        val ray = HomeSpaceScene.worldRay(0.5f, 0.5f, camera, 1920f, 1080f)
+        val picked = HomeSpaceDesk.pickAlongRay(ray, open)
+        assertEquals(backing.componentKey, picked!!.componentKey)
     }
 
     @Test

@@ -73,4 +73,19 @@ class HomeSpaceSceneTest {
         assertTrue(right.yawDeg >= 20f)
         assertTrue(down.pitchDeg >= 16f)
     }
+
+    @Test
+    fun fpsLook_ignoresCursorOffsetAndUsesLookPitch() {
+        val fps = HomeSpaceScene.camera(
+            look = 0f,
+            cursorX = 1f,
+            cursorY = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            lookMode = dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode.FPS,
+            lookPitchDeg = 8f,
+        )
+        assertEquals(0f, fps.yawDeg, 0.2f)
+        assertEquals(8f, fps.pitchDeg, 0.2f)
+    }
 }

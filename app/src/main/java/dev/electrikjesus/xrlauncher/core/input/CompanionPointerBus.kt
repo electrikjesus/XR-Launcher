@@ -18,6 +18,9 @@ import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationSes
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import kotlin.math.hypot
 
@@ -161,6 +164,12 @@ object CompanionPointerBus {
     }
 
     fun moveBy(deltaX: Float, deltaY: Float) {
+        if (GlassesLookMode.effective() == GlassesLookMode.FPS) {
+            val current = _cursor.value
+            _cursor.value = current.copy(x = 0.5f, y = 0.5f)
+            GlassesHomeLook.addFpsLook(deltaX, deltaY)
+            return
+        }
         val current = _cursor.value
         _cursor.value = current.copy(
             x = (current.x + deltaX).coerceIn(0f, 1f),
@@ -246,6 +255,7 @@ object CompanionPointerBus {
 
     fun recenterCursor() {
         setCursorPosition(0.5f, 0.5f)
+        GlassesHomeLook.lookPitch = 0f
         WorkspaceLookOffset.reset()
     }
 
@@ -311,7 +321,9 @@ object CompanionPointerBus {
         if (startX == null || startY == null) return
         val moved = hypot(end.x - startX, end.y - startY) > DRAG_THRESHOLD
         val primaryGesture = hadLeftButton || hadTouchpadDrag
+        val deskDragging = HomeSpaceDeskState.drag?.pulling == true
         when {
+            deskDragging -> { }
             moved && primaryGesture && pointerInjectionAvailable() ->
                 DisplayPointerInjector.dispatchDrag(
                     GlassesSessionState.secondaryDisplayId!!,

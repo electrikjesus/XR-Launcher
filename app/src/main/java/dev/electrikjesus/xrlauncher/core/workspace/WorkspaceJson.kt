@@ -65,6 +65,7 @@ object WorkspaceJson {
             if (clamped.desktopPiles) "1" else "0",
             if (clamped.desktopTiles) "1" else "0",
             if (clamped.desktopWidgets) "1" else "0",
+            clamped.lookMode.name.lowercase(),
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -90,6 +91,7 @@ object WorkspaceJson {
             desktopPiles = fields.getOrNull(11) != "0",
             desktopTiles = fields.getOrNull(12) != "0",
             desktopWidgets = fields.getOrNull(13) != "0",
+            lookMode = GlassesLookMode.fromPersisted(fields.getOrNull(14)),
         ).clamped()
     }
 

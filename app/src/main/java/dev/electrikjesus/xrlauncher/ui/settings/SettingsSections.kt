@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 
@@ -28,6 +29,7 @@ fun WorkspaceAppearanceSettingsSection(
     onWorkspaceHeightChange: (Float) -> Unit,
     onLookYawChange: (Float) -> Unit,
     onLookPitchChange: (Float) -> Unit,
+    onLookModeChange: (GlassesLookMode) -> Unit,
     onRecenterLook: () -> Unit,
     onResetAppearance: () -> Unit,
     modifier: Modifier = Modifier,
@@ -124,6 +126,27 @@ fun WorkspaceAppearanceSettingsSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
+        Text(
+            text = stringResource(R.string.workspace_look_mode_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { onLookModeChange(GlassesLookMode.GRADIENT) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            enabled = appearance.lookMode != GlassesLookMode.GRADIENT,
+        ) {
+            Text(stringResource(R.string.workspace_look_mode_gradient))
+        }
+        OutlinedButton(
+            onClick = { onLookModeChange(GlassesLookMode.FPS) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            enabled = appearance.lookMode != GlassesLookMode.FPS,
+        ) {
+            Text(stringResource(R.string.workspace_look_mode_fps))
+        }
         if (!headTrackingActive) {
             Text(
                 text = stringResource(R.string.workspace_look_yaw) +

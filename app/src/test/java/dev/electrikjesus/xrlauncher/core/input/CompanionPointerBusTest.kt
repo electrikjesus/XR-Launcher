@@ -2,6 +2,8 @@ package dev.electrikjesus.xrlauncher.core.input
 
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,6 +16,8 @@ class CompanionPointerBusTest {
     fun reset() {
         CompanionPointerBus.resetCursor()
         CompanionPointerBus.setMotionControlEnabled(false)
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        GlassesHomeLook.reset()
         GlassesSessionState.markLauncherForeground()
     }
 
@@ -281,5 +285,29 @@ class CompanionPointerBusTest {
         CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
         val baseX = CompanionPointerBus.cursor.value.x
         assertTrue(scaledX > baseX)
+    }
+
+    @Test
+    fun moveBy_fpsLocksCursorAndTurnsTheView() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        CompanionPointerBus.setCursorPosition(0.4f, 0.6f)
+        GlassesHomeLook.reset()
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
+        assertEquals(0.5f, CompanionPointerBus.cursor.value.y, 0.001f)
+        assertTrue(GlassesHomeLook.panNorm > 0f)
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
+    }
+
+    @Test
+    fun moveBy_fpsFallsBackToCursorWhenAnAppIsInFront() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.launcherForeground = false
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        GlassesSessionState.markLauncherForeground()
     }
 }

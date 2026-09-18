@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -12,6 +13,8 @@ class GlassesHomeLookTest {
     @Before
     fun reset() {
         GlassesHomeLook.reset()
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        GlassesSessionState.markLauncherForeground()
     }
 
     @Test
@@ -144,5 +147,19 @@ class GlassesHomeLookTest {
         assertEquals(0f, GlassesHomeLook.paneRotationY(delta), 0.001f)
         assertEquals(1f, GlassesHomeLook.paneScale(delta), 0.001f)
         assertEquals(1f, GlassesHomeLook.paneAlpha(delta), 0.001f)
+    }
+
+    @Test
+    fun fpsLook_skipsEdgePan() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesHomeLook.tickEdgePan(cursorX = 0.02f, deltaSeconds = 1f)
+        assertEquals(0f, GlassesHomeLook.panNorm, 0.001f)
+    }
+
+    @Test
+    fun addFpsLook_turnsYawAndPitch() {
+        GlassesHomeLook.addFpsLook(deltaX = 0.2f, deltaY = 0.1f)
+        assertTrue(GlassesHomeLook.panNorm > 0f)
+        assertTrue(GlassesHomeLook.lookPitch < 0f)
     }
 }

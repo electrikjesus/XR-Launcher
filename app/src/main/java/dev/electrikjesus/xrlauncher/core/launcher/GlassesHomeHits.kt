@@ -26,6 +26,7 @@ object GlassesHomeHits {
     const val EDIT_DESK_PILES = "__xr_edit_desk_piles__"
     const val EDIT_DESK_TILES = "__xr_edit_desk_tiles__"
     const val EDIT_DESK_WIDGETS = "__xr_edit_desk_widgets__"
+    const val EDIT_LOOK_FPS = "__xr_edit_look_fps__"
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -49,6 +50,7 @@ object GlassesHomeHits {
     const val DESK_PILES_LABEL = "Piles"
     const val DESK_TILES_LABEL = "Tiles"
     const val DESK_WIDGETS_LABEL = "Widgets"
+    const val LOOK_FPS_LABEL = "FPS look"
 
     fun appCloseKey(panelId: String): String = APP_CLOSE_PREFIX + panelId
 
@@ -84,6 +86,7 @@ object GlassesHomeHits {
             EDIT_DESK_PILES -> DESK_PILES_LABEL
             EDIT_DESK_TILES -> DESK_TILES_LABEL
             EDIT_DESK_WIDGETS -> DESK_WIDGETS_LABEL
+            EDIT_LOOK_FPS -> LOOK_FPS_LABEL
             else -> null
         }
     }
@@ -96,6 +99,7 @@ object GlassesHomeHits {
         EDIT_DESK_PILES,
         EDIT_DESK_TILES,
         EDIT_DESK_WIDGETS,
+        EDIT_LOOK_FPS,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,
         EDIT_SPHERE_MINUS,

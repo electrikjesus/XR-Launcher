@@ -34,6 +34,7 @@ import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -145,6 +146,12 @@ fun SettingsScreen(
                         scope.launch {
                             workspaceRepository.updateAppearance(appearance.copy(lookPitchDegrees = value))
                         }
+                    },
+                    onLookModeChange = { mode ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(appearance.copy(lookMode = mode))
+                        }
+                        GlassesLookMode.preference = mode
                     },
                     onRecenterLook = {
                         scope.launch {

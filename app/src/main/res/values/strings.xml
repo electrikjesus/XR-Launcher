@@ -90,6 +90,9 @@
     <string name="workspace_look_yaw">Look left / right</string>
     <string name="workspace_look_pitch">Look up / down</string>
     <string name="workspace_look_hint">Manual look offset for companion mode only</string>
+    <string name="workspace_look_mode_hint">Gradient keeps a free cursor. FPS locks the cursor to view center and turns the camera 1:1. Launching an app always uses Gradient pointing.</string>
+    <string name="workspace_look_mode_gradient">Look mode A — Gradient</string>
+    <string name="workspace_look_mode_fps">Look mode B — FPS capture</string>
     <string name="workspace_look_head_tracking_hint">Head tracking steers the view. Touchpad moves the pointer. Use Recenter on the Input tab to face forward.</string>
     <string name="workspace_look_recenter">Recenter look</string>
     <string name="workspace_look_recenter_forward">Recenter forward</string>
@@ -212,6 +215,7 @@
     <string name="xr_edit_panel_scale">Panel scale</string>
     <string name="xr_edit_sphere_scale">Sphere scale</string>
     <string name="xr_edit_element_scale">Icons &amp; elements</string>
+    <string name="xr_edit_look_fps">FPS look</string>
     <string name="xr_edit_desk_icons">App icons</string>
     <string name="xr_edit_desk_piles">Piles</string>
     <string name="xr_edit_desk_tiles">Tiles</string>

@@ -23,6 +23,8 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
@@ -38,6 +40,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.overlayPx
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
 import dev.electrikjesus.xrlauncher.core.workspace.scene.pickPane
 import dev.electrikjesus.xrlauncher.core.workspace.scene.sphereHit
+import dev.electrikjesus.xrlauncher.core.workspace.scene.worldRay
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceTitleBar
 import dev.electrikjesus.xrlauncher.ui.glasses.WorkspaceLayoutPresetBar
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
@@ -126,9 +129,12 @@ fun LauncherWorkspacePointerEffects(
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
+    val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
     LaunchedEffect(
         cursor.x,
         cursor.y,
+        cursor.isPressed,
         itemBounds,
         panelBounds,
         rootWidthPx,
@@ -137,7 +143,10 @@ fun LauncherWorkspacePointerEffects(
         allAppsOverlayVisible,
         panelScale,
         sphereScale,
+        lookPitch,
+        panNorm,
     ) {
+        trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val screenPoint = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
         val pick = homeSpacePick(cursor.x, cursor.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
@@ -202,6 +211,7 @@ fun LauncherWorkspacePointerEffects(
 }
 
 private var lastLoggedHoverLabel: String? = null
+private var deskGesturePressed = false
 
 private fun findAppAt(
     point: Offset,
@@ -303,10 +313,27 @@ private fun handleLeftClick(
         if (handleHomeSpaceClick(panePoint, paneBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     }
     deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { desk ->
-        if (desk.isAppDrawer) {
-            Log.d(LOG_TAG, "left-click hit desk all-apps tile")
-            GlassesSessionState.toggleAllAppsOverlay()
-            return
+        if (HomeSpaceDeskState.drag?.pulling == true) return
+        HomeSpaceDeskState.cancel()
+        when {
+            desk.isAppDrawer -> {
+                Log.d(LOG_TAG, "left-click hit desk all-apps tile")
+                GlassesSessionState.toggleAllAppsOverlay()
+                return
+            }
+            desk.isBacking -> return
+            desk.kind == HomeSpaceDesk.Kind.PAGE_PREV -> {
+                AllAppsPaginationState.prevPage()
+                return
+            }
+            desk.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> {
+                AllAppsPaginationState.nextPage()
+                return
+            }
+            desk.kind == HomeSpaceDesk.Kind.PAGE -> {
+                HomeSpaceDesk.pageIndex(desk.componentKey)?.let { AllAppsPaginationState.goToPage(it) }
+                return
+            }
         }
         apps.find { it.componentKey() == desk.componentKey }?.let { app ->
             Log.d(LOG_TAG, "left-click hit desk icon=${app.label}")
@@ -427,10 +454,30 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.EDIT_DESK_PILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_PILES, 0f)
         GlassesHomeHits.EDIT_DESK_TILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_TILES, 0f)
         GlassesHomeHits.EDIT_DESK_WIDGETS -> onTuneAppearance(HomeSpaceTuneAxis.DESK_WIDGETS, 0f)
+        GlassesHomeHits.EDIT_LOOK_FPS -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
         else -> return false
     }
     return true
 }
+
+private fun homeSpaceCamera(
+    cursorX: Float,
+    cursorY: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+) = HomeSpaceScene.camera(
+    look = GlassesHomeLook.panNorm,
+    cursorX = cursorX,
+    cursorY = cursorY,
+    viewportWidthPx = rootWidthPx,
+    viewportHeightPx = rootHeightPx,
+    panelScale = panelScale,
+    sphereScale = sphereScale,
+    lookMode = GlassesLookMode.effective(),
+    lookPitchDeg = GlassesHomeLook.lookPitch,
+)
 
 private fun homeSpacePick(
     cursorX: Float,
@@ -440,15 +487,7 @@ private fun homeSpacePick(
     panelScale: Float,
     sphereScale: Float,
 ): HomeSpacePanePick? {
-    val camera = HomeSpaceScene.camera(
-        look = GlassesHomeLook.panNorm,
-        cursorX = cursorX,
-        cursorY = cursorY,
-        viewportWidthPx = rootWidthPx,
-        viewportHeightPx = rootHeightPx,
-        panelScale = panelScale,
-        sphereScale = sphereScale,
-    )
+    val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
     return HomeSpaceScene.pickPane(
         cursorX = cursorX,
         cursorY = cursorY,
@@ -535,27 +574,54 @@ private fun deskIconAt(
     panelScale: Float,
     sphereScale: Float,
 ): HomeSpaceDesk.Icon? {
-    val camera = HomeSpaceScene.camera(
-        look = GlassesHomeLook.panNorm,
-        cursorX = cursorX,
-        cursorY = cursorY,
-        viewportWidthPx = rootWidthPx,
-        viewportHeightPx = rootHeightPx,
-        panelScale = panelScale,
-        sphereScale = sphereScale,
-    )
-    val hit = HomeSpaceScene.sphereHit(
+    val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    val ray = HomeSpaceScene.worldRay(
         cursorX = cursorX,
         cursorY = cursorY,
         camera = camera,
         viewportWidthPx = rootWidthPx,
         viewportHeightPx = rootHeightPx,
-        sphereScale = sphereScale,
     )
     val icons = DeskIconTextureBus.icons().ifEmpty {
         HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
     }
-    return HomeSpaceDesk.pickIcon(hit.world, icons)
+    return HomeSpaceDesk.pickAlongRay(ray, icons)
+}
+
+private fun trackDeskDrag(
+    cursorX: Float,
+    cursorY: Float,
+    pressed: Boolean,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+) {
+    if (pressed && !deskGesturePressed) {
+        deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { icon ->
+            HomeSpaceDeskState.press(icon, cursorX, cursorY)
+        }
+    } else if (pressed) {
+        val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val hit = HomeSpaceScene.sphereHit(
+            cursorX = cursorX,
+            cursorY = cursorY,
+            camera = camera,
+            viewportWidthPx = rootWidthPx,
+            viewportHeightPx = rootHeightPx,
+            sphereScale = sphereScale,
+        )
+        HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
+    } else if (deskGesturePressed) {
+        val draggingKey = HomeSpaceDeskState.drag?.app?.componentKey
+        val picked = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val pane = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val blocked = picked != null &&
+            picked.componentKey != draggingKey &&
+            (picked.isBacking || picked.isPager || picked.isAppDrawer)
+        HomeSpaceDeskState.release(onDesktop = pane == null && !blocked)
+    }
+    deskGesturePressed = pressed
 }
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {

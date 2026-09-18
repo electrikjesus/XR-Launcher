@@ -21,6 +21,7 @@ class GlassesHomeHitsTest {
         assertEquals("Farther sphere", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_SPHERE_PLUS))
         assertEquals("Desktop items", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_PAGE_DESKTOP))
         assertEquals("Piles", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_DESK_PILES))
+        assertEquals("FPS look", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_LOOK_FPS))
     }
 
     @Test

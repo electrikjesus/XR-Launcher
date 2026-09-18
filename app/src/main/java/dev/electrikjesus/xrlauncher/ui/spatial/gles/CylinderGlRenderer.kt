@@ -371,7 +371,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         deskIconBuffers.clear()
         deskIconVertexCounts.clear()
         deskIcons.forEach { icon ->
-            val lift = if (icon.componentKey == deskHoveredKey) HomeSpaceDesk.HOVER_LIFT else 0f
+            val lift = if (icon.componentKey == deskHoveredKey && !icon.isBacking) {
+                HomeSpaceDesk.HOVER_LIFT
+            } else {
+                0f
+            }
             val mesh = HomeSpaceDesk.iconMesh(icon, lift)
             deskIconBuffers[icon.componentKey] = mesh.interleaved.toFloatBuffer()
             deskIconVertexCounts[icon.componentKey] = mesh.vertexCount
@@ -425,26 +429,12 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             val buffer = deskIconBuffers[icon.componentKey] ?: return@forEach
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
-            val hovered = icon.componentKey == deskHoveredKey
-            if (hovered) {
-                val pad = HomeSpaceDesk.hoverPadMesh(
-                    icon,
-                    lift = HomeSpaceDesk.HOVER_LIFT,
-                )
-                drawMesh(
-                    pad.interleaved.toFloatBuffer(),
-                    pad.vertexCount,
-                    0,
-                    ambient = 0.95f,
-                    useTexture = false,
-                    highlight = true,
-                )
-            }
+            val hovered = icon.componentKey == deskHoveredKey && !icon.isBacking
             drawMesh(
                 buffer,
                 count,
                 textureId,
-                ambient = if (hovered) 0.95f else 0.42f,
+                ambient = if (hovered) 0.58f else 0.42f,
                 useTexture = true,
                 highlight = hovered,
             )
