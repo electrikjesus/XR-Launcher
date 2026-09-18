@@ -8,6 +8,32 @@ Active development — Phase 3 panel launch and glasses input in progress. See *
 
 **New developer?** Start with **[docs/DEVELOPER.md](docs/DEVELOPER.md)** — architecture, build, debugging, device support, and workflow.
 
+## Releases
+
+Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.0`). Debug APKs are built on every push to `main`.
+
+1. Download **`app-release.apk`** from [Releases](https://github.com/electrikjesus/XR-Launcher/releases).
+2. Install with `adb install -r app-release.apk`. Optionally set **XR Launcher** as Home.
+
+[Obtainium](https://github.com/ImranR98/Obtainium) can track this repo: source GitHub, repository `electrikjesus/XR-Launcher`, APK filter `app-release.apk`.
+
+CI matches the other Bass Android apps ([GameNative-x64](https://github.com/Bliss-Bass/GameNative-x64), [BlissDeck](https://github.com/Bliss-Bass/BlissDeck)):
+
+| Workflow | When |
+|----------|------|
+| **Verify Build** | push/PR to `main`: `assembleDebug` + unit tests |
+| **Compile Debug APK** | push to `main`, or run manually: uploads `app-debug.apk` |
+| **Compile Release APK** | manual: signed `app-release.apk` |
+| **Create Release** | `v*` tag: signed release APK, debug APK, and notes |
+
+Signed jobs need repository Actions secrets: `SIGNING_KEY`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`. Generate a keystore off-tree and upload those secrets with:
+
+```bash
+.github/scripts/create-release-keystore.sh
+```
+
+That writes `~/.xr-launcher-keys/` (back that up) and calls `gh secret set` on `electrikjesus/XR-Launcher`. See `keystore.properties.example` for a manual local signed build.
+
 ## Build
 
 ```bash

@@ -18,3 +18,7 @@ captures/
 # Secrets
 *.keystore
 *.jks
+*.key
+keystore.properties
+app/keystores/*
+!app/keystores/.gitkeep

@@ -1,7 +1,16 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -18,6 +27,34 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile")!!)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                val placeholders = setOf("CHANGE_ME", "changeme", "")
+                check(!placeholders.contains(storePassword) && !placeholders.contains(keyPassword)) {
+                    "Update keystore.properties with the passwords from keytool (still using placeholder values)."
+                }
+            } else {
+                // CI has no keystore.properties: the workflow decodes the SIGNING_KEY
+                // secret to a file and passes the rest through the environment. Without
+                // this, release builds fall back to the auto-generated debug key, which
+                // is different on every runner, so published APKs cannot upgrade each
+                // other or a locally built install.
+                val storeFileEnv = System.getenv("RELEASE_STORE_FILE")
+                if (storeFileEnv != null) {
+                    storeFile = rootProject.file(storeFileEnv)
+                    storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                    keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                    keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -25,6 +62,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile?.isFile == true) {
+                signingConfig = releaseSigning
+            }
         }
     }
 
