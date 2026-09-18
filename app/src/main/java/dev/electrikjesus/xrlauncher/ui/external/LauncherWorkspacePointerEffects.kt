@@ -613,13 +613,34 @@ private fun trackDeskDrag(
         )
         HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
     } else if (deskGesturePressed) {
-        val draggingKey = HomeSpaceDeskState.drag?.app?.componentKey
-        val picked = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val drag = HomeSpaceDeskState.drag
+        val draggingKey = drag?.app?.componentKey
+        val icons = DeskIconTextureBus.icons().ifEmpty {
+            HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
+        }
         val pane = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-        val blocked = picked != null &&
-            picked.componentKey != draggingKey &&
-            (picked.isBacking || picked.isPager || picked.isAppDrawer)
-        HomeSpaceDeskState.release(onDesktop = pane == null && !blocked)
+        val panes = GlassesHomeLook.homeSpaceSlots().map { slot ->
+            HomeSpaceScene.pane(
+                worldX = slot.worldX,
+                viewportWidthPx = rootWidthPx,
+                viewportHeightPx = rootHeightPx,
+                panelScale = panelScale,
+                sphereScale = sphereScale,
+            )
+        }
+        val halfW = icons.firstOrNull { it.componentKey == draggingKey }?.halfWidth
+            ?: HomeSpaceDesk.ICON_HALF_WIDTH
+        val halfH = icons.firstOrNull { it.componentKey == draggingKey }?.halfHeight
+            ?: HomeSpaceDesk.ICON_HALF_HEIGHT
+        val onDesktop = pane == null
+        HomeSpaceDeskState.release(
+            onDesktop = onDesktop,
+            halfWidth = halfW,
+            halfHeight = halfH,
+            sphereScale = sphereScale,
+            obstacles = icons.filter { it.componentKey != draggingKey },
+            panes = panes,
+        )
     }
     deskGesturePressed = pressed
 }

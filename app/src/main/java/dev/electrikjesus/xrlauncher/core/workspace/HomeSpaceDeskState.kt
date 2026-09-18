@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,16 +62,36 @@ object HomeSpaceDeskState {
         )
     }
 
-    /** @return true if a drag was consumed (no click). */
-    fun release(onDesktop: Boolean): Boolean {
+    /**
+     * @param obstacles desk icons that block placement (All Apps tile, open widget, other apps).
+     * @param panes Home/Tray/app panes that reject drops.
+     * @return true if a drag was consumed (no click).
+     */
+    fun release(
+        onDesktop: Boolean,
+        halfWidth: Float = HomeSpaceDesk.ICON_HALF_WIDTH,
+        halfHeight: Float = HomeSpaceDesk.ICON_HALF_HEIGHT,
+        sphereScale: Float = 1f,
+        obstacles: List<HomeSpaceDesk.Icon> = emptyList(),
+        panes: List<HomeSpaceScene.Pane> = emptyList(),
+    ): Boolean {
         val current = _drag.value ?: return false
         _drag.value = null
         if (!current.pulling) return false
-        if (onDesktop) {
-            val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
-                HomeSpaceDesk.Placed(current.app, current.yawDeg, current.pitchDeg)
-            _placed.value = next
-        }
+        if (!onDesktop) return true
+        val resolved = HomeSpaceDesk.resolveDesktopDrop(
+            yawDeg = current.yawDeg,
+            pitchDeg = current.pitchDeg,
+            halfWidth = halfWidth,
+            halfHeight = halfHeight,
+            sphereScale = sphereScale,
+            obstacles = obstacles,
+            paneBlocks = panes,
+            excludeKey = current.app.componentKey,
+        ) ?: return true
+        val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
+            HomeSpaceDesk.Placed(current.app, resolved.first, resolved.second)
+        _placed.value = next
         return true
     }
 

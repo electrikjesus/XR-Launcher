@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -83,23 +84,34 @@ class HomeSpaceDeskTest {
         val backing = open.first { it.isBacking }
         val pager = open.filter { it.isPager }
         val closedDrawer = closed.first()
-        assertTrue(open.first().isAppDrawer)
+        assertFalse(open.any { it.isAppDrawer })
+        assertTrue(open.first().isBacking)
         assertEquals(HomeSpaceDesk.DRAWER_PAGE_SIZE, appsOnPage.size)
         assertEquals(many[0].componentKey, appsOnPage.first().componentKey)
-        assertEquals(4, pager.size)
-        assertTrue(backing.center.length() < open.first().center.length() - 0.04f)
+        assertEquals(2 + HomeSpaceDesk.MAX_PAGE_DOTS.coerceAtMost(2), pager.size)
         assertTrue(appsOnPage.first().center.length() < backing.center.length())
         assertTrue(
             "open drawer icons should be larger than the closed All Apps tile",
-            appsOnPage.first().halfWidth > closedDrawer.halfWidth,
+            appsOnPage.first().halfWidth > closedDrawer.halfWidth / HomeSpaceDesk.DRAWER_SCALE,
         )
         assertTrue(
             "backing should cover the 4x4 grid plus pager",
-            backing.halfWidth > appsOnPage.first().halfWidth * 4f,
+            backing.halfWidth > appsOnPage.first().halfWidth * 3.5f,
         )
         assertTrue(
             "backing should be taller than four stacked open icons",
-            backing.halfHeight > appsOnPage.first().halfHeight * 3.5f,
+            backing.halfHeight > appsOnPage.first().halfHeight * 3.2f,
+        )
+        val topApp = appsOnPage.first()
+        val bottomPager = pager.first { it.kind == HomeSpaceDesk.Kind.PAGE_PREV }
+        assertTrue(
+            "pager sits below the grid with a gap",
+            topApp.pitchDeg > bottomPager.pitchDeg + 2f,
+        )
+        assertTrue(
+            "backing contains the top row",
+            backing.pitchDeg + HomeSpaceDesk.angularHalfPitch(backing.halfHeight, 1f) >
+                topApp.pitchDeg + HomeSpaceDesk.angularHalfPitch(topApp.halfHeight, 1f) * 0.5f,
         )
         val page1 = HomeSpaceDesk.layout(
             placed = emptyList(),
@@ -245,6 +257,26 @@ class HomeSpaceDeskTest {
         val ray = HomeSpaceScene.worldRay(0.5f, 0.5f, camera, 1920f, 1080f)
         val picked = HomeSpaceDesk.pickAlongRay(ray, open)
         assertEquals(backing.componentKey, picked!!.componentKey)
+    }
+
+    @Test
+    fun pickAlongRay_prefersPagerControlsOverBacking() {
+        val many = (0 until 20).map { i ->
+            HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
+        }
+        val open = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+        )
+        val next = open.first { it.kind == HomeSpaceDesk.Kind.PAGE_NEXT }
+        val camera = HomeSpaceScene.Camera(yawDeg = next.yawDeg, pitchDeg = next.pitchDeg)
+        val ray = next.center.normalized()
+        val picked = HomeSpaceDesk.pickAlongRay(ray, open)
+        assertEquals(HomeSpaceDesk.PAGE_NEXT_KEY, picked!!.componentKey)
     }
 
     @Test

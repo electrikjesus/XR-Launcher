@@ -20,18 +20,26 @@ object HomeSpaceDesk {
     const val ICON_HALF_HEIGHT = 0.058f
     const val ICON_HALF_THICK = 0.008f
     const val DRAWER_COLS = 4
-    const val DRAWER_PAGE_SIZE = 16
+    const val DRAWER_ROWS = 4
+    const val DRAWER_PAGE_SIZE = DRAWER_COLS * DRAWER_ROWS
     const val BACKING_KEY = "__desk_all_apps_widget__"
     const val PAGE_PREV_KEY = "__desk_page_prev__"
     const val PAGE_NEXT_KEY = "__desk_page_next__"
     /** Open-drawer tiles are larger than closed desktop icons for readability. */
-    const val DRAWER_OPEN_ICON_SCALE = 1.4f
+    const val DRAWER_OPEN_ICON_SCALE = 1.35f
     /** Arc spacing between open-drawer icon centers, in icon widths. */
-    const val DRAWER_OPEN_SPACING = 2.55f
+    const val DRAWER_OPEN_SPACING = 2.4f
+    /** Extra pitch gap (in spacing units) between bottom icon row and pager. */
+    const val DRAWER_PAGER_GAP = 0.85f
+    /** Padding around grid+pager inside the backing, in icon half-sizes. */
+    const val DRAWER_BACKING_PAD = 0.45f
+    const val MAX_PAGE_DOTS = 5
     /** Inward lift of the expanded All Apps widget (closer to the camera). */
     const val BACKING_LIFT = 0.11f
     /** Extra lift so app icons and pager sit on top of the widget. */
-    const val ICON_STACK_LIFT = 0.045f
+    const val ICON_STACK_LIFT = 0.05f
+    /** Minimum angular separation between desktop icons (degrees). */
+    const val ICON_COLLISION_DEG = 5.5f
 
     fun pageKey(index: Int): String = "__desk_page_${index}__"
 
@@ -235,26 +243,39 @@ object HomeSpaceDesk {
         val openHalfH = halfH * DRAWER_OPEN_ICON_SCALE
         val openYawStep = Math.toDegrees((openHalfW * DRAWER_OPEN_SPACING / radius).toDouble()).toFloat()
         val openPitchStep = Math.toDegrees((openHalfH * DRAWER_OPEN_SPACING / radius).toDouble()).toFloat()
-        val pagerHalfH = openHalfH * 0.58f
-        // Outer icon center is 1.5 steps from widget center; add icon half + margin.
-        val gridHalfW = openHalfW * (1.5f * DRAWER_OPEN_SPACING + 1.25f)
-        // Pager sits ~2.05 steps below center; cover it plus a little pad.
-        val gridHalfH = openHalfH * (2.05f * DRAWER_OPEN_SPACING + 0.85f)
+        val pagerHalfW = openHalfW * 0.62f
+        val pagerHalfH = openHalfH * 0.48f
+        val dotHalf = openHalfW * 0.32f
+        // Grid row centers: +1.5 … -1.5 steps. Pager one clear gap below the bottom row.
+        val gridTopPitch = (DRAWER_ROWS - 1) * 0.5f * openPitchStep
+        val gridBottomPitch = -gridTopPitch
+        val pagerPitch = gridBottomPitch - (DRAWER_PAGER_GAP + 0.5f) * openPitchStep
+        val topEdgePitch = gridTopPitch +
+            Math.toDegrees((openHalfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+        val bottomEdgePitch = pagerPitch -
+            Math.toDegrees((pagerHalfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+        val sideEdgeYaw = (DRAWER_COLS - 1) * 0.5f * openYawStep +
+            Math.toDegrees((openHalfW * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+        val contentCenterPitch = (topEdgePitch + bottomEdgePitch) * 0.5f
+        val backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
+        val backingHalfH = radius * Math.toRadians(
+            ((topEdgePitch - bottomEdgePitch) * 0.5f).toDouble(),
+        ).toFloat()
         val backing = iconOf(
             app = AppRef(BACKING_KEY, DRAWER_LABEL, "", Kind.DRAWER_BACKING),
             yawDeg = yaw,
-            pitchDeg = -0.35f * openPitchStep,
+            pitchDeg = contentCenterPitch,
             sphereScale = scale,
-            halfWidth = gridHalfW,
-            halfHeight = gridHalfH,
+            halfWidth = backingHalfW,
+            halfHeight = backingHalfH,
             lift = BACKING_LIFT,
         )
         val stackLift = BACKING_LIFT + ICON_STACK_LIFT
         val openIcons = pageApps.mapIndexed { index, app ->
             val col = index % DRAWER_COLS
             val row = index / DRAWER_COLS
-            val iconYaw = yaw + (col - 1.5f) * openYawStep
-            val iconPitch = (1.5f - row) * openPitchStep
+            val iconYaw = yaw + (col - (DRAWER_COLS - 1) * 0.5f) * openYawStep
+            val iconPitch = gridTopPitch - row * openPitchStep
             val dragging = app.componentKey == draggingKey
             iconOf(
                 app = app,
@@ -266,28 +287,30 @@ object HomeSpaceDesk {
                 lift = if (dragging) stackLift + 0.03f else stackLift,
             )
         }
-        val pagerPitch = -2.05f * openPitchStep
+        val firstDot = page.coerceIn(0, (pageCount - MAX_PAGE_DOTS).coerceAtLeast(0))
+        val visibleDots = (pageCount - firstDot).coerceAtMost(MAX_PAGE_DOTS)
         val pager = buildList {
             add(
                 iconOf(
                     app = AppRef(PAGE_PREV_KEY, "Previous", "", Kind.PAGE_PREV),
-                    yawDeg = yaw - 1.55f * openYawStep,
+                    yawDeg = yaw - sideEdgeYaw * 0.72f,
                     pitchDeg = pagerPitch,
                     sphereScale = scale,
-                    halfWidth = openHalfW * 0.7f,
+                    halfWidth = pagerHalfW,
                     halfHeight = pagerHalfH,
                     lift = stackLift,
                 ),
             )
-            repeat(pageCount.coerceAtMost(8)) { index ->
+            repeat(visibleDots) { offset ->
+                val index = firstDot + offset
                 add(
                     iconOf(
                         app = AppRef(pageKey(index), "${index + 1}", "", Kind.PAGE),
-                        yawDeg = yaw + (index - (pageCount - 1) / 2f) * openYawStep * 0.55f,
+                        yawDeg = yaw + (offset - (visibleDots - 1) * 0.5f) * openYawStep * 0.42f,
                         pitchDeg = pagerPitch,
                         sphereScale = scale,
-                        halfWidth = openHalfW * 0.4f,
-                        halfHeight = openHalfH * 0.4f,
+                        halfWidth = dotHalf,
+                        halfHeight = dotHalf,
                         lift = stackLift,
                     ),
                 )
@@ -295,16 +318,108 @@ object HomeSpaceDesk {
             add(
                 iconOf(
                     app = AppRef(PAGE_NEXT_KEY, "Next", "", Kind.PAGE_NEXT),
-                    yawDeg = yaw + 1.55f * openYawStep,
+                    yawDeg = yaw + sideEdgeYaw * 0.72f,
                     pitchDeg = pagerPitch,
                     sphereScale = scale,
-                    halfWidth = openHalfW * 0.7f,
+                    halfWidth = pagerHalfW,
                     halfHeight = pagerHalfH,
                     lift = stackLift,
                 ),
             )
         }
-        return listOf(drawer, backing) + openIcons + pager + placedIcons
+        // Hide the closed All Apps tile while the widget is open — it only cluttered the wall.
+        return listOf(backing) + openIcons + pager + placedIcons
+    }
+
+    /** Prefer apps/pager over the large backing so pagination stays clickable. */
+    private fun pickPriority(icon: Icon): Int = when (icon.kind) {
+        Kind.PAGE_PREV, Kind.PAGE_NEXT, Kind.PAGE -> 0
+        Kind.APP, Kind.APP_DRAWER -> 1
+        Kind.DRAWER_BACKING -> 3
+    }
+
+    fun overlapsAngular(
+        yawA: Float,
+        pitchA: Float,
+        halfYawA: Float,
+        halfPitchA: Float,
+        yawB: Float,
+        pitchB: Float,
+        halfYawB: Float,
+        halfPitchB: Float,
+    ): Boolean {
+        val dy = abs(yawA - yawB)
+        val dp = abs(pitchA - pitchB)
+        return dy < halfYawA + halfYawB && dp < halfPitchA + halfPitchB
+    }
+
+    fun angularHalfYaw(halfWidth: Float, sphereScale: Float): Float {
+        val r = HomeSpaceScene.innerSphereRadius(sphereScale).coerceAtLeast(0.01f)
+        return Math.toDegrees((halfWidth / r).toDouble()).toFloat()
+    }
+
+    fun angularHalfPitch(halfHeight: Float, sphereScale: Float): Float {
+        val r = HomeSpaceScene.innerSphereRadius(sphereScale).coerceAtLeast(0.01f)
+        return Math.toDegrees((halfHeight / r).toDouble()).toFloat()
+    }
+
+    /**
+     * Push [yawDeg]/[pitchDeg] off overlapping desk icons / the open widget / All Apps tile.
+     * Returns null if the pose sits on a Home/Tray/app pane.
+     */
+    fun resolveDesktopDrop(
+        yawDeg: Float,
+        pitchDeg: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+        sphereScale: Float,
+        obstacles: List<Icon>,
+        paneBlocks: List<HomeSpaceScene.Pane>,
+        excludeKey: String? = null,
+    ): Pair<Float, Float>? {
+        val halfYaw = angularHalfYaw(halfWidth, sphereScale)
+        val halfPitch = angularHalfPitch(halfHeight, sphereScale)
+        paneBlocks.forEach { pane ->
+            if (yawDeg in pane.yawMin..pane.yawMax && pitchDeg in pane.pitchMin..pane.pitchMax) {
+                return null
+            }
+        }
+        var yaw = yawDeg
+        var pitch = pitchDeg
+        repeat(6) {
+            var moved = false
+            obstacles.forEach { other ->
+                if (other.componentKey == excludeKey) return@forEach
+                if (other.isBacking || other.isPager) {
+                    val oHalfYaw = angularHalfYaw(other.halfWidth, sphereScale)
+                    val oHalfPitch = angularHalfPitch(other.halfHeight, sphereScale)
+                    if (overlapsAngular(yaw, pitch, halfYaw, halfPitch, other.yawDeg, other.pitchDeg, oHalfYaw, oHalfPitch)) {
+                        return null
+                    }
+                    return@forEach
+                }
+                val oHalfYaw = angularHalfYaw(other.halfWidth, sphereScale).coerceAtLeast(ICON_COLLISION_DEG * 0.5f)
+                val oHalfPitch = angularHalfPitch(other.halfHeight, sphereScale).coerceAtLeast(ICON_COLLISION_DEG * 0.5f)
+                if (!overlapsAngular(yaw, pitch, halfYaw, halfPitch, other.yawDeg, other.pitchDeg, oHalfYaw, oHalfPitch)) {
+                    return@forEach
+                }
+                val dy = yaw - other.yawDeg
+                val dp = pitch - other.pitchDeg
+                val needY = halfYaw + oHalfYaw + 0.35f
+                val needP = halfPitch + oHalfPitch + 0.35f
+                when {
+                    abs(dy) * needP >= abs(dp) * needY -> {
+                        yaw = other.yawDeg + needY * if (dy >= 0f) 1f else -1f
+                    }
+                    else -> {
+                        pitch = other.pitchDeg + needP * if (dp >= 0f) 1f else -1f
+                    }
+                }
+                moved = true
+            }
+            if (!moved) return yaw to pitch
+        }
+        return yaw to pitch
     }
 
     fun moved(icon: Icon, yawDeg: Float, pitchDeg: Float, sphereScale: Float): Icon =
@@ -323,6 +438,7 @@ object HomeSpaceDesk {
         val dir = rayDir.normalized()
         var best: Icon? = null
         var bestT = Float.MAX_VALUE
+        var bestPriority = Int.MAX_VALUE
         icons.forEach { icon ->
             val n = (icon.center * -1f).normalized()
             val denom = dir.dot(n)
@@ -337,10 +453,15 @@ object HomeSpaceDesk {
             val dz = hit.z - icon.center.z
             val localX = dx * right.x + dy * right.y + dz * right.z
             val localY = dx * up.x + dy * up.y + dz * up.z
-            if (abs(localX) > icon.halfWidth * 1.12f) return@forEach
-            if (abs(localY) > icon.halfHeight * 1.12f) return@forEach
-            if (t < bestT) {
+            val slop = if (icon.isPager) 1.35f else 1.12f
+            if (abs(localX) > icon.halfWidth * slop) return@forEach
+            if (abs(localY) > icon.halfHeight * slop) return@forEach
+            val priority = pickPriority(icon)
+            val closer = t < bestT - 0.02f
+            val better = abs(t - bestT) <= 0.02f && priority < bestPriority
+            if (best == null || closer || better) {
                 bestT = t
+                bestPriority = priority
                 best = icon
             }
         }

@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.math.abs
 
 class HomeSpaceDeskStateTest {
     private val app = HomeSpaceDesk.AppRef("a/.Main", "Alpha", "a")
@@ -41,6 +42,50 @@ class HomeSpaceDeskStateTest {
         HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
         HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
         assertTrue(HomeSpaceDeskState.release(onDesktop = false))
+        assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
+
+    @Test
+    fun pullOntoAnotherIcon_separatesOrRejectsOverlap() {
+        HomeSpaceDeskState.clear()
+        val other = HomeSpaceDesk.AppRef("b/.Main", "Beta", "b")
+        val obstacle = HomeSpaceDesk.iconOf(other, yawDeg = -12f, pitchDeg = 6f, sphereScale = 1f)
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
+        assertTrue(
+            HomeSpaceDeskState.release(
+                onDesktop = true,
+                obstacles = listOf(obstacle),
+            ),
+        )
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+        val placed = HomeSpaceDeskState.placed.first()
+        assertTrue(
+            abs(placed.yawDeg - obstacle.yawDeg) > 2f || abs(placed.pitchDeg - obstacle.pitchDeg) > 2f,
+        )
+    }
+
+    @Test
+    fun pullOntoOpenWidgetBacking_rejects() {
+        val backing = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(HomeSpaceDesk.BACKING_KEY, "All apps", "", HomeSpaceDesk.Kind.DRAWER_BACKING),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+            halfWidth = 0.3f,
+            halfHeight = 0.35f,
+            lift = 0.11f,
+        )
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -10f, pitchDeg = 10f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.55f, 0.45f, yawDeg = -40f, pitchDeg = 0f)
+        assertTrue(
+            HomeSpaceDeskState.release(
+                onDesktop = true,
+                obstacles = listOf(backing),
+            ),
+        )
         assertTrue(HomeSpaceDeskState.placed.isEmpty())
     }
 }

@@ -41,7 +41,11 @@ object DeskIconBitmaps {
             }
         }
 
-        if (!icon.isBacking && icon.kind != HomeSpaceDesk.Kind.PAGE) {
+        if (!icon.isBacking &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
+        ) {
             val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
                 textSize = 22f
