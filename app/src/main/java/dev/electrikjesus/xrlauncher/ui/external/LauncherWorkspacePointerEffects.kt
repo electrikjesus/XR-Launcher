@@ -137,7 +137,7 @@ fun LauncherWorkspacePointerEffects(
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
-    // Drag tracking must NOT restart on mouse-look yaw/pitch — that cleared pager chrome mid-click.
+    // Cursor keys only — look yaw/pitch must not re-enter grab (that ate pager chrome clicks).
     LaunchedEffect(
         cursor.x,
         cursor.y,
@@ -148,6 +148,19 @@ fun LauncherWorkspacePointerEffects(
         sphereScale,
     ) {
         trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    }
+    // FPS keeps the cursor centered; while an icon grab is live, gaze must still move the tile.
+    LaunchedEffect(lookPitch, panNorm, cursor.isPressed) {
+        if (!cursor.isPressed || HomeSpaceDeskState.drag == null) return@LaunchedEffect
+        trackDeskDrag(
+            cursor.x,
+            cursor.y,
+            pressed = true,
+            rootWidthPx = rootWidthPx,
+            rootHeightPx = rootHeightPx,
+            panelScale = panelScale,
+            sphereScale = sphereScale,
+        )
     }
     LaunchedEffect(
         cursor.x,
@@ -653,22 +666,28 @@ private fun trackDeskDrag(
     lastDeskPanelScale = panelScale
     lastDeskSphereScale = sphereScale
     if (pressed) {
+        val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val hit = HomeSpaceScene.sphereHit(
+            cursorX = cursorX,
+            cursorY = cursorY,
+            camera = camera,
+            viewportWidthPx = rootWidthPx,
+            viewportHeightPx = rootHeightPx,
+            sphereScale = sphereScale,
+        )
         // Grab on Left-down even if the touchpad finger was already moving (missed rising edge).
         if (!HomeSpaceDeskState.hasActiveGesture()) {
             deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { icon ->
-                HomeSpaceDeskState.press(icon, cursorX, cursorY)
+                HomeSpaceDeskState.press(
+                    icon = icon,
+                    cursorX = cursorX,
+                    cursorY = cursorY,
+                    hitYawDeg = hit.yawDeg,
+                    hitPitchDeg = hit.pitchDeg,
+                )
             }
         }
         if (HomeSpaceDeskState.drag != null) {
-            val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-            val hit = HomeSpaceScene.sphereHit(
-                cursorX = cursorX,
-                cursorY = cursorY,
-                camera = camera,
-                viewportWidthPx = rootWidthPx,
-                viewportHeightPx = rootHeightPx,
-                sphereScale = sphereScale,
-            )
             HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
         }
     } else if (deskGesturePressed) {

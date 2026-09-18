@@ -4,7 +4,9 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -309,5 +311,28 @@ class CompanionPointerBusTest {
         assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
         GlassesLookMode.preference = GlassesLookMode.GRADIENT
         GlassesSessionState.markLauncherForeground()
+    }
+
+    @Test
+    fun endLeftButton_fpsLookDeltaCountsAsDragMoved() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        GlassesHomeLook.reset()
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        val icon = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef("a/.Main", "Alpha", "a"),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+            lift = 0.15f,
+        )
+        HomeSpaceDeskState.clear()
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f, hitYawDeg = -40f, hitPitchDeg = 0f)
+        CompanionPointerBus.beginLeftButton()
+        GlassesHomeLook.lookAt(0.55f)
+        CompanionPointerBus.endLeftButton()
+        assertTrue(HomeSpaceDeskState.drag!!.pulling)
+        HomeSpaceDeskState.clear()
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
     }
 }

@@ -156,4 +156,19 @@ class HomeSpaceDeskStateTest {
         assertEquals(0f, placed.velYawDeg, 0.001f)
         assertEquals(0f, placed.velPitchDeg, 0.001f)
     }
+
+    @Test
+    fun fpsStyleLookMove_pullsWithoutCursorTravel() {
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        // Off-center grab: hit angles differ from icon center but must not instantly pull.
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f, hitYawDeg = -38f, hitPitchDeg = 1f)
+        HomeSpaceDeskState.move(0.5f, 0.5f, yawDeg = -38f, pitchDeg = 1f)
+        assertFalse(HomeSpaceDeskState.drag!!.pulling)
+        // Gaze moves (cursor stays centered) — same as FPS mouse-look while Hold-Left.
+        HomeSpaceDeskState.move(0.5f, 0.5f, yawDeg = -20f, pitchDeg = 8f)
+        assertTrue(HomeSpaceDeskState.drag!!.pulling)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+        assertEquals(-20f, HomeSpaceDeskState.placed.first().yawDeg, 0.01f)
+    }
 }

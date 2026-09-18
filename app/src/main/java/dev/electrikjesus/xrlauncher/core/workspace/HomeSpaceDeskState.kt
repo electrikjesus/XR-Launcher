@@ -47,7 +47,17 @@ object HomeSpaceDeskState {
 
     fun hasActiveGesture(): Boolean = _drag.value != null || pendingChrome != null
 
-    fun press(icon: HomeSpaceDesk.Icon, cursorX: Float, cursorY: Float) {
+    /**
+     * @param hitYawDeg / [hitPitchDeg] sphere angles under the cursor at press (not icon center).
+     * Anchoring pull-slop here keeps off-center grabs and FPS look-follow from instantly pulling.
+     */
+    fun press(
+        icon: HomeSpaceDesk.Icon,
+        cursorX: Float,
+        cursorY: Float,
+        hitYawDeg: Float = icon.yawDeg,
+        hitPitchDeg: Float = icon.pitchDeg,
+    ) {
         pendingChrome = when {
             icon.isPager || icon.isAppDrawer -> icon
             else -> null
@@ -65,10 +75,10 @@ object HomeSpaceDeskState {
             fromDrawer = icon.isDesktopApp && icon.lift > 0f,
             startX = cursorX,
             startY = cursorY,
-            startYawDeg = icon.yawDeg,
-            startPitchDeg = icon.pitchDeg,
-            yawDeg = icon.yawDeg,
-            pitchDeg = icon.pitchDeg,
+            startYawDeg = hitYawDeg,
+            startPitchDeg = hitPitchDeg,
+            yawDeg = hitYawDeg,
+            pitchDeg = hitPitchDeg,
             pulling = false,
         )
     }
