@@ -600,11 +600,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed desk polish: open All Apps widget refit (padding, pager gap, no stray dots, hide closed tile while open); pager clicks prefer controls over backing; desktop drops collide with All Apps / icons / panes.
+Landed desk polish: open All Apps widget refit; pager hits; drop collisions; desk icon drag no longer fires a stray click at the drop point on release.
 
 **Do this next (after on-device check). One concern per change.**
 
-1. **On-device recheck** — open All Apps layout, pager clicks, drag collisions.
+1. **On-device recheck** — open All Apps layout, pager clicks, drag-to-desktop (no click on release), collisions.
 2. **Persist placed desktop icons** — `DeskRepository` analog (yaw/pitch on the sphere).
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Unify panes as pinned widgets** — after the desk feels right.
@@ -763,7 +763,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.16:** hover lift + selection; smaller desktop tiles; closer All Apps widget Z-stack; drag onto desktop; look mode A/B (FPS while launcher is in front) | Grey pad, huge tiles, same-radius drawer, no DND, only gradient look |
 | 2026-09-18 | **All Apps expand:** no camera snap to Desktop; open-drawer icons 1.4× with backing fitted to 4×4 + pager | Forced `lookAt(PANE_LEFT)` stole view; widget/icons read too small on glasses |
 | 2026-09-18 | **All Apps widget refit:** content-sized backing, pager gap, max 5 page dots, hide closed tile while open; pick prefers pager; drops collide with tile/icons/panes | Clipped top row, cramped/stray pager, backing ate clicks, free overlap on drop |
+| 2026-09-18 | **Desk drag pointer-up:** snapshot/suppress companion click before clearing `isPressed` | Compose release raced and clicked at the drop point |
 
 ---
 
-*Last updated: 2026-09-18 (All Apps widget refit + pager hits + drag collisions; host tests)*
+*Last updated: 2026-09-18 (desk drag release no longer clicks; host tests)*

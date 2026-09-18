@@ -63,6 +63,20 @@ object HomeSpaceDeskState {
     }
 
     /**
+     * Call from companion pointer-up **before** clearing `isPressed`.
+     * Marks the desk drag as pulling when the cursor moved so a Compose sync-release
+     * still places the icon, and returns true so the companion must not emit a click.
+     */
+    fun notePointerUp(cursorMoved: Boolean): Boolean {
+        val current = _drag.value ?: return false
+        if (!current.pulling && !cursorMoved) return false
+        if (!current.pulling) {
+            _drag.value = current.copy(pulling = true)
+        }
+        return true
+    }
+
+    /**
      * @param obstacles desk icons that block placement (All Apps tile, open widget, other apps).
      * @param panes Home/Tray/app panes that reject drops.
      * @return true if a drag was consumed (no click).

@@ -88,4 +88,23 @@ class HomeSpaceDeskStateTest {
         )
         assertTrue(HomeSpaceDeskState.placed.isEmpty())
     }
+
+    @Test
+    fun notePointerUp_marksPullingAndConsumesClick() {
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
+        assertTrue(HomeSpaceDeskState.notePointerUp(cursorMoved = true))
+        assertTrue(HomeSpaceDeskState.drag!!.pulling)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+    }
+
+    @Test
+    fun notePointerUp_withoutMove_allowsClick() {
+        val icon = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f)
+        assertFalse(HomeSpaceDeskState.notePointerUp(cursorMoved = false))
+        assertFalse(HomeSpaceDeskState.release(onDesktop = true))
+        assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
 }

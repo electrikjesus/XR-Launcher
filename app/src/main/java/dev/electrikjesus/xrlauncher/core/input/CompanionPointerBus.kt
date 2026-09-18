@@ -316,24 +316,29 @@ object CompanionPointerBus {
         val hadTouchpadDrag = fromTouchpad && touchpadInGesture
         touchpadInGesture = false
         leftButtonInGesture = false
-        val end = _cursor.value.copy(isPressed = false)
-        _cursor.value = end
-        if (startX == null || startY == null) return
-        val moved = hypot(end.x - startX, end.y - startY) > DRAG_THRESHOLD
+        val endPos = _cursor.value
+        if (startX == null || startY == null) {
+            _cursor.value = endPos.copy(isPressed = false)
+            return
+        }
+        val moved = hypot(endPos.x - startX, endPos.y - startY) > DRAG_THRESHOLD
         val primaryGesture = hadLeftButton || hadTouchpadDrag
-        val deskDragging = HomeSpaceDeskState.drag?.pulling == true
+        // Snapshot before clearing isPressed — Compose may sync-release the desk drag
+        // and clear `pulling` before we decide whether to suppress the pointer-up click.
+        val deskDragConsumesClick = HomeSpaceDeskState.notePointerUp(moved)
+        _cursor.value = endPos.copy(isPressed = false)
         when {
-            deskDragging -> { }
+            deskDragConsumesClick -> { }
             moved && primaryGesture && pointerInjectionAvailable() ->
                 DisplayPointerInjector.dispatchDrag(
                     GlassesSessionState.secondaryDisplayId!!,
                     startX,
                     startY,
-                    end.x,
-                    end.y,
+                    endPos.x,
+                    endPos.y,
                     mapViaLauncherFrame = GlassesSessionState.launcherForeground,
                 )
-            !moved && primaryGesture -> deliverLeftClick(end.x, end.y)
+            !moved && primaryGesture -> deliverLeftClick(endPos.x, endPos.y)
         }
     }
 
