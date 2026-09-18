@@ -125,7 +125,7 @@ class HomeSpaceCursorTest {
     }
 
     @Test
-    fun lookingLeft_centerRayHitsAllApps() {
+    fun lookingLeft_centerRayHitsTheDeskNotAPane() {
         val camera = HomeSpaceScene.camera(-1f, 0.5f, 0.5f, 1920f, 1080f)
         val pick = HomeSpaceScene.pickPane(
             cursorX = 0.5f,
@@ -135,9 +135,10 @@ class HomeSpaceCursorTest {
             viewportWidthPx = 1920f,
             viewportHeightPx = 1080f,
         )
-        assertNotNull(pick)
-        assertEquals("all_apps", pick!!.slot.panelId)
-        assertEquals(0.5f, pick.u, 0.08f)
+        assertNull(pick)
+        val hit = HomeSpaceDesk.planeHit(camera, 0.5f, 0.5f, 1920f, 1080f)
+        assertNotNull(hit)
+        assertTrue(HomeSpaceDesk.containsHit(hit!!, 1f, 1920f, 1080f))
     }
 
     @Test

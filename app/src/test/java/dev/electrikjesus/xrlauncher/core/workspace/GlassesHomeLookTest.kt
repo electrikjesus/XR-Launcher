@@ -49,6 +49,8 @@ class GlassesHomeLookTest {
     fun lookAtHome_clearsDesktopFlag() {
         GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
         assertTrue(GlassesHomeLook.lookingAtDesktop())
+        GlassesHomeLook.lookAt(-0.4f)
+        assertFalse(GlassesHomeLook.lookingAtDesktop())
         GlassesHomeLook.lookAt(GlassesHomeLook.PANE_HOME)
         assertFalse(GlassesHomeLook.lookingAtDesktop())
     }

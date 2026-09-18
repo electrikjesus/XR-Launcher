@@ -1,29 +1,36 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * BumpDesk-style infinite floor to the left of Home: physical icon boxes sit on a
- * horizontal plane. Looking left pitches the FPS camera down onto that desk.
+ * BumpDesk-style floor you look down onto when turning left from Home.
+ * Default contents are a single All Apps drawer tile; pulled-out apps sit as thin boxes.
  */
 object HomeSpaceDesk {
     const val PANEL_ID = "desktop"
-    const val HEIGHT = -0.62f
-    const val LOOK_PITCH_DEGREES = 22f
-    const val HALF_EXTENT = 10f
-    const val COLUMNS = 7
-    const val GAP_X = 0.36f
-    const val GAP_Z = 0.44f
-    const val ICON_HALF_X = 0.11f
-    const val ICON_HALF_Y = 0.045f
-    const val ICON_HALF_Z = 0.14f
+    const val LOOK_PITCH_DEGREES = 34f
+    const val DISTANCE = 1.45f
+    const val HALF_EXTENT = 1.7f
+    /** Pancake thickness (BumpDesk Box Y is ~0.04 vs ~0.5 XZ scale). */
+    const val ICON_HALF_Y = 0.012f
+    const val ICON_HALF_X = 0.13f
+    const val ICON_HALF_Z = 0.16f
+    const val DRAWER_KEY = "__desk_all_apps__"
     const val HOVER_LABEL = "Desktop"
+    const val DRAWER_LABEL = "All apps"
+    const val HOVER_LIFT = 0.02f
+    const val HOVER_PAD_SCALE = 1.28f
+    const val DRAWER_SCALE = 1.2f
+
+    enum class Kind { APP_DRAWER, APP }
 
     data class AppRef(
         val componentKey: String,
         val label: String,
         val packageName: String,
+        val kind: Kind = Kind.APP,
     )
 
     data class Icon(
@@ -36,6 +43,8 @@ object HomeSpaceDesk {
         val componentKey: String get() = app.componentKey
         val label: String get() = app.label
         val packageName: String get() = app.packageName
+        val kind: Kind get() = app.kind
+        val isAppDrawer: Boolean get() = kind == Kind.APP_DRAWER
     }
 
     fun lookPitchDegrees(look: Float): Float =
@@ -58,12 +67,15 @@ object HomeSpaceDesk {
         sphereScale: Float,
         yawDeg: Float,
     ): Vec3 {
+        val scale = sphereScale.coerceAtLeast(0.01f)
         val yaw = Math.toRadians(yawDeg.toDouble()).toFloat()
-        val radius = HomeSpaceScene.sphereRadius(sphereScale) * 1.08f
+        val pitch = Math.toRadians(LOOK_PITCH_DEGREES.toDouble()).toFloat()
+        val d = DISTANCE * scale
+        val cp = cos(pitch)
         return Vec3(
-            x = radius * sin(yaw),
-            y = HEIGHT * sphereScale.coerceAtLeast(0.01f),
-            z = -radius * cos(yaw),
+            x = d * sin(yaw) * cp,
+            y = -d * sin(pitch),
+            z = -d * cos(yaw) * cp,
         )
     }
 
@@ -77,8 +89,21 @@ object HomeSpaceDesk {
         return Vec3(sin(yaw), 0f, -cos(yaw))
     }
 
+    fun defaultIcons(
+        sphereScale: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+    ): List<Icon> = layout(
+        placed = emptyList(),
+        sphereScale = sphereScale,
+        viewportWidthPx = viewportWidthPx,
+        viewportHeightPx = viewportHeightPx,
+        panelScale = panelScale,
+    )
+
     fun layout(
-        apps: List<AppRef>,
+        placed: List<AppRef>,
         sphereScale: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
@@ -89,26 +114,35 @@ object HomeSpaceDesk {
         val origin = origin(scale, yaw)
         val right = rightAxis(yaw)
         val away = awayAxis(yaw)
-        val gapX = GAP_X * scale
-        val gapZ = GAP_Z * scale
-        val halfY = ICON_HALF_Y * scale
-        return apps.mapIndexed { index, app ->
-            val col = index % COLUMNS
-            val row = index / COLUMNS
-            val xOff = (col - (COLUMNS - 1) / 2f) * gapX
-            val zOff = (row - 0.45f) * gapZ
+        val halfY = ICON_HALF_Y
+        val drawer = Icon(
+            app = AppRef(
+                componentKey = DRAWER_KEY,
+                label = DRAWER_LABEL,
+                packageName = "",
+                kind = Kind.APP_DRAWER,
+            ),
+            center = Vec3(origin.x, origin.y + halfY, origin.z),
+            halfX = ICON_HALF_X * scale * DRAWER_SCALE,
+            halfY = halfY,
+            halfZ = ICON_HALF_Z * scale * DRAWER_SCALE,
+        )
+        val placedIcons = placed.filter { it.kind == Kind.APP }.mapIndexed { index, app ->
+            val col = (index % 4) - 1.5f
+            val row = 1 + index / 4
             Icon(
                 app = app,
                 center = Vec3(
-                    x = origin.x + right.x * xOff + away.x * zOff,
+                    x = origin.x + right.x * col * 0.34f * scale + away.x * row * 0.40f * scale,
                     y = origin.y + halfY,
-                    z = origin.z + right.z * xOff + away.z * zOff,
+                    z = origin.z + right.z * col * 0.34f * scale + away.z * row * 0.40f * scale,
                 ),
                 halfX = ICON_HALF_X * scale,
                 halfY = halfY,
                 halfZ = ICON_HALF_Z * scale,
             )
         }
+        return listOf(drawer) + placedIcons
     }
 
     fun planeHit(
@@ -118,12 +152,14 @@ object HomeSpaceDesk {
         viewportWidthPx: Float,
         viewportHeightPx: Float,
         sphereScale: Float = 1f,
+        panelScale: Float = 1f,
     ): Vec3? {
         val dir = camera.worldDirection(
             HomeSpaceScene.viewRay(cursorX, cursorY, viewportWidthPx, viewportHeightPx),
         ).normalized()
         if (dir.y > -1e-4f) return null
-        val planeY = HEIGHT * sphereScale.coerceAtLeast(0.01f)
+        val yaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
+        val planeY = origin(sphereScale, yaw).y
         val t = planeY / dir.y
         if (t <= 0.05f) return null
         return Vec3(dir.x * t, planeY, dir.z * t)
@@ -146,18 +182,22 @@ object HomeSpaceDesk {
         val localZ = dx * away.x + dz * away.z
         val extent = HALF_EXTENT * sphereScale.coerceAtLeast(0.01f)
         return localX >= -extent && localX <= extent &&
-            localZ >= -extent * 0.2f && localZ <= extent
+            localZ >= -extent && localZ <= extent
     }
 
-    fun pickIcon(hit: Vec3, icons: List<Icon>): Icon? {
+    fun pickIcon(hit: Vec3, icons: List<Icon>, yawDeg: Float): Icon? {
+        val right = rightAxis(yawDeg)
+        val away = awayAxis(yawDeg)
         var best: Icon? = null
         var bestDist = Float.MAX_VALUE
         icons.forEach { icon ->
             val dx = hit.x - icon.center.x
             val dz = hit.z - icon.center.z
-            if (dx * dx > icon.halfX * icon.halfX * 1.35f) return@forEach
-            if (dz * dz > icon.halfZ * icon.halfZ * 1.35f) return@forEach
-            val dist = dx * dx + dz * dz
+            val localX = dx * right.x + dz * right.z
+            val localZ = dx * away.x + dz * away.z
+            if (abs(localX) > icon.halfX * 1.12f) return@forEach
+            if (abs(localZ) > icon.halfZ * 1.12f) return@forEach
+            val dist = localX * localX + localZ * localZ
             if (dist < bestDist) {
                 bestDist = dist
                 best = icon
@@ -177,8 +217,8 @@ object HomeSpaceDesk {
             y,
             origin.z + right.z * sx * extent + away.z * sz * extent,
         )
-        val bl = corner(-1f, -0.15f)
-        val br = corner(1f, -0.15f)
+        val bl = corner(-1f, -1f)
+        val br = corner(1f, -1f)
         val tl = corner(-1f, 1f)
         val tr = corner(1f, 1f)
         val n = Vec3(0f, 1f, 0f)
@@ -202,14 +242,50 @@ object HomeSpaceDesk {
         return HomeSpacePaneMesh(verts.toFloatArray(), 6)
     }
 
-    fun iconMesh(icon: Icon, yawDeg: Float): HomeSpacePaneMesh {
+    fun hoverPadMesh(icon: Icon, yawDeg: Float): HomeSpacePaneMesh {
+        val right = rightAxis(yawDeg)
+        val away = awayAxis(yawDeg)
+        val n = Vec3(0f, 1f, 0f)
+        val y = icon.center.y - icon.halfY + 0.0015f
+        fun corner(sx: Float, sz: Float) = Vec3(
+            icon.center.x + right.x * sx * icon.halfX * HOVER_PAD_SCALE +
+                away.x * sz * icon.halfZ * HOVER_PAD_SCALE,
+            y,
+            icon.center.z + right.z * sx * icon.halfX * HOVER_PAD_SCALE +
+                away.z * sz * icon.halfZ * HOVER_PAD_SCALE,
+        )
+        val bl = corner(-1f, -1f)
+        val br = corner(1f, -1f)
+        val tl = corner(-1f, 1f)
+        val tr = corner(1f, 1f)
+        val verts = ArrayList<Float>(6 * HomeSpacePaneMesh.STRIDE)
+        fun add(p: Vec3) {
+            verts += p.x
+            verts += p.y
+            verts += p.z
+            verts += n.x
+            verts += n.y
+            verts += n.z
+            verts += -2f
+            verts += 0f
+        }
+        add(bl)
+        add(br)
+        add(tl)
+        add(tl)
+        add(br)
+        add(tr)
+        return HomeSpacePaneMesh(verts.toFloatArray(), 6)
+    }
+
+    fun iconMesh(icon: Icon, yawDeg: Float, liftY: Float = 0f): HomeSpacePaneMesh {
         val right = rightAxis(yawDeg)
         val away = awayAxis(yawDeg)
         val up = Vec3(0f, 1f, 0f)
         fun point(sx: Float, sy: Float, sz: Float) = Vec3(
             icon.center.x + right.x * sx * icon.halfX + away.x * sz * icon.halfZ,
-            icon.center.y + sy * icon.halfY,
-            icon.center.z + right.z * sx * icon.halfX + away.z * sz * icon.halfZ,
+            icon.center.y + liftY + sy * icon.halfY,
+            icon.center.z + right.z * sx * icon.halfX + away.z * icon.halfZ * sz,
         )
         val verts = ArrayList<Float>(36 * HomeSpacePaneMesh.STRIDE)
         fun add(p: Vec3, n: Vec3, u: Float, v: Float) {
@@ -247,7 +323,6 @@ object HomeSpaceDesk {
         val p101 = point(1f, -1f, 1f)
         val p111 = point(1f, 1f, 1f)
         val p011 = point(-1f, 1f, 1f)
-        // Top (+Y) carries the icon+label atlas; toward-camera edge is label.
         quad(p011, p111, p110, p010, up, textured = true)
         quad(p000, p100, p101, p001, up * -1f, textured = false)
         quad(p001, p101, p111, p011, away, textured = false)

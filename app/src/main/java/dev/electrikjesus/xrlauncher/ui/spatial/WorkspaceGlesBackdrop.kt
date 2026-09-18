@@ -52,6 +52,7 @@ fun WorkspaceGlesBackdrop(
     cursorX: Float = 0.5f,
     cursorY: Float = 0.5f,
     showSphereCursor: Boolean = false,
+    showDesk: Boolean = false,
     modifier: Modifier = Modifier,
     enabled: Boolean = surroundRoom || (curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -156,6 +157,7 @@ fun WorkspaceGlesBackdrop(
             renderer.cursorX = cursorX
             renderer.cursorY = cursorY
             renderer.showSphereCursor = showSphereCursor
+            renderer.showDesk = showDesk
             renderer.deskIcons = DeskIconTextureBus.icons()
             renderer.deskHoveredKey = DeskIconTextureBus.hoveredKey()
             renderer.setDeskTextures(DeskIconTextureBus.snapshots())

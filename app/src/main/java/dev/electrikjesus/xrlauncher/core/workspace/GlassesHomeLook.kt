@@ -93,7 +93,7 @@ object GlassesHomeLook {
         panNorm = pane
     }
 
-    fun lookingAtDesktop(): Boolean = panNorm <= PANE_LEFT + 0.55f
+    fun lookingAtDesktop(): Boolean = panNorm <= PANE_LEFT + 0.28f
 
     fun lookingAtAllApps(): Boolean = lookingAtDesktop()
 

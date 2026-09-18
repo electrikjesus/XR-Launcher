@@ -150,10 +150,19 @@ fun LauncherWorkspacePointerEffects(
             rootHeightPx,
             panelScale,
             sphereScale,
-            apps,
         )
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
+            GlassesHomeLook.lookingAtDesktop() && deskIcon != null -> deskIcon.label
+            GlassesHomeLook.lookingAtDesktop() &&
+                deskHit(
+                    cursor.x,
+                    cursor.y,
+                    rootWidthPx,
+                    rootHeightPx,
+                    panelScale,
+                    sphereScale,
+                ) != null -> HomeSpaceDesk.HOVER_LABEL
             homeHover != null -> homeHover
             allAppsOverlayVisible &&
                 itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
@@ -178,16 +187,6 @@ fun LauncherWorkspacePointerEffects(
                 layoutPresetHoverLabel(screenPoint, itemBounds)
             findAppAt(panePoint, paneBounds, apps)?.label != null ->
                 findAppAt(panePoint, paneBounds, apps)?.label
-            deskIcon != null -> deskIcon.label
-            GlassesHomeLook.lookingAtDesktop() &&
-                deskHit(
-                    cursor.x,
-                    cursor.y,
-                    rootWidthPx,
-                    rootHeightPx,
-                    panelScale,
-                    sphereScale,
-                ) != null -> HomeSpaceDesk.HOVER_LABEL
             findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label != null ->
                 findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label
             findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) } != null ->
@@ -251,7 +250,8 @@ private fun handleRightClick(
     sphereScale: Float,
 ) {
     val app = findAppAt(point, itemBounds, apps)
-        ?: deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale, apps)
+        ?: deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+            ?.takeUnless { it.isAppDrawer }
             ?.let { desk -> apps.find { it.componentKey() == desk.componentKey } }
     Log.d(LOG_TAG, "right-click at (${click.x}, ${click.y}) app=${app?.label}")
     when {
@@ -300,6 +300,23 @@ private fun handleLeftClick(
     val panePoint = overlayPoint(pick, itemBounds) ?: point
     val paneBounds = paneItemBounds(itemBounds, pick?.slot?.panelId)
     val screenBounds = screenSpaceBounds(itemBounds)
+    if (GlassesSessionState.homeSpaceEdit) {
+        if (handleHomeSpaceClick(point, screenBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
+        if (handleHomeSpaceClick(panePoint, paneBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
+    }
+    deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { desk ->
+        if (desk.isAppDrawer) {
+            Log.d(LOG_TAG, "left-click hit desk all-apps tile")
+            onOpenAllApps()
+            return
+        }
+        apps.find { it.componentKey() == desk.componentKey }?.let { app ->
+            Log.d(LOG_TAG, "left-click hit desk icon=${app.label}")
+            GlassesSessionState.hideHomeOverlays()
+            onLaunchApp(app)
+            return
+        }
+    }
     if (handleHomeSpaceClick(point, screenBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     if (handleHomeSpaceClick(panePoint, paneBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     val overlayVisible = GlassesSessionState.allAppsOverlayVisible
@@ -356,14 +373,6 @@ private fun handleLeftClick(
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp(app)
         return
-    }
-    deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale, apps)?.let { desk ->
-        apps.find { it.componentKey() == desk.componentKey }?.let { app ->
-            Log.d(LOG_TAG, "left-click hit desk icon=${app.label}")
-            GlassesSessionState.hideHomeOverlays()
-            onLaunchApp(app)
-            return
-        }
     }
     logClickMiss(point, itemBounds)
 }
@@ -536,6 +545,7 @@ private fun deskHit(
         viewportWidthPx = rootWidthPx,
         viewportHeightPx = rootHeightPx,
         sphereScale = sphereScale,
+        panelScale = panelScale,
     ) ?: return null
     if (!HomeSpaceDesk.containsHit(hit, sphereScale, rootWidthPx, rootHeightPx, panelScale)) {
         return null
@@ -550,18 +560,14 @@ private fun deskIconAt(
     rootHeightPx: Float,
     panelScale: Float,
     sphereScale: Float,
-    apps: List<LaunchableApp>,
 ): HomeSpaceDesk.Icon? {
+    if (!GlassesHomeLook.lookingAtDesktop()) return null
     val hit = deskHit(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) ?: return null
-    val refs = apps.map { app ->
-        HomeSpaceDesk.AppRef(
-            componentKey = app.componentKey(),
-            label = app.label,
-            packageName = app.packageName,
-        )
+    val icons = DeskIconTextureBus.icons().ifEmpty {
+        HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
     }
-    val icons = HomeSpaceDesk.layout(refs, sphereScale, rootWidthPx, rootHeightPx, panelScale)
-    return HomeSpaceDesk.pickIcon(hit, icons)
+    val yaw = HomeSpaceDesk.yawDegrees(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    return HomeSpaceDesk.pickIcon(hit, icons, yaw)
 }
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {

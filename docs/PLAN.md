@@ -575,8 +575,8 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☑ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
-| 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☑ Partial — 0.1.12 Desktop floor icons are GLES boxes with icon+label atlases; Home pane still captured Compose |
-| 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and **DeskRepository**. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☑ Partial — 0.1.12 left look is an infinite GLES desk of physical icons; All Apps is the Home pill + overlay. No DND/piles/widgets yet |
+| 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☑ Partial — 0.1.13 Desktop All Apps tile is a thin GLES box; Home pane still captured Compose |
+| 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and `DeskRepository`. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☑ Partial — 0.1.13 left look faces a GLES desk with one All Apps drawer tile; hover uses desk-local pick + selection pad. No DND/piles/widgets yet |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☑ Partial — 0.1.9 sphere-ray cursor + transparent pane faces; icons/widgets still captured Compose, not `ItemRenderer` |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☑ Partial — 0.1.7 on-device: companion + glasses windows have `KEEP_SCREEN_ON`; WM holds `SCREEN_BRIGHT_WAKE_LOCK` on display 0 and 46. Override display can still report OFF (OEM quirk). |
 | 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☑ Partial — 0.1.12 close on the centered Edit card; defaults panel 0.70 / sphere 1.00 / icons 1.20; sphere scale is distance |
@@ -598,8 +598,8 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 #### Phase 2 — Next steps (immediate)
 
 1. **Pin 0.1.10 mouse-look + sphere-ray hover.** Do not change look/selection.
-2. **On-device check of 0.1.12** — Edit close; Home pagination arrows; look left onto the Desktop floor; All Apps pill opens the overlay; sphere scale pulls panes back.
-3. **2.21 Desktop DND** — BumpDesk `InteractionManager` + `Pile` + arrange on the desk; widgets on the plane.
+2. **On-device check of 0.1.13** — look left *at* the Desktop; only the All Apps tile; thin boxes; hover pad on the tile; click opens All Apps overlay.
+3. **2.21 Desktop DND** — pull apps out of the All Apps tile onto the desk (BumpDesk `InteractionManager` + `Pile` + arrange); widgets on the plane.
 4. **2.20 Home pane items** — Recreate Home chrome/icons with GLES items (Desktop icons already boxes).
 5. **Stop** — Do not start 6.9 onboarding in this pass.
 
@@ -747,7 +747,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.10:** mouse-look yaw+pitch restored; Edit chrome scaled up; hover stays sphere-ray | 0.1.9 look only edge-panned and lost up/down |
 | 2026-09-18 | **0.1.11:** Edit dialog centered over the focused pane | Corner stack hid the panel behind the controls |
 | 2026-09-18 | **0.1.12:** sphere scale is distance; Edit close; Home pagination; Desktop floor of physical icons | Sphere scale used to keep angular size fixed; Home arrows updated All Apps pages; All Apps pane hid the desk |
+| 2026-09-18 | **0.1.13:** Desktop faces the left look; All Apps drawer tile only; thin boxes; desk-local hover | 0.1.12 desk was a side-on infinite floor of thick cubes; hover used world AABB |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.12 Desktop floor + Edit close + Home pagination; mouse-look pinned; next desk DND)*
+*Last updated: 2026-09-18 (0.1.13 Desktop All Apps tile faces the left look; next desk DND)*

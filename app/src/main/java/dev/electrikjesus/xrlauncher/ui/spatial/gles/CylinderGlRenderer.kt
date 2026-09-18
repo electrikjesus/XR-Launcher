@@ -59,6 +59,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var showSphereCursor: Boolean = false
     var deskIcons: List<HomeSpaceDesk.Icon> = emptyList()
     var deskHoveredKey: String? = null
+    var showDesk: Boolean = false
 
     @Volatile
     private var pendingDeskTextures: List<DeskIconSnapshot> = emptyList()
@@ -95,6 +96,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private var litSamplerHandle = 0
     private var litLightHandle = 0
     private var litAmbientHandle = 0
+    private var litTintHandle = 0
+    private var litHighlightHandle = 0
     private var litUseTextureHandle = 0
 
     private val paneMeshBuffers = LinkedHashMap<String, FloatBuffer>()
@@ -187,6 +190,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         litSamplerHandle = GLES20.glGetUniformLocation(litProgram, "uTexture")
         litLightHandle = GLES20.glGetUniformLocation(litProgram, "uLightPos")
         litAmbientHandle = GLES20.glGetUniformLocation(litProgram, "uAmbient")
+        litTintHandle = GLES20.glGetUniformLocation(litProgram, "uTint")
+        litHighlightHandle = GLES20.glGetUniformLocation(litProgram, "uHighlight")
         litUseTextureHandle = GLES20.glGetUniformLocation(litProgram, "uUseTexture")
 
         rebuildCylinderMeshes()
@@ -225,7 +230,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
-            drawDesk()
+            if (showDesk) {
+                drawDesk()
+            }
             drawSphereCursor()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
@@ -318,6 +325,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glUniformMatrix4fv(litMvpHandle, 1, false, mvpMatrix, 0)
         GLES20.glUniform3f(litLightHandle, 0f, 0f, 0f)
         GLES20.glUniform1f(litAmbientHandle, 0.28f)
+        GLES20.glUniform3f(litTintHandle, 1f, 1f, 1f)
+        GLES20.glUniform1f(litHighlightHandle, 0f)
         GLES20.glDisable(GLES20.GL_CULL_FACE)
 
         homeSpaceSlots.forEach { slot ->
@@ -360,6 +369,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             homeSpaceSphereScale,
             homeSpacePanelScale,
             yaw,
+            deskHoveredKey.orEmpty(),
             deskIcons.joinToString { "${it.componentKey}:${it.center.x}:${it.center.z}" },
         ).joinToString("|")
         if (key == deskMeshKey && deskPlaneBuffer != null) return
@@ -370,7 +380,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         deskIconBuffers.clear()
         deskIconVertexCounts.clear()
         deskIcons.forEach { icon ->
-            val mesh = HomeSpaceDesk.iconMesh(icon, yaw)
+            val mesh = HomeSpaceDesk.iconMesh(
+                icon,
+                yaw,
+                liftY = if (icon.componentKey == deskHoveredKey) HomeSpaceDesk.HOVER_LIFT else 0f,
+            )
             deskIconBuffers[icon.componentKey] = mesh.interleaved.toFloatBuffer()
             deskIconVertexCounts[icon.componentKey] = mesh.vertexCount
         }
@@ -385,8 +399,21 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glDisable(GLES20.GL_CULL_FACE)
         val stride = HomeSpacePaneMesh.STRIDE * 4
 
-        fun drawMesh(buffer: FloatBuffer, count: Int, textureId: Int, ambient: Float, useTexture: Boolean) {
+        fun drawMesh(
+            buffer: FloatBuffer,
+            count: Int,
+            textureId: Int,
+            ambient: Float,
+            useTexture: Boolean,
+            highlight: Boolean = false,
+        ) {
             GLES20.glUniform1f(litAmbientHandle, ambient)
+            GLES20.glUniform1f(litHighlightHandle, if (highlight) 1f else 0f)
+            if (highlight) {
+                GLES20.glUniform3f(litTintHandle, 0.45f, 0.78f, 1f)
+            } else {
+                GLES20.glUniform3f(litTintHandle, 1f, 1f, 1f)
+            }
             GLES20.glUniform1i(litUseTextureHandle, if (useTexture && textureId != 0) 1 else 0)
             if (useTexture && textureId != 0) {
                 GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
@@ -409,17 +436,35 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         deskPlaneBuffer?.let { buffer ->
             drawMesh(buffer, deskPlaneVertexCount, 0, ambient = 0.22f, useTexture = false)
         }
+        val yaw = HomeSpaceDesk.yawDegrees(
+            viewportWidthPx,
+            viewportHeightPx,
+            homeSpacePanelScale,
+            homeSpaceSphereScale,
+        )
         deskIcons.forEach { icon ->
             val buffer = deskIconBuffers[icon.componentKey] ?: return@forEach
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
             val hovered = icon.componentKey == deskHoveredKey
+            if (hovered) {
+                val pad = HomeSpaceDesk.hoverPadMesh(icon, yaw)
+                drawMesh(
+                    pad.interleaved.toFloatBuffer(),
+                    pad.vertexCount,
+                    0,
+                    ambient = 0.95f,
+                    useTexture = false,
+                    highlight = true,
+                )
+            }
             drawMesh(
                 buffer,
                 count,
                 textureId,
-                ambient = if (hovered) 0.72f else 0.34f,
+                ambient = if (hovered) 0.95f else 0.42f,
                 useTexture = true,
+                highlight = hovered,
             )
         }
         GLES20.glDisableVertexAttribArray(litPositionHandle)
@@ -439,14 +484,19 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             viewportHeightPx = viewportHeightPx,
             sphereScale = homeSpaceSphereScale,
         )
-        val deskWorld = HomeSpaceDesk.planeHit(
-            camera = sceneCamera,
-            cursorX = cursorX,
-            cursorY = cursorY,
-            viewportWidthPx = viewportWidthPx,
-            viewportHeightPx = viewportHeightPx,
-            sphereScale = homeSpaceSphereScale,
-        )
+        val deskWorld = if (showDesk) {
+            HomeSpaceDesk.planeHit(
+                camera = sceneCamera,
+                cursorX = cursorX,
+                cursorY = cursorY,
+                viewportWidthPx = viewportWidthPx,
+                viewportHeightPx = viewportHeightPx,
+                sphereScale = homeSpaceSphereScale,
+                panelScale = homeSpacePanelScale,
+            )
+        } else {
+            null
+        }
         val onDesk = deskWorld != null && HomeSpaceDesk.containsHit(
             deskWorld,
             homeSpaceSphereScale,
@@ -1028,13 +1078,17 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             uniform sampler2D uTexture;
             uniform vec3 uLightPos;
             uniform float uAmbient;
+            uniform vec3 uTint;
+            uniform float uHighlight;
             uniform int uUseTexture;
             varying vec3 vNormal;
             varying vec3 vPosition;
             varying vec2 vTexCoord;
             void main() {
                 vec4 base;
-                if (vTexCoord.x < 0.0) {
+                if (vTexCoord.x < -1.5) {
+                    base = vec4(uTint, 0.70);
+                } else if (vTexCoord.x < 0.0) {
                     base = vec4(0.16, 0.18, 0.22, 0.32);
                 } else if (uUseTexture == 1) {
                     base = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
@@ -1045,8 +1099,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 vec3 n = normalize(vNormal);
                 vec3 lightDir = normalize(uLightPos - vPosition);
                 float diffuse = max(dot(n, lightDir), 0.0);
-                vec3 color = base.rgb * (uAmbient + diffuse * 1.35);
-                gl_FragColor = vec4(color, base.a);
+                vec3 lit = base.rgb * (uAmbient + diffuse * 1.35);
+                if (uHighlight > 0.5) {
+                    lit = mix(lit, uTint, 0.38) * 1.28;
+                }
+                gl_FragColor = vec4(lit, base.a);
             }
         """
     }

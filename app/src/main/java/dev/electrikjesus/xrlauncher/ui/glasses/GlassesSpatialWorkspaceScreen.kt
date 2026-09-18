@@ -176,18 +176,8 @@ fun GlassesSpatialWorkspaceScreen(
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp?.invoke(app)
     }
-    LaunchedEffect(launchableApps, hotseatApps, tuned.panelScale, tuned.sphereScale) {
-        val refs = (hotseatApps + launchableApps)
-            .distinctBy { it.componentKey() }
-            .map { app ->
-                HomeSpaceDesk.AppRef(
-                    componentKey = app.componentKey(),
-                    label = app.label,
-                    packageName = app.packageName,
-                )
-            }
-        val icons = HomeSpaceDesk.layout(
-            apps = refs,
+    LaunchedEffect(tuned.panelScale, tuned.sphereScale) {
+        val icons = HomeSpaceDesk.defaultIcons(
             sphereScale = tuned.sphereScale,
             viewportWidthPx = 1920f,
             viewportHeightPx = 1080f,
@@ -243,6 +233,7 @@ fun GlassesSpatialWorkspaceScreen(
             cursorX = cursor.x,
             cursorY = cursor.y,
             showSphereCursor = true,
+            showDesk = GlassesHomeLook.lookingAtDesktop(),
             enabled = true,
             modifier = Modifier.fillMaxSize(),
         )
