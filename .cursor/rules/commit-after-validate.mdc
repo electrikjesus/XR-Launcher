@@ -1,0 +1,13 @@
+---
+description: Commit after a task is validated; never skip hooks or push unless asked
+alwaysApply: true
+---
+
+# Commit after validate
+
+- Land a git commit when the requested change is complete and checked (host tests / the smoke the task called for).
+- Commit again before switching to a different feature or investigation; leave unrelated WIP unstaged.
+- Do not wait for an extra "please commit."
+- Follow git safety: status / diff / log first; HEREDOC messages; no git config; no force-push; no `--amend` unless the usual amend rules are met; no secrets; no hook skip.
+- Do **not** `adb install`, sideload, or otherwise push to a device unless the user asked for a device build in that turn.
+- Do not `git push` unless the user asked.

@@ -202,6 +202,12 @@
     <string name="desktop_shortcuts_body">Tab / ← → — focus next panel\nEnter — launch app in focused panel\n1 / 2 / 3 — layout preset Single / Dual / Triptych\n? — show this help\nEsc — dismiss help</string>
     <string name="desktop_shortcuts_dismiss">Press Esc or ? to dismiss</string>
     <string name="xr_home">Home</string>
+    <string name="xr_edit_space">Edit</string>
+    <string name="xr_edit_space_done">Done</string>
+    <string name="xr_edit_space_title">Perspective</string>
+    <string name="xr_edit_panel_scale">Panel scale</string>
+    <string name="xr_edit_sphere_scale">Sphere scale</string>
+    <string name="xr_edit_element_scale">Icons &amp; elements</string>
     <string name="xr_recents">Recents</string>
     <string name="xr_recents_empty">No recent apps</string>
     <string name="xr_notifications">Notifications</string>

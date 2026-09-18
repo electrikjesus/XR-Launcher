@@ -41,14 +41,23 @@ object GlassesHomeSpace3d {
     fun paneArcDegrees(
         viewportWidthPx: Float = 1920f,
         viewportHeightPx: Float = 1080f,
-    ): Float = HomeSpaceScene.paneArcDegrees(viewportWidthPx, viewportHeightPx)
+        panelScale: Float = 1f,
+    ): Float = HomeSpaceScene.paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
 
     fun cameraYawDegrees(
         look: Float,
         cursorX: Float,
         viewportWidthPx: Float = 1920f,
         viewportHeightPx: Float = 1080f,
-    ): Float = HomeSpaceScene.camera(look, cursorX, 0.5f, viewportWidthPx, viewportHeightPx).yawDeg
+        panelScale: Float = 1f,
+    ): Float = HomeSpaceScene.camera(
+        look,
+        cursorX,
+        0.5f,
+        viewportWidthPx,
+        viewportHeightPx,
+        panelScale,
+    ).yawDeg
 
     fun cameraPitchDegrees(cursorY: Float): Float =
         HomeSpaceScene.camera(0f, 0.5f, cursorY, 1920f, 1080f).pitchDeg
@@ -57,8 +66,16 @@ object GlassesHomeSpace3d {
         worldX: Float,
         viewportWidthPx: Float = 1920f,
         viewportHeightPx: Float = 1080f,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
     ): WorldPose {
-        val pane = HomeSpaceScene.pane(worldX, viewportWidthPx, viewportHeightPx)
+        val pane = HomeSpaceScene.pane(
+            worldX,
+            viewportWidthPx,
+            viewportHeightPx,
+            panelScale,
+            sphereScale,
+        )
         return WorldPose(
             x = pane.center.x,
             y = pane.center.y,
@@ -75,16 +92,31 @@ object GlassesHomeSpace3d {
         cursorY: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
     ): ProjectedPane {
-        val camera = HomeSpaceScene.camera(look, cursorX, cursorY, viewportWidthPx, viewportHeightPx)
-        val pane = HomeSpaceScene.pane(worldX, viewportWidthPx, viewportHeightPx)
+        val camera = HomeSpaceScene.camera(
+            look,
+            cursorX,
+            cursorY,
+            viewportWidthPx,
+            viewportHeightPx,
+            panelScale,
+        )
+        val pane = HomeSpaceScene.pane(
+            worldX,
+            viewportWidthPx,
+            viewportHeightPx,
+            panelScale,
+            sphereScale,
+        )
         val view = camera.viewPoint(pane.center)
         val relYaw = pane.yawDeg - camera.yawDeg
         val inFront = view.z < -0.05f
         if (!inFront || viewportWidthPx <= 0f || viewportHeightPx <= 0f) {
             return hiddenPane(view.z)
         }
-        val fade = paneAlpha(relYaw, paneArcDegrees(viewportWidthPx, viewportHeightPx))
+        val fade = paneAlpha(relYaw, paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale))
         if (fade <= 0.02f) {
             return hiddenPane(view.z)
         }
@@ -95,10 +127,11 @@ object GlassesHomeSpace3d {
             viewportHeightPx,
         )
         val cameraDistancePx = HomeSpaceScene.perspectiveCameraDistancePx(viewportHeightPx)
+        val radius = HomeSpaceScene.sphereRadius(sphereScale)
         return ProjectedPane(
             translationXPx = projected.x,
             translationYPx = projected.y,
-            translationZPx = (view.z + PANE_RADIUS) * (cameraDistancePx / PANE_RADIUS),
+            translationZPx = (view.z + radius) * (cameraDistancePx / radius),
             rotationYDeg = -relYaw,
             rotationXDeg = -camera.pitchDeg,
             scale = 1f,

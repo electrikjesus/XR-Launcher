@@ -18,6 +18,10 @@ data class WorkspaceAppearance(
     val lookPitchDegrees: Float = 0f,
     /** Backdrop preset for the GLES cylinder and Compose wallpaper layer. */
     val wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
+    /** Multiplies pane width/height on the sphere (0.6–1.4). */
+    val panelScale: Float = DEFAULT_PANEL_SCALE,
+    /** Multiplies pane-sphere and room radius so content sits farther from the camera (0.8–2.0). */
+    val sphereScale: Float = DEFAULT_SPHERE_SCALE,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
         uiScale = uiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE),
@@ -28,6 +32,8 @@ data class WorkspaceAppearance(
         lookYawDegrees = lookYawDegrees.coerceIn(MIN_LOOK_YAW, MAX_LOOK_YAW),
         lookPitchDegrees = lookPitchDegrees.coerceIn(MIN_LOOK_PITCH, MAX_LOOK_PITCH),
         wallpaperChoice = wallpaperChoice,
+        panelScale = panelScale.coerceIn(MIN_PANEL_SCALE, MAX_PANEL_SCALE),
+        sphereScale = sphereScale.coerceIn(MIN_SPHERE_SCALE, MAX_SPHERE_SCALE),
     )
 
     companion object {
@@ -47,6 +53,13 @@ data class WorkspaceAppearance(
         const val MAX_LOOK_YAW = 60f
         const val MIN_LOOK_PITCH = -30f
         const val MAX_LOOK_PITCH = 30f
+        const val MIN_PANEL_SCALE = 0.6f
+        const val MAX_PANEL_SCALE = 1.4f
+        const val DEFAULT_PANEL_SCALE = 1f
+        const val MIN_SPHERE_SCALE = 0.8f
+        const val MAX_SPHERE_SCALE = 2f
+        /** Pull panes and the surround room farther from the camera than the 1.85/3.4 base radii. */
+        const val DEFAULT_SPHERE_SCALE = 1.2f
 
         fun default(): WorkspaceAppearance = WorkspaceAppearance()
     }

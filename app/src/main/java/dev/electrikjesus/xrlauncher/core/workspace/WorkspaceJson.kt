@@ -59,6 +59,8 @@ object WorkspaceJson {
             clamped.lookYawDegrees.toCompactString(),
             clamped.lookPitchDegrees.toCompactString(),
             clamped.wallpaperChoice.name,
+            clamped.panelScale.toCompactString(),
+            clamped.sphereScale.toCompactString(),
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -76,6 +78,10 @@ object WorkspaceJson {
             lookYawDegrees = fields.getOrNull(5)?.toFloatOrNull() ?: 0f,
             lookPitchDegrees = fields.getOrNull(6)?.toFloatOrNull() ?: 0f,
             wallpaperChoice = WorkspaceWallpaperChoice.fromPersisted(fields.getOrNull(7)),
+            panelScale = fields.getOrNull(8)?.toFloatOrNull()
+                ?: WorkspaceAppearance.DEFAULT_PANEL_SCALE,
+            sphereScale = fields.getOrNull(9)?.toFloatOrNull()
+                ?: WorkspaceAppearance.DEFAULT_SPHERE_SCALE,
         ).clamped()
     }
 

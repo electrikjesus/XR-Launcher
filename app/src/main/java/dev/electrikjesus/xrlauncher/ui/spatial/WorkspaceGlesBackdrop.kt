@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
@@ -41,6 +42,7 @@ fun WorkspaceGlesBackdrop(
     panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
     showWallpaperCylinder: Boolean = true,
     surroundRoom: Boolean = false,
+    roomRadius: Float = GlassesHomeSpace3d.ROOM_RADIUS,
     modifier: Modifier = Modifier,
     enabled: Boolean = surroundRoom || (curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -89,11 +91,12 @@ fun WorkspaceGlesBackdrop(
         }
     }
 
-    DisposableEffect(curvature, workspaceWidth, workspaceHeight, surroundRoom) {
+    DisposableEffect(curvature, workspaceWidth, workspaceHeight, surroundRoom, roomRadius) {
         renderer.curvature = curvature
         renderer.workspaceWidth = workspaceWidth
         renderer.workspaceHeight = workspaceHeight
         renderer.surroundRoom = surroundRoom
+        renderer.roomRadius = roomRadius
         renderer.rebuildCylinderMesh()
         onDispose { }
     }
@@ -128,6 +131,7 @@ fun WorkspaceGlesBackdrop(
             renderer.panelGuideCenters = panelGuideCenters
             renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.surroundRoom = surroundRoom
+            renderer.roomRadius = roomRadius
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

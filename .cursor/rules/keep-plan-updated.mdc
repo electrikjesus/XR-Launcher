@@ -1,0 +1,15 @@
+---
+description: Keep docs/PLAN.md current with the real direction after each landed task
+alwaysApply: true
+---
+
+# Keep PLAN.md updated
+
+After every completed task, update `docs/PLAN.md` in the same commit:
+
+- Matching Phase row (done / partial / blocked).
+- **Current direction** if the approach changed.
+- **Phase 2 — Next steps** so the next agent starts the right task.
+- Decision log + last-updated line.
+
+Do not leave the plan describing an abandoned path. Home Space perspective is **BumpDesk GLES** (`2.22`), not Compose `graphicsLayer`.

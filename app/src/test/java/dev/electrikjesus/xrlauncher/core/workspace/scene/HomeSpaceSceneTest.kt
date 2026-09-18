@@ -16,6 +16,16 @@ class HomeSpaceSceneTest {
     }
 
     @Test
+    fun paneCorners_scaledSphere_sitOnScaledRadius() {
+        val scale = 1.2f
+        val pane = HomeSpaceScene.pane(0f, 1920f, 1080f, sphereScale = scale)
+        val radius = HomeSpaceScene.sphereRadius(scale)
+        pane.corners.forEach { corner ->
+            assertEquals(radius, corner.length(), 0.02f)
+        }
+    }
+
+    @Test
     fun packedPanes_doNotOverlapOnTheSphere() {
         val hits = HomeSpaceScene.overlappingPairs(
             worldXs = listOf(-1f, 0f, 1f),

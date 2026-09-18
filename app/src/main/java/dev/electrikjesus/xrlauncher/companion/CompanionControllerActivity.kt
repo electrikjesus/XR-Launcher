@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.companion
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -34,6 +35,7 @@ class CompanionControllerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
         HeadTrackingCalibrationStore.init(this)
         AllAppsGridConfigStore.init(this)

@@ -62,6 +62,18 @@ class WorkspaceJsonTest {
         assertEquals(0.9f, decoded.appearance.workspaceHeight, 0.001f)
         assertEquals(12f, decoded.appearance.lookYawDegrees, 0.001f)
         assertEquals(-4f, decoded.appearance.lookPitchDegrees, 0.001f)
+        assertEquals(WorkspaceAppearance.DEFAULT_PANEL_SCALE, decoded.appearance.panelScale, 0.001f)
+        assertEquals(WorkspaceAppearance.DEFAULT_SPHERE_SCALE, decoded.appearance.sphereScale, 0.001f)
+    }
+
+    @Test
+    fun encodeDecode_preservesPanelAndSphereScale() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(panelScale = 1.15f, sphereScale = 1.4f),
+        )
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(1.15f, decoded.appearance.panelScale, 0.001f)
+        assertEquals(1.4f, decoded.appearance.sphereScale, 0.001f)
     }
 
     @Test

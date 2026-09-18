@@ -57,26 +57,49 @@ object HomeSpaceScene {
         val pitchMax: Float get() = halfHeightDeg
     }
 
+    fun sphereRadius(sphereScale: Float = 1f): Float =
+        SPHERE_RADIUS * sphereScale.coerceAtLeast(0.01f)
+
+    fun roomRadius(sphereScale: Float = 1f): Float =
+        ROOM_RADIUS * sphereScale.coerceAtLeast(0.01f)
+
+    fun paneWidthFraction(panelScale: Float = 1f): Float =
+        (PANE_WIDTH_FRACTION * panelScale).coerceIn(0.45f, 0.95f)
+
+    fun paneHeightFraction(panelScale: Float = 1f): Float =
+        (PANE_HEIGHT_FRACTION * panelScale).coerceIn(0.50f, 0.98f)
+
     fun perspectiveCameraDistancePx(viewportHeightPx: Float): Float {
         val fovy = Math.toRadians(FOV_Y_DEGREES.toDouble()).toFloat()
         return (viewportHeightPx.coerceAtLeast(1f) * 0.5f) / tan(fovy / 2f)
     }
 
-    fun angularHalfWidthDeg(viewportWidthPx: Float, viewportHeightPx: Float): Float {
+    fun angularHalfWidthDeg(
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+    ): Float {
         val cam = perspectiveCameraDistancePx(viewportHeightPx)
-        val halfPx = viewportWidthPx.coerceAtLeast(1f) * PANE_WIDTH_FRACTION * 0.5f
+        val halfPx = viewportWidthPx.coerceAtLeast(1f) * paneWidthFraction(panelScale) * 0.5f
         return Math.toDegrees(atan(halfPx / cam).toDouble()).toFloat()
     }
 
-    fun angularHalfHeightDeg(viewportWidthPx: Float, viewportHeightPx: Float): Float {
+    fun angularHalfHeightDeg(
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+    ): Float {
         val cam = perspectiveCameraDistancePx(viewportHeightPx)
-        val halfPx = viewportHeightPx.coerceAtLeast(1f) * PANE_HEIGHT_FRACTION * 0.5f
+        val halfPx = viewportHeightPx.coerceAtLeast(1f) * paneHeightFraction(panelScale) * 0.5f
         return Math.toDegrees(atan(halfPx / cam).toDouble()).toFloat()
     }
 
     /** Angular spacing so adjacent pane edges keep [PANE_GAP_DEGREES] of sphere. */
-    fun paneArcDegrees(viewportWidthPx: Float, viewportHeightPx: Float): Float =
-        2f * angularHalfWidthDeg(viewportWidthPx, viewportHeightPx) + PANE_GAP_DEGREES
+    fun paneArcDegrees(
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+    ): Float = 2f * angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale) + PANE_GAP_DEGREES
 
     fun camera(
         look: Float,
@@ -84,8 +107,9 @@ object HomeSpaceScene {
         cursorY: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
+        panelScale: Float = 1f,
     ): Camera {
-        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx)
+        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
         val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
         val pitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
@@ -96,14 +120,16 @@ object HomeSpaceScene {
         worldX: Float,
         viewportWidthPx: Float,
         viewportHeightPx: Float,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
     ): Pane {
-        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx)
+        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
         val yawDeg = worldX * arc
-        val halfW = angularHalfWidthDeg(viewportWidthPx, viewportHeightPx)
-        val halfH = angularHalfHeightDeg(viewportWidthPx, viewportHeightPx)
+        val halfW = angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale)
+        val halfH = angularHalfHeightDeg(viewportWidthPx, viewportHeightPx, panelScale)
         val tanW = tan(Math.toRadians(halfW.toDouble()).toFloat())
         val tanH = tan(Math.toRadians(halfH.toDouble()).toFloat())
-        val depth = SPHERE_RADIUS / sqrt(1f + tanW * tanW + tanH * tanH)
+        val depth = sphereRadius(sphereScale) / sqrt(1f + tanW * tanW + tanH * tanH)
         val halfWWorld = depth * tanW
         val halfHWorld = depth * tanH
         val yawRad = Math.toRadians(yawDeg.toDouble()).toFloat()
@@ -142,8 +168,14 @@ object HomeSpaceScene {
         return yawOverlap && pitchOverlap
     }
 
-    fun overlappingPairs(worldXs: List<Float>, viewportWidthPx: Float, viewportHeightPx: Float): List<Pair<Float, Float>> {
-        val panes = worldXs.map { pane(it, viewportWidthPx, viewportHeightPx) }
+    fun overlappingPairs(
+        worldXs: List<Float>,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
+    ): List<Pair<Float, Float>> {
+        val panes = worldXs.map { pane(it, viewportWidthPx, viewportHeightPx, panelScale, sphereScale) }
         val hits = mutableListOf<Pair<Float, Float>>()
         for (i in panes.indices) {
             for (j in i + 1 until panes.size) {

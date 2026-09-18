@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher.glasses
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import dev.electrikjesus.xrlauncher.core.display.SessionWake
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.remember
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
@@ -19,6 +20,7 @@ class GlassesLauncherActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SessionWake.keepDisplayOn(this)
         val appLauncher = AppLauncher(this)
         val workspaceRepository = WorkspaceRepository(applicationContext)
 

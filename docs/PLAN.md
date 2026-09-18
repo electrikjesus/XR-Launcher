@@ -22,6 +22,40 @@ A Play Store–friendly Android launcher that provides a **3D spatial workspace*
 
 ---
 
+## Current direction (2026-09-18)
+
+Home Space on glasses must feel like an **FPS camera inside a room**, not a 2D carousel with a fake 3D tilt.
+
+**What failed.** Compose `graphicsLayer { rotationY / rotationX / cameraDistance }` draws a **screen-space rectangle**. Parallel panel edges stay straight; there is no mesh thickness and no sphere tessellation, so you never see converging sides or an **inner bevel**. More `cameraDistance` / scale sliders will not fix that. Stop iterating Compose as the spatial renderer.
+
+**What we will build.** Port BumpDesk’s working GLES engine (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) and **recreate our Home / Desktop / Tray panels as scene objects** in that engine:
+
+| BumpDesk piece | Use in XR-Launcher |
+|----------------|--------------------|
+| `BumpRenderer.onDrawFrame` | Frame loop: `Matrix.perspectiveM` + `CameraManager.setLookAtM` → true FPS view-projection |
+| `CameraManager` | Yaw/pitch look, FOV, zoom; companion cursor drives look like BumpDesk pan/look |
+| `RoomRenderer` + `Plane` | Surround room / wallpaper (replace the fake Compose “cylinder”) |
+| `Box` (6-face, ~0.04 thickness) | Panel bodies and icons so look-away shows **inner edges / bevel** |
+| Tessellated sphere patch | Panel **faces curve** with the invisible Home-Space sphere (bowed edges, not a flat billboard) |
+| `ItemRenderer` + `TextureUtils` | App icons, shortcuts, labels as posed 3D items on a panel surface |
+| `WidgetRenderer` | Live `AppWidgetHostView` → bitmap → GL texture on the Desktop pane |
+| `UIRenderer` / `OverlayRenderer` | Close, pagination, Edit-mode chrome as GLES controls |
+| `InteractionManager` | Ray-pick from inverted VP matrix (drag, piles, widget hit) |
+
+Compose stays as: phone companion UI, offscreen content for textures if needed, and hit-test overlay **after** GLES poses are authoritative.
+
+**Build order (do not skip ahead to a device APK until 2.22 GLES panels exist):**
+
+1. **2.22** — GLES Home Space: FPS camera, room, **curved/thick panels** (clock, pills, grids are textures or child items — not `graphicsLayer` cards).
+2. **2.20** — Recreate icons, shortcuts, controls, and widgets with BumpDesk `ItemRenderer` / `WidgetRenderer` / `TextureUtils` parented to those panels.
+3. **2.21** — Desktop pane (favorites + widgets) with BumpDesk DND / piles / arrange.
+4. **2.23** — Keep glasses + companion awake (`FLAG_KEEP_SCREEN_ON`); phone sleep was blanking SmartGlasses.
+5. **2.24** — In-scene Edit mode (panel / sphere / icon scale) **on the GLES view**, persist as `WorkspaceAppearance`.
+
+**Do not implement 6.9 onboarding in this pass.**
+
+---
+
 ## Rules
 
 These rules apply to all design and implementation decisions. When in doubt, follow the rule that keeps scope smaller and permissions lower.
@@ -75,6 +109,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 27. **Tests for every component.** New or changed code in `core/` and `ui/` ships with unit tests (JUnit + Robolectric or similar where needed). Add instrumented or Compose UI tests when behavior is visual or integration-heavy. No component merges without corresponding tests.
 28. **Git branches and tags.** Use branches and tags to mark stable points, ongoing dev work, and releases (see [Git workflow](#git-workflow) below).
 29. **Stable points are tagged.** When a phase exit criteria is met, tag the merge commit on `main` (e.g. `v0.1.0-phase1`).
+30. **Keep this plan current.** After every landed task, update the matching row, [Current direction](#current-direction-2026-09-18), [Phase 2 — Next steps](#phase-2--next-steps-immediate), and the decision log. Do not leave PLAN.md describing a path we have already abandoned (e.g. Compose `graphicsLayer` as the FPS camera).
 
 ---
 
@@ -538,9 +573,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.16 | **Tier 1:** `AppWidgetHost` feasibility on external display (document in device-matrix). | ☑ |
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
-| 2.20 | **Borrow BumpDesk icon + widget paths** (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) that already work in a real 3D scene, instead of re-solving them. Icons: `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture). Widgets: `WidgetRenderer` (`AppWidgetHostView` measure/layout → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`, posed on a wall/floor with XYZ). Port the working methods into XR-Launcher’s Home Space objects (each with a Z) and keep Compose hit-testing. | ☐ |
-| 2.21 | **Desktop pane instead of All Apps.** Replace the left All Apps carousel pane with a **Desktop** pane: user favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop** (`InteractionManager` ray-pick + drag), **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange on a surface**, and **DeskRepository** persistence so users can move icons, group them, and lay out widgets. All Apps stays reachable from a control (pill / search). | ☐ |
-| 2.22 | **Game-engine Home Space.** Treat Home Space like BumpTop/BumpDesk, not a Compose carousel: `Vec3` entities, FPS camera at the origin (`setLookAt` / yaw-pitch), pane quads whose **corners sit on an invisible sphere**, overlap tests in world space, later GLES textured quads (`RoomRenderer` / `ItemRenderer`) with Compose as a view of the scene. Spatial feel (look, spacing, intersection) is checked against the scene, not screen-space fakes. | ☐ |
+| 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☐ **after 2.22** |
+| 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and **DeskRepository**. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☐ **after 2.20** |
+| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☐ Partial — `HomeSpaceScene` + Compose view only (still isometric) |
+| 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☐ (code started; ship with 2.22) |
+| 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☐ **after 2.22** |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -558,12 +595,12 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-1. **Create `core/workspace/`** — `Workspace`, `PanelState(id, kind, bounds, zOrder)`, `HotseatPin`, serialization.
-2. **DataStore** — load on `ExternalDisplayActivity` / `GlassesSpatialWorkspaceScreen` start; save on hotseat change.
-3. **Hotseat UX** — companion right-click on app → pin/unpin; render pinned row from store.
-4. **App drawer** — port phone shell search/filter to glasses grid; reuse `AppRepository.filterApps`. ☑
-5. **Focus** — visual ring on focused panel; tab order for companion clicks between hotseat ↔ drawer ↔ widget. ☑
-6. **Document** — update `device-matrix.md` after 2.1–2.13 land on Pixel 8 + SmartGlasses.
+1. **2.22 GLES panels** — Port BumpDesk `BumpRenderer` / `CameraManager` / `RoomRenderer` / `Box`. Tessellate Home, Desktop, and Tray faces on the sphere; give panels thickness so FPS look shows inner bevel. Success: looking left/right, panel edges **converge and bow**; they must not stay a rigid rectangle. **No test APK until this is on-device-visible in GLES.**
+2. **2.20 Items on panels** — Recreate icons, shortcuts, pills/controls, and widgets with `ItemRenderer` / `WidgetRenderer` / `TextureUtils` / `UIRenderer`.
+3. **2.21 Desktop DND** — BumpDesk `InteractionManager` + `Pile` + arrange on the Desktop pane; All Apps remains a control.
+4. **2.23 Keep-awake** — Land `SessionWake` with the GLES session (companion + glasses `FLAG_KEEP_SCREEN_ON`).
+5. **2.24 Edit mode** — Panel / sphere / icon scale in the 3D scene; persist as default appearance.
+6. **Stop** — Do not ship more Compose `graphicsLayer` perspective tweaks; do not start 6.9 onboarding in this pass.
 
 ---
 
@@ -700,10 +737,12 @@ Record major choices here as they are made.
 | 2026-06-12 | **Unified glasses pointer** — one Desktop gesture set; launcher foreground hit-test | Removed mode toggle; Subspace shell when spatial API present |
 | 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
 | 2026-09-18 | **Onboarding 6.9 (backlog):** full permission check + App Info restricted-settings path for desktop cursor accessibility | Sideloaded builds cannot enable the accessibility service until Restricted settings is allowed on App Info |
-| 2026-09-18 | **2.20 (backlog):** reuse BumpDesk `ItemRenderer` / `WidgetRenderer` for 3D launcher icons and live AppWidget textures | Those paths already bind icons and host widgets onto posed 3D surfaces |
-| 2026-09-18 | **2.21 (backlog):** Desktop pane with BumpDesk drag/drop, piles/groups, arrange, and widgets | Home Space should feel like a desk; All Apps remains a control |
-| 2026-09-18 | **2.22:** game-engine Home Space (FPS camera, sphere-corner panes, world overlap tests) | Compose graphicsLayer fakes read as isometric and overlapping; BumpDesk already solves this as a scene |
+| 2026-09-18 | **2.20:** recreate icons/shortcuts/controls/widgets with BumpDesk `ItemRenderer` / `WidgetRenderer` **on GLES panels** | Compose grids cannot sit in FPS perspective |
+| 2026-09-18 | **2.21:** Desktop pane with BumpDesk DND, piles, arrange, widgets | After GLES panels + items exist |
+| 2026-09-18 | **2.22 blocking:** BumpDesk GLES engine is the Home Space view | Compose `graphicsLayer` keeps straight/isometric edges; no inner bevel |
+| 2026-09-18 | **No more Compose perspective APKs** until 2.22 GLES panels show curved/thick edges | User confirmed look still isometric with straight panel edges |
+| 2026-09-18 | **2.23 keep-awake** + **2.24 GLES Edit mode** after the engine | Caffeine proved phone sleep blanks glasses; scale sliders belong in the 3D scene |
 
 ---
 
-*Last updated: 2026-09-18 (2.22 game-engine Home Space; 2.21 desktop DND/piles)*
+*Last updated: 2026-09-18 (2.22 BumpDesk GLES first; stop Compose graphicsLayer perspective)*

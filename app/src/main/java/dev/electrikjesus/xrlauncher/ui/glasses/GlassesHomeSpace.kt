@@ -60,6 +60,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
@@ -607,10 +608,14 @@ fun GlassesHomeCarousel(
     appPane: @Composable (GlassesAppPlane) -> Unit,
     modifier: Modifier = Modifier,
     uiScale: Float = WorkspaceAppearance.DEFAULT_UI_SCALE,
+    panelScale: Float = WorkspaceAppearance.DEFAULT_PANEL_SCALE,
+    sphereScale: Float = WorkspaceAppearance.DEFAULT_SPHERE_SCALE,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
         val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
+        val paneWidth = HomeSpaceScene.paneWidthFraction(panelScale)
+        val paneHeight = HomeSpaceScene.paneHeightFraction(panelScale)
         data class Slot(val key: String, val worldX: Float, val content: @Composable () -> Unit)
         val slots = buildList {
             add(Slot("all_apps", GlassesHomeLook.PANE_LEFT, left))
@@ -629,13 +634,21 @@ fun GlassesHomeCarousel(
                     cursorY = cursorY,
                     viewportWidthPx = widthPx,
                     viewportHeightPx = heightPx,
+                    panelScale = panelScale,
+                    sphereScale = sphereScale,
                 )
             }
             .filter { it.second.visible }
             .sortedBy { it.second.viewZ }
             .forEach { (slot, projected) ->
                 androidx.compose.runtime.key(slot.key) {
-                    CarouselPane(projected = projected, uiScale = uiScale, content = slot.content)
+                    CarouselPane(
+                        projected = projected,
+                        uiScale = uiScale,
+                        paneWidthFraction = paneWidth,
+                        paneHeightFraction = paneHeight,
+                        content = slot.content,
+                    )
                 }
             }
     }
@@ -645,6 +658,8 @@ fun GlassesHomeCarousel(
 private fun CarouselPane(
     projected: GlassesHomeSpace3d.ProjectedPane,
     uiScale: Float,
+    paneWidthFraction: Float,
+    paneHeightFraction: Float,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -653,8 +668,8 @@ private fun CarouselPane(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(GlassesHomeSpace3d.PANE_WIDTH_FRACTION)
-                .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION)
+                .fillMaxWidth(paneWidthFraction)
+                .fillMaxHeight(paneHeightFraction)
                 .graphicsLayer {
                     translationX = projected.translationXPx
                     translationY = projected.translationYPx

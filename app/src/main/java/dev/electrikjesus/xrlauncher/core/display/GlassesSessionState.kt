@@ -156,6 +156,19 @@ object GlassesSessionState {
         layoutPresetsVisible = !layoutPresetsVisible
     }
 
+    private val _homeSpaceEdit = MutableStateFlow(false)
+    val homeSpaceEditFlow: StateFlow<Boolean> = _homeSpaceEdit.asStateFlow()
+
+    var homeSpaceEdit: Boolean
+        get() = _homeSpaceEdit.value
+        set(value) {
+            _homeSpaceEdit.value = value
+        }
+
+    fun toggleHomeSpaceEdit() {
+        homeSpaceEdit = !homeSpaceEdit
+    }
+
     private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
     val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
 
@@ -195,6 +208,7 @@ object GlassesSessionState {
         _homeOverlay.value = GlassesHomeOverlay.NONE
         allAppsOverlayVisible = false
         layoutPresetsVisible = false
+        homeSpaceEdit = false
         AllAppsPaginationState.reset()
         GlassesHomeLook.reset()
         pendingAppLaunch = null

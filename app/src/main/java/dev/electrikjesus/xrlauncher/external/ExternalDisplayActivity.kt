@@ -15,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.SessionWake
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
@@ -217,6 +218,7 @@ class ExternalDisplayActivity : ComponentActivity() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
         )
+        SessionWake.keepDisplayOn(this)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

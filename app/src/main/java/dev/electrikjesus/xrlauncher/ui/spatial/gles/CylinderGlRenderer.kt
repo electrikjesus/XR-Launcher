@@ -39,6 +39,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     /** Closed 360° room around the camera (BumpDesk-style) so look never shows wallpaper edges. */
     var surroundRoom: Boolean = false
+    /** GLES surround-room radius; scales with [WorkspaceAppearance.sphereScale]. */
+    var roomRadius: Float = GlassesHomeSpace3d.ROOM_RADIUS
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -251,7 +253,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             ).toFloat()
         }
         val radius = if (surroundRoom) {
-            GlassesHomeSpace3d.ROOM_RADIUS
+            roomRadius
         } else {
             WorkspaceCylinderGeometry.sceneRadiusX(viewportWidthPx, workspaceWidth, c)
         }
@@ -260,7 +262,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         } else {
             WorkspaceCylinderGeometry.sceneBaseDepth(viewportWidthPx, c)
         }
-        val wallHeight = if (surroundRoom) 6.4f else 2.4f
+        val wallHeight = if (surroundRoom) {
+            6.4f * (roomRadius / GlassesHomeSpace3d.ROOM_RADIUS).coerceAtLeast(0.5f)
+        } else {
+            2.4f
+        }
         val halfHeight = wallHeight / 2f
 
         val verts = mutableListOf<Float>()
@@ -320,8 +326,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             roomCapVertexCount = 0
             return
         }
-        val radius = GlassesHomeSpace3d.ROOM_RADIUS
-        val halfHeight = 3.2f
+        val radius = roomRadius
+        val halfHeight = 3.2f * (roomRadius / GlassesHomeSpace3d.ROOM_RADIUS).coerceAtLeast(0.5f)
         val verts = mutableListOf<Float>()
         fun addCap(y: Float, yUp: Boolean) {
             val uvs = if (yUp) {

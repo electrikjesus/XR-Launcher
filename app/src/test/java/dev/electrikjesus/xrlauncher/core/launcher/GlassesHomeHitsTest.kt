@@ -16,6 +16,16 @@ class GlassesHomeHitsTest {
         assertEquals("Recents", GlassesHomeHits.hoverLabel(GlassesHomeHits.RECENTS))
         assertEquals("Clear all", GlassesHomeHits.hoverLabel(GlassesHomeHits.RECENTS_CLEAR))
         assertEquals("Close", GlassesHomeHits.hoverLabel(GlassesHomeHits.appCloseKey("app_one")))
+        assertEquals("Edit space", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_TOGGLE))
+        assertEquals("Farther sphere", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_SPHERE_PLUS))
+    }
+
+    @Test
+    fun actionKeyAt_prefersEditChromeOverHomePills() {
+        val hit = GlassesHomeHits.actionKeyAt {
+            it == GlassesHomeHits.HOME || it == GlassesHomeHits.EDIT_TOGGLE
+        }
+        assertEquals(GlassesHomeHits.EDIT_TOGGLE, hit)
     }
 
     @Test
