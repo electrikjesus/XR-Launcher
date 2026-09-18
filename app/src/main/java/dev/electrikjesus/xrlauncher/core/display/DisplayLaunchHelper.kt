@@ -214,23 +214,22 @@ object DisplayLaunchHelper {
         }
     }
 
-    /** Bring launcher to foreground on glasses and look at the All Apps pane. */
+    /** Bring launcher to foreground on glasses and open the All Apps overlay. */
     fun openAllAppsOnGlasses(context: Context): Boolean {
         val shown = showLauncherOnGlasses(context)
         if (shown) {
-            GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
+            GlassesSessionState.showAllAppsOverlay()
         }
         return shown
     }
 
     fun closeAllAppsOnGlasses() {
-        GlassesSessionState.hideHomeOverlays()
-        GlassesHomeLook.lookHome()
+        GlassesSessionState.hideAllAppsOverlay()
     }
 
-    /** Open All Apps on glasses, or return to Home if that pane is already in view. */
+    /** Open All Apps on glasses, or close it if the overlay is already visible. */
     fun toggleAllAppsOnGlasses(context: Context): Boolean {
-        if (GlassesHomeLook.lookingAtAllApps()) {
+        if (GlassesSessionState.allAppsOverlayVisible) {
             closeAllAppsOnGlasses()
             return true
         }

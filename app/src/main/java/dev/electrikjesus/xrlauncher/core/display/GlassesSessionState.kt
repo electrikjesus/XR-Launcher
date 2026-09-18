@@ -125,17 +125,13 @@ object GlassesSessionState {
         }
 
     fun showAllAppsOverlay() {
-        homeOverlay = GlassesHomeOverlay.NONE
         AllAppsPaginationState.reset()
-        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
+        homeOverlay = GlassesHomeOverlay.ALL_APPS
     }
 
     fun hideAllAppsOverlay() {
         if (homeOverlay == GlassesHomeOverlay.ALL_APPS) {
             homeOverlay = GlassesHomeOverlay.NONE
-        }
-        if (GlassesHomeLook.lookingAtAllApps()) {
-            GlassesHomeLook.lookHome()
         }
     }
 

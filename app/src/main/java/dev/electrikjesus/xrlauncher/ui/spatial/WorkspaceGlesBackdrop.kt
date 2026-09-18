@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
@@ -115,7 +116,11 @@ fun WorkspaceGlesBackdrop(
 
     DisposableEffect(Unit) {
         WorkspacePanelTextureBus.registerRenderCallback(renderCallback)
-        onDispose { WorkspacePanelTextureBus.unregisterRenderCallback(renderCallback) }
+        DeskIconTextureBus.registerRenderCallback(renderCallback)
+        onDispose {
+            WorkspacePanelTextureBus.unregisterRenderCallback(renderCallback)
+            DeskIconTextureBus.unregisterRenderCallback(renderCallback)
+        }
     }
 
     AndroidView(
@@ -151,6 +156,9 @@ fun WorkspaceGlesBackdrop(
             renderer.cursorX = cursorX
             renderer.cursorY = cursorY
             renderer.showSphereCursor = showSphereCursor
+            renderer.deskIcons = DeskIconTextureBus.icons()
+            renderer.deskHoveredKey = DeskIconTextureBus.hoveredKey()
+            renderer.setDeskTextures(DeskIconTextureBus.snapshots())
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

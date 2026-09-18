@@ -103,8 +103,6 @@ fun CompanionTouchpadScreen(
     val touchpadClickSuppressed = textEntryActive || precisionPointer
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
-    val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
-    val lookingAtAllApps = panNorm <= GlassesHomeLook.PANE_LEFT + 0.55f
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
     var showControls by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -201,7 +199,7 @@ fun CompanionTouchpadScreen(
                     .focusRequester(keyboardFocus),
             )
             Spacer(modifier = Modifier.weight(1f))
-            if (lookingAtAllApps || allAppsOverlayVisible) {
+            if (allAppsOverlayVisible) {
                 FilledTonalButton(
                     onClick = { DisplayLaunchHelper.closeAllAppsOnGlasses() },
                     shape = MaterialTheme.shapes.extraLarge,
@@ -257,7 +255,7 @@ fun CompanionTouchpadScreen(
                         modifier = Modifier.weight(1f),
                     )
                     AllAppsOnGlassesButton(
-                        overlayVisible = lookingAtAllApps || allAppsOverlayVisible,
+                        overlayVisible = allAppsOverlayVisible,
                         onClick = { DisplayLaunchHelper.toggleAllAppsOnGlasses(context) },
                         modifier = Modifier.weight(1f),
                     )

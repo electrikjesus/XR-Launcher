@@ -19,6 +19,7 @@ object GlassesHomeHits {
     const val EDIT_SPHERE_PLUS = "__xr_edit_sphere_plus__"
     const val EDIT_ELEMENT_MINUS = "__xr_edit_element_minus__"
     const val EDIT_ELEMENT_PLUS = "__xr_edit_element_plus__"
+    const val EDIT_CLOSE = "__xr_edit_close__"
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -58,6 +59,7 @@ object GlassesHomeHits {
             RECENTS_CLEAR, NOTIFICATIONS_CLEAR -> CLEAR_ALL_LABEL
             OVERLAY_CLOSE -> CLOSE_LABEL
             EDIT_TOGGLE -> EDIT_LABEL
+            EDIT_CLOSE -> CLOSE_LABEL
             EDIT_PANEL_MINUS -> PANEL_SMALLER_LABEL
             EDIT_PANEL_PLUS -> PANEL_LARGER_LABEL
             EDIT_SPHERE_MINUS -> SPHERE_CLOSER_LABEL
@@ -69,6 +71,7 @@ object GlassesHomeHits {
     }
 
     fun actionKeyAt(contains: (String) -> Boolean): String? = listOf(
+        EDIT_CLOSE,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,
         EDIT_SPHERE_MINUS,

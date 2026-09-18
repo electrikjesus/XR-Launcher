@@ -14,9 +14,9 @@ data class GlassesAppPlane(
 )
 
 /**
- * Horizontal look across Home Space: All Apps · Home · app planes · Notifications/QS.
+ * Horizontal look across Home Space: Desktop · Home · app planes · Notifications/QS.
  *
- * World X: All Apps = -1, Home = 0, first app = +1, tray = 1 + appCount.
+ * World X: Desktop = -1, Home = 0, first app = +1, tray = 1 + appCount.
  * Opening an app focuses a new plane at the current look and shifts the previous
  * plane to the left.
  */
@@ -74,7 +74,6 @@ object GlassesHomeLook {
 
     fun homeSpaceSlots(appPlanes: List<GlassesAppPlane> = this.appPlanes): List<HomeSpacePaneSlot> {
         val slots = mutableListOf(
-            HomeSpacePaneSlot("all_apps", PANE_LEFT),
             HomeSpacePaneSlot("home", PANE_HOME),
         )
         appPlanes.forEachIndexed { index, plane ->
@@ -94,7 +93,9 @@ object GlassesHomeLook {
         panNorm = pane
     }
 
-    fun lookingAtAllApps(): Boolean = panNorm <= PANE_LEFT + 0.55f
+    fun lookingAtDesktop(): Boolean = panNorm <= PANE_LEFT + 0.55f
+
+    fun lookingAtAllApps(): Boolean = lookingAtDesktop()
 
     fun lookingAtHome(): Boolean = abs(panNorm - PANE_HOME) <= 0.45f
 

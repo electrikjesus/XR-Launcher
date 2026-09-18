@@ -41,8 +41,12 @@ import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 object AllAppsPageControls {
     const val PREV_KEY = "__all_apps_page_prev__"
     const val NEXT_KEY = "__all_apps_page_next__"
+    const val PREV_HOVER = "Previous page"
+    const val NEXT_HOVER = "Next page"
 
     fun pageKey(index: Int): String = "__all_apps_page_${index}__"
+
+    fun pageHover(index: Int): String = "Page ${index + 1}"
 }
 
 @Composable
@@ -88,6 +92,7 @@ fun PaginatedAppGrid(
                 PageNavButton(
                     enabled = safePageIndex > 0,
                     boundsKey = AllAppsPageControls.PREV_KEY,
+                    hovered = hoveredLabel == AllAppsPageControls.PREV_HOVER,
                     onBoundsChanged = onBoundsChanged,
                     onClick = { onPageChange(safePageIndex - 1) },
                     modifier = Modifier.padding(end = 4.dp),
@@ -157,6 +162,7 @@ fun PaginatedAppGrid(
                 PageNavButton(
                     enabled = safePageIndex < pageCount - 1,
                     boundsKey = AllAppsPageControls.NEXT_KEY,
+                    hovered = hoveredLabel == AllAppsPageControls.NEXT_HOVER,
                     onBoundsChanged = onBoundsChanged,
                     onClick = { onPageChange(safePageIndex + 1) },
                     modifier = Modifier.padding(start = 4.dp),
@@ -174,6 +180,7 @@ fun PaginatedAppGrid(
             AllAppsPageButtonRow(
                 currentPage = safePageIndex,
                 pageCount = pageCount,
+                hoveredLabel = hoveredLabel,
                 onPageChange = onPageChange,
                 onBoundsChanged = onBoundsChanged,
                 accentColor = accentColor,
@@ -203,6 +210,7 @@ fun PaginatedAppGrid(
 private fun PageNavButton(
     enabled: Boolean,
     boundsKey: String,
+    hovered: Boolean,
     onBoundsChanged: (String, Rect) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -210,8 +218,11 @@ private fun PageNavButton(
 ) {
     Box(
         modifier = modifier
-            .sizeIn(minWidth = 52.dp, minHeight = 52.dp)
-            .background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+            .sizeIn(minWidth = 64.dp, minHeight = 64.dp)
+            .background(
+                if (hovered) Color(0xFF8AB4F8).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.06f),
+                RoundedCornerShape(12.dp),
+            )
             .onGloballyPositioned { coordinates ->
                 onBoundsChanged(boundsKey, coordinates.boundsInRoot())
             }
@@ -227,6 +238,7 @@ private fun PageNavButton(
 private fun AllAppsPageButtonRow(
     currentPage: Int,
     pageCount: Int,
+    hoveredLabel: String?,
     onPageChange: (Int) -> Unit,
     onBoundsChanged: (String, Rect) -> Unit,
     accentColor: Color,
@@ -245,6 +257,14 @@ private fun AllAppsPageButtonRow(
                 onClick = { onPageChange(page) },
                 modifier = Modifier
                     .heightIn(min = 48.dp)
+                    .background(
+                        if (hoveredLabel == AllAppsPageControls.pageHover(page)) {
+                            Color(0xFF8AB4F8).copy(alpha = 0.35f)
+                        } else {
+                            Color.Transparent
+                        },
+                        RoundedCornerShape(10.dp),
+                    )
                     .onGloballyPositioned { coordinates ->
                         onBoundsChanged(AllAppsPageControls.pageKey(page), coordinates.boundsInRoot())
                     },

@@ -94,12 +94,49 @@ object HomeSpaceScene {
         return Math.toDegrees(atan(halfPx / cam).toDouble()).toFloat()
     }
 
+    /**
+     * On-screen angular size at [sphereScale]. World pane size is fixed at scale 1;
+     * a larger sphere pulls the same pane farther from the camera so it reads smaller.
+     */
+    fun angularHalfWidthOnSphere(
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
+    ): Float = angularSizeOnSphere(
+        angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale),
+        sphereScale,
+    )
+
+    fun angularHalfHeightOnSphere(
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
+    ): Float = angularSizeOnSphere(
+        angularHalfHeightDeg(viewportWidthPx, viewportHeightPx, panelScale),
+        sphereScale,
+    )
+
+    private fun angularSizeOnSphere(referenceDeg: Float, sphereScale: Float): Float {
+        val scale = sphereScale.coerceAtLeast(0.01f)
+        if (scale == 1f) return referenceDeg
+        val refRad = Math.toRadians(referenceDeg.toDouble())
+        return Math.toDegrees(atan(tan(refRad) / scale)).toFloat()
+    }
+
     /** Angular spacing so adjacent pane edges keep [PANE_GAP_DEGREES] of sphere. */
     fun paneArcDegrees(
         viewportWidthPx: Float,
         viewportHeightPx: Float,
         panelScale: Float = 1f,
-    ): Float = 2f * angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale) + PANE_GAP_DEGREES
+        sphereScale: Float = 1f,
+    ): Float = 2f * angularHalfWidthOnSphere(
+        viewportWidthPx,
+        viewportHeightPx,
+        panelScale,
+        sphereScale,
+    ) + PANE_GAP_DEGREES
 
     /**
      * Mouse-look on top of [look]: companion cursor yaws/pitches the FPS camera a little,
@@ -112,12 +149,13 @@ object HomeSpaceScene {
         viewportWidthPx: Float,
         viewportHeightPx: Float,
         panelScale: Float = 1f,
+        sphereScale: Float = 1f,
     ): Camera {
-        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
+        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
-        val pitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
+        val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
-        return Camera(yawDeg = yaw, pitchDeg = pitch)
+        return Camera(yawDeg = yaw, pitchDeg = cursorPitch + HomeSpaceDesk.lookPitchDegrees(look))
     }
 
     fun pane(
@@ -127,10 +165,10 @@ object HomeSpaceScene {
         panelScale: Float = 1f,
         sphereScale: Float = 1f,
     ): Pane {
-        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
+        val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         val yawDeg = worldX * arc
-        val halfW = angularHalfWidthDeg(viewportWidthPx, viewportHeightPx, panelScale)
-        val halfH = angularHalfHeightDeg(viewportWidthPx, viewportHeightPx, panelScale)
+        val halfW = angularHalfWidthOnSphere(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
+        val halfH = angularHalfHeightOnSphere(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         val tanW = tan(Math.toRadians(halfW.toDouble()).toFloat())
         val tanH = tan(Math.toRadians(halfH.toDouble()).toFloat())
         val depth = sphereRadius(sphereScale) / sqrt(1f + tanW * tanW + tanH * tanH)

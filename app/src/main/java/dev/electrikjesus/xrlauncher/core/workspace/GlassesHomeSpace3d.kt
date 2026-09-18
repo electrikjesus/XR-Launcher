@@ -42,7 +42,8 @@ object GlassesHomeSpace3d {
         viewportWidthPx: Float = 1920f,
         viewportHeightPx: Float = 1080f,
         panelScale: Float = 1f,
-    ): Float = HomeSpaceScene.paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale)
+        sphereScale: Float = 1f,
+    ): Float = HomeSpaceScene.paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
 
     fun cameraYawDegrees(
         look: Float,
@@ -50,6 +51,7 @@ object GlassesHomeSpace3d {
         viewportWidthPx: Float = 1920f,
         viewportHeightPx: Float = 1080f,
         panelScale: Float = 1f,
+        sphereScale: Float = 1f,
     ): Float = HomeSpaceScene.camera(
         look,
         cursorX,
@@ -57,10 +59,25 @@ object GlassesHomeSpace3d {
         viewportWidthPx,
         viewportHeightPx,
         panelScale,
+        sphereScale,
     ).yawDeg
 
-    fun cameraPitchDegrees(cursorY: Float): Float =
-        HomeSpaceScene.camera(0f, 0.5f, cursorY, 1920f, 1080f).pitchDeg
+    fun cameraPitchDegrees(
+        cursorY: Float,
+        look: Float = 0f,
+        viewportWidthPx: Float = 1920f,
+        viewportHeightPx: Float = 1080f,
+        panelScale: Float = 1f,
+        sphereScale: Float = 1f,
+    ): Float = HomeSpaceScene.camera(
+        look,
+        0.5f,
+        cursorY,
+        viewportWidthPx,
+        viewportHeightPx,
+        panelScale,
+        sphereScale,
+    ).pitchDeg
 
     fun paneWorldPose(
         worldX: Float,
@@ -102,6 +119,7 @@ object GlassesHomeSpace3d {
             viewportWidthPx,
             viewportHeightPx,
             panelScale,
+            sphereScale,
         )
         val pane = HomeSpaceScene.pane(
             worldX,
@@ -116,7 +134,7 @@ object GlassesHomeSpace3d {
         if (!inFront || viewportWidthPx <= 0f || viewportHeightPx <= 0f) {
             return hiddenPane(view.z)
         }
-        val fade = paneAlpha(relYaw, paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale))
+        val fade = paneAlpha(relYaw, paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale))
         if (fade <= 0.02f) {
             return hiddenPane(view.z)
         }

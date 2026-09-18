@@ -43,6 +43,17 @@ class HomeSpaceSceneTest {
     }
 
     @Test
+    fun largerSphereScale_placesThePaneFartherAndSmallerOnScreen() {
+        val near = HomeSpaceScene.pane(0f, 1920f, 1080f, panelScale = 1f, sphereScale = 1f)
+        val far = HomeSpaceScene.pane(0f, 1920f, 1080f, panelScale = 1f, sphereScale = 1.6f)
+        assertTrue(far.center.length() > near.center.length() + 0.4f)
+        assertTrue(
+            "farther sphere must shrink the pane's angular size, near=${near.halfWidthDeg} far=${far.halfWidthDeg}",
+            far.halfWidthDeg < near.halfWidthDeg - 4f,
+        )
+    }
+
+    @Test
     fun lookingRight_isAnFpsCameraTurnNotABillboard() {
         val camera = HomeSpaceScene.camera(1f, 0.5f, 0.5f, 1920f, 1080f)
         val home = HomeSpaceScene.pane(0f, 1920f, 1080f)

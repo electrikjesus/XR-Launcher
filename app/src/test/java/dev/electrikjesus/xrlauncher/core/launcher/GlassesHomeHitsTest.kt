@@ -17,6 +17,7 @@ class GlassesHomeHitsTest {
         assertEquals("Clear all", GlassesHomeHits.hoverLabel(GlassesHomeHits.RECENTS_CLEAR))
         assertEquals("Close", GlassesHomeHits.hoverLabel(GlassesHomeHits.appCloseKey("app_one")))
         assertEquals("Edit space", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_TOGGLE))
+        assertEquals("Close", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_CLOSE))
         assertEquals("Farther sphere", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_SPHERE_PLUS))
     }
 

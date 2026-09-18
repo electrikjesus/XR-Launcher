@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -33,12 +34,18 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneKeyPrefix
 import dev.electrikjesus.xrlauncher.core.workspace.PerspectiveCursorProbe
@@ -54,11 +61,11 @@ import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.supportsWindowControls
 import dev.electrikjesus.xrlauncher.ui.external.ExternalCursorDot
 import dev.electrikjesus.xrlauncher.ui.spatial.WorkspaceGlesBackdrop
+import dev.electrikjesus.xrlauncher.ui.spatial.gles.DeskIconBitmaps
 import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
-import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAllAppsOverlay
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceDockShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
@@ -104,13 +111,17 @@ fun GlassesSpatialWorkspaceScreen(
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
-    var homePageIndex by remember { mutableStateOf(0) }
+    val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(allAppsOverlayVisible) {
         if (allAppsOverlayVisible) {
             allAppsSearchQuery = ""
             AllAppsPaginationState.reset()
         }
+    }
+    LaunchedEffect(filteredAllApps.size) {
+        AllAppsPaginationState.updatePageCount(filteredAllApps.size, pageSize = 12)
     }
     val visiblePanels = remember(panels) { Workspace.spatialHomePanels(panels) }
     val focusedPanelId by CompanionPointerBus.focusedPanelId.collectAsState()
@@ -148,16 +159,50 @@ fun GlassesSpatialWorkspaceScreen(
             panNorm,
             cursor.x,
             panelScale = tuned.panelScale,
+            sphereScale = tuned.sphereScale,
         ),
-        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(cursor.y),
+        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(
+            cursor.y,
+            panNorm,
+            panelScale = tuned.panelScale,
+            sphereScale = tuned.sphereScale,
+        ),
         panNormX = 0f,
         panNormY = 0f,
     )
-    val openAllApps = { GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT) }
+    val openAllApps = { GlassesSessionState.showAllAppsOverlay() }
     val launchApp: (LaunchableApp) -> Unit = { app ->
         GlassesRecentApps.record(app)
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp?.invoke(app)
+    }
+    LaunchedEffect(launchableApps, hotseatApps, tuned.panelScale, tuned.sphereScale) {
+        val refs = (hotseatApps + launchableApps)
+            .distinctBy { it.componentKey() }
+            .map { app ->
+                HomeSpaceDesk.AppRef(
+                    componentKey = app.componentKey(),
+                    label = app.label,
+                    packageName = app.packageName,
+                )
+            }
+        val icons = HomeSpaceDesk.layout(
+            apps = refs,
+            sphereScale = tuned.sphereScale,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = tuned.panelScale,
+        )
+        val snapshots = withContext(Dispatchers.Default) {
+            icons.map { icon ->
+                DeskIconSnapshot(
+                    componentKey = icon.componentKey,
+                    bitmap = DeskIconBitmaps.create(context, icon),
+                    generation = System.nanoTime(),
+                )
+            }
+        }
+        DeskIconTextureBus.set(icons, snapshots)
     }
     LaunchedEffect(hotseatApps) {
         GlassesRecentApps.seedIfEmpty(hotseatApps)
@@ -216,20 +261,6 @@ fun GlassesSpatialWorkspaceScreen(
             sphereScale = tuned.sphereScale,
             captureToGles = true,
             onBoundsChanged = onBoundsChanged,
-            left = {
-                GlassesXrAllAppsLayer(
-                    apps = filteredAllApps,
-                    hoveredLabel = cursor.hoveredLabel,
-                    pinnedComponentKeys = pinnedComponentKeys,
-                    pageIndex = allAppsPage,
-                    onPageChange = { AllAppsPaginationState.goToPage(it) },
-                    onBoundsChanged = prefixBounds("all_apps"),
-                    onLaunchApp = launchApp,
-                    onDismiss = { GlassesHomeLook.lookHome() },
-                    onAppContextMenu = onAppContextMenu,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            },
             center = {
                 GlassesHomeSpace(
                     launchableApps = launchableApps,
@@ -237,7 +268,7 @@ fun GlassesSpatialWorkspaceScreen(
                     pinnedComponentKeys = pinnedComponentKeys,
                     hoveredLabel = cursor.hoveredLabel,
                     pageIndex = homePageIndex,
-                    onPageChange = { homePageIndex = it },
+                    onPageChange = { HomeAppsPaginationState.goToPage(it) },
                     onBoundsChanged = prefixBounds("home"),
                     onLaunchApp = launchApp,
                     onOpenAllApps = openAllApps,
@@ -269,6 +300,23 @@ fun GlassesSpatialWorkspaceScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
+        if (homeOverlay == GlassesHomeOverlay.ALL_APPS && onLaunchApp != null) {
+            GlassesXrAllAppsLayer(
+                apps = filteredAllApps,
+                hoveredLabel = cursor.hoveredLabel,
+                pinnedComponentKeys = pinnedComponentKeys,
+                pageIndex = allAppsPage,
+                onPageChange = { AllAppsPaginationState.goToPage(it) },
+                onBoundsChanged = onBoundsChanged,
+                onLaunchApp = launchApp,
+                onDismiss = { GlassesSessionState.hideAllAppsOverlay() },
+                onAppContextMenu = onAppContextMenu,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(3f),
+            )
+        }
+
         if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
             GlassesRecentsLayer(
                 recents = GlassesRecentApps.list(),
@@ -288,9 +336,6 @@ fun GlassesSpatialWorkspaceScreen(
             onBoundsChanged = onBoundsChanged,
             onToggleEdit = { GlassesSessionState.toggleHomeSpaceEdit() },
             onNudge = onTuneAppearance,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .zIndex(4f),
         )
 
         if (showInAppCursor) {

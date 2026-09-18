@@ -20,7 +20,7 @@ data class WorkspaceAppearance(
     val wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
     /** Multiplies pane width/height on the sphere (0.6–1.4). */
     val panelScale: Float = DEFAULT_PANEL_SCALE,
-    /** Multiplies pane-sphere and room radius so content sits farther from the camera (0.8–2.0). */
+    /** Multiplies pane-sphere and room radius so the same-size panes sit farther from the camera (0.8–2.5). */
     val sphereScale: Float = DEFAULT_SPHERE_SCALE,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
@@ -39,8 +39,8 @@ data class WorkspaceAppearance(
     companion object {
         const val MIN_UI_SCALE = 0.75f
         const val MAX_UI_SCALE = 2f
-        /** Glasses EXTERNAL displays report low DPI — 150% is readable out of the box. */
-        const val DEFAULT_UI_SCALE = 1.5f
+        /** Scales launcher panels, text, and icons (0.75–2.0). On-device Edit session: 1.20. */
+        const val DEFAULT_UI_SCALE = 1.20f
         const val MIN_PANEL_GAP_DP = 0f
         const val MAX_PANEL_GAP_DP = 200f
         const val MIN_WRAP_CURVATURE = 0f
@@ -53,13 +53,17 @@ data class WorkspaceAppearance(
         const val MAX_LOOK_YAW = 60f
         const val MIN_LOOK_PITCH = -30f
         const val MAX_LOOK_PITCH = 30f
-        const val MIN_PANEL_SCALE = 0.6f
+        const val MIN_PANEL_SCALE = 0.5f
         const val MAX_PANEL_SCALE = 1.4f
-        const val DEFAULT_PANEL_SCALE = 1f
+        /** On-device Edit session: 0.70 fills the view without crowding neighbors. */
+        const val DEFAULT_PANEL_SCALE = 0.70f
         const val MIN_SPHERE_SCALE = 0.8f
-        const val MAX_SPHERE_SCALE = 2f
-        /** Pull panes and the surround room farther from the camera than the 1.85/3.4 base radii. */
-        const val DEFAULT_SPHERE_SCALE = 1.2f
+        const val MAX_SPHERE_SCALE = 2.5f
+        /**
+         * 1.0 keeps today's on-screen pane size. Values above 1 pull the same-size panes
+         * farther from the camera (smaller on screen, more room around them).
+         */
+        const val DEFAULT_SPHERE_SCALE = 1.0f
 
         fun default(): WorkspaceAppearance = WorkspaceAppearance()
     }

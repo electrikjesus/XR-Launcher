@@ -1,42 +1,27 @@
 package dev.electrikjesus.xrlauncher.core.launcher
 
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 /** Shared All Apps page index for the glasses overlay + companion controls. */
 object AllAppsPaginationState {
-    private val _pageIndex = MutableStateFlow(0)
-    val pageIndexFlow: StateFlow<Int> = _pageIndex.asStateFlow()
+    internal val pages = AppsPageState()
 
-    private val _pageCount = MutableStateFlow(1)
-    val pageCountFlow: StateFlow<Int> = _pageCount.asStateFlow()
+    val pageIndexFlow: StateFlow<Int> = pages.pageIndexFlow
+    val pageCountFlow: StateFlow<Int> = pages.pageCountFlow
 
     var pageIndex: Int
-        get() = _pageIndex.value
+        get() = pages.pageIndex
         set(value) {
-            _pageIndex.value = AppDrawerPagination.clampPageIndex(value, _pageCount.value)
+            pages.pageIndex = value
         }
 
-    fun reset() {
-        _pageIndex.value = 0
-        _pageCount.value = 1
-    }
+    fun reset() = pages.reset()
 
-    fun updatePageCount(appCount: Int, pageSize: Int) {
-        _pageCount.value = AppDrawerPagination.pageCount(appCount, pageSize)
-        _pageIndex.value = AppDrawerPagination.clampPageIndex(_pageIndex.value, _pageCount.value)
-    }
+    fun updatePageCount(appCount: Int, pageSize: Int) = pages.updatePageCount(appCount, pageSize)
 
-    fun goToPage(index: Int) {
-        pageIndex = index
-    }
+    fun goToPage(index: Int) = pages.goToPage(index)
 
-    fun nextPage() {
-        goToPage(_pageIndex.value + 1)
-    }
+    fun nextPage() = pages.nextPage()
 
-    fun prevPage() {
-        goToPage(_pageIndex.value - 1)
-    }
+    fun prevPage() = pages.prevPage()
 }

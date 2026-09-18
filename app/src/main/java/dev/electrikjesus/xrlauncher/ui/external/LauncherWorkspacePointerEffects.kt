@@ -15,9 +15,13 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.launcher.AppsPageState
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
+import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
@@ -26,6 +30,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePanePick
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.overlayPx
@@ -83,6 +88,10 @@ fun LauncherWorkspacePointerEffects(
                     pinnedComponentKeys = currentPinned.value,
                     itemBounds = currentItemBounds.value,
                     panelBounds = currentPanelBounds.value,
+                    rootWidthPx = rootW,
+                    rootHeightPx = rootH,
+                    panelScale = currentPanelScale.value,
+                    sphereScale = currentSphereScale.value,
                 )
                 PointerButton.LEFT -> {
                     Log.d(
@@ -134,6 +143,15 @@ fun LauncherWorkspacePointerEffects(
         val homeHover = homeHitKey(screenPoint, screenSpaceBounds(itemBounds))?.let {
             GlassesHomeHits.hoverLabel(it)
         } ?: homeHitKey(panePoint, paneBounds)?.let { GlassesHomeHits.hoverLabel(it) }
+        val deskIcon = deskIconAt(
+            cursor.x,
+            cursor.y,
+            rootWidthPx,
+            rootHeightPx,
+            panelScale,
+            sphereScale,
+            apps,
+        )
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
             homeHover != null -> homeHover
@@ -148,10 +166,10 @@ fun LauncherWorkspacePointerEffects(
                 AllAppsLauncher.HOVER_LABEL
             itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(panePoint) == true ||
                 itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(screenPoint) == true ->
-                PAGE_PREV_HOVER
+                AllAppsPageControls.PREV_HOVER
             itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(panePoint) == true ||
                 itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(screenPoint) == true ->
-                PAGE_NEXT_HOVER
+                AllAppsPageControls.NEXT_HOVER
             paginationPageHoverLabel(panePoint, paneBounds) != null ->
                 paginationPageHoverLabel(panePoint, paneBounds)
             paginationPageHoverLabel(screenPoint, itemBounds) != null ->
@@ -160,12 +178,23 @@ fun LauncherWorkspacePointerEffects(
                 layoutPresetHoverLabel(screenPoint, itemBounds)
             findAppAt(panePoint, paneBounds, apps)?.label != null ->
                 findAppAt(panePoint, paneBounds, apps)?.label
+            deskIcon != null -> deskIcon.label
+            GlassesHomeLook.lookingAtDesktop() &&
+                deskHit(
+                    cursor.x,
+                    cursor.y,
+                    rootWidthPx,
+                    rootHeightPx,
+                    panelScale,
+                    sphereScale,
+                ) != null -> HomeSpaceDesk.HOVER_LABEL
             findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label != null ->
                 findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label
             findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) } != null ->
                 findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) }
             else -> null
         }
+        DeskIconTextureBus.setHoveredKey(deskIcon?.componentKey)
         if (hoverLabel != lastLoggedHoverLabel) {
             Log.d(
                 LOG_TAG,
@@ -216,8 +245,14 @@ private fun handleRightClick(
     pinnedComponentKeys: Set<String>,
     itemBounds: Map<String, Rect>,
     panelBounds: Map<String, Rect>,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
 ) {
     val app = findAppAt(point, itemBounds, apps)
+        ?: deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale, apps)
+            ?.let { desk -> apps.find { it.componentKey() == desk.componentKey } }
     Log.d(LOG_TAG, "right-click at (${click.x}, ${click.y}) app=${app?.label}")
     when {
         app != null -> LauncherContextMenuState.openApp(
@@ -272,7 +307,7 @@ private fun handleLeftClick(
     val hitAllAppsLauncher = itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitOtherTarget = itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ||
         itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ||
-        isPaginationHit(panePoint, paneBounds) ||
+        isPaginationHit(panePoint, paneBounds, paginationStateForPane(pick?.slot?.panelId)) ||
         isPaginationHit(point, itemBounds) ||
         LayoutPreset.entries.any { preset ->
             itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
@@ -304,8 +339,11 @@ private fun handleLeftClick(
         onOpenAllApps()
         return
     }
-    if (handlePaginationClick(panePoint, paneBounds)) return
-    if (handlePaginationClick(point, itemBounds)) return
+    if (overlayVisible) {
+        if (handlePaginationClick(point, screenBounds, AllAppsPaginationState.pages)) return
+    }
+    if (handlePaginationClick(panePoint, paneBounds, paginationStateForPane(pick?.slot?.panelId))) return
+    if (handlePaginationClick(point, itemBounds, AllAppsPaginationState.pages)) return
     LayoutPreset.entries.firstOrNull { preset ->
         itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
     }?.let { preset ->
@@ -318,6 +356,14 @@ private fun handleLeftClick(
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp(app)
         return
+    }
+    deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale, apps)?.let { desk ->
+        apps.find { it.componentKey() == desk.componentKey }?.let { app ->
+            Log.d(LOG_TAG, "left-click hit desk icon=${app.label}")
+            GlassesSessionState.hideHomeOverlays()
+            onLaunchApp(app)
+            return
+        }
     }
     logClickMiss(point, itemBounds)
 }
@@ -359,7 +405,7 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.SETTINGS -> onOpenSettings()
         GlassesHomeHits.RECENTS_CLEAR -> GlassesRecentApps.clear()
         GlassesHomeHits.NOTIFICATIONS_CLEAR -> { }
-        GlassesHomeHits.EDIT_TOGGLE -> GlassesSessionState.toggleHomeSpaceEdit()
+        GlassesHomeHits.EDIT_TOGGLE, GlassesHomeHits.EDIT_CLOSE -> GlassesSessionState.toggleHomeSpaceEdit()
         GlassesHomeHits.EDIT_PANEL_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_PANEL_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_SPHERE_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP)
@@ -386,6 +432,7 @@ private fun homeSpacePick(
         viewportWidthPx = rootWidthPx,
         viewportHeightPx = rootHeightPx,
         panelScale = panelScale,
+        sphereScale = sphereScale,
     )
     return HomeSpaceScene.pickPane(
         cursorX = cursorX,
@@ -420,10 +467,10 @@ private fun paneItemBounds(itemBounds: Map<String, Rect>, paneId: String?): Map<
         .mapKeys { it.key.removePrefix(prefix) }
 }
 
-private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>): Boolean {
+private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>, pages: AppsPageState = AllAppsPaginationState.pages): Boolean {
     if (itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true) return true
     if (itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true) return true
-    val pageCount = AllAppsPaginationState.pageCountFlow.value
+    val pageCount = pages.pageCount
     for (page in 0 until pageCount) {
         if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
             return true
@@ -432,24 +479,27 @@ private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>): Boole
     return false
 }
 
-private fun handlePaginationClick(point: Offset, itemBounds: Map<String, Rect>): Boolean {
+private fun handlePaginationClick(
+    point: Offset,
+    itemBounds: Map<String, Rect>,
+    pages: AppsPageState,
+): Boolean {
     when {
         itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true -> {
-            Log.d(LOG_TAG, "left-click hit pagination prev")
-            AllAppsPaginationState.prevPage()
+            Log.d(LOG_TAG, "left-click hit pagination prev panePages=${pages.pageCount}")
+            pages.prevPage()
             return true
         }
         itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true -> {
-            Log.d(LOG_TAG, "left-click hit pagination next")
-            AllAppsPaginationState.nextPage()
+            Log.d(LOG_TAG, "left-click hit pagination next panePages=${pages.pageCount}")
+            pages.nextPage()
             return true
         }
         else -> {
-            val pageCount = AllAppsPaginationState.pageCountFlow.value
-            for (page in 0 until pageCount) {
+            for (page in 0 until pages.pageCount) {
                 if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
                     Log.d(LOG_TAG, "left-click hit pagination page=$page")
-                    AllAppsPaginationState.goToPage(page)
+                    pages.goToPage(page)
                     return true
                 }
             }
@@ -461,6 +511,58 @@ private fun handlePaginationClick(point: Offset, itemBounds: Map<String, Rect>):
 private fun Rect.containsWithSlop(point: Offset, slopPx: Float = CONTROL_HIT_SLOP_PX): Boolean =
     point.x >= left - slopPx && point.x <= right + slopPx &&
         point.y >= top - slopPx && point.y <= bottom + slopPx
+
+private fun deskHit(
+    cursorX: Float,
+    cursorY: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+): dev.electrikjesus.xrlauncher.core.workspace.scene.Vec3? {
+    val camera = HomeSpaceScene.camera(
+        look = GlassesHomeLook.panNorm,
+        cursorX = cursorX,
+        cursorY = cursorY,
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        panelScale = panelScale,
+        sphereScale = sphereScale,
+    )
+    val hit = HomeSpaceDesk.planeHit(
+        camera = camera,
+        cursorX = cursorX,
+        cursorY = cursorY,
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        sphereScale = sphereScale,
+    ) ?: return null
+    if (!HomeSpaceDesk.containsHit(hit, sphereScale, rootWidthPx, rootHeightPx, panelScale)) {
+        return null
+    }
+    return hit
+}
+
+private fun deskIconAt(
+    cursorX: Float,
+    cursorY: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+    apps: List<LaunchableApp>,
+): HomeSpaceDesk.Icon? {
+    val hit = deskHit(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) ?: return null
+    val refs = apps.map { app ->
+        HomeSpaceDesk.AppRef(
+            componentKey = app.componentKey(),
+            label = app.label,
+            packageName = app.packageName,
+        )
+    }
+    val icons = HomeSpaceDesk.layout(refs, sphereScale, rootWidthPx, rootHeightPx, panelScale)
+    return HomeSpaceDesk.pickIcon(hit, icons)
+}
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {
     val paginationKeys = buildList {
@@ -490,10 +592,10 @@ private fun layoutPresetHoverLabel(point: Offset, itemBounds: Map<String, Rect>)
     }?.let { presetHoverName(it) }
 
 private fun paginationPageHoverLabel(point: Offset, itemBounds: Map<String, Rect>): String? {
-    val pageCount = AllAppsPaginationState.pageCountFlow.value
+    val pageCount = maxOf(AllAppsPaginationState.pages.pageCount, HomeAppsPaginationState.pages.pageCount)
     for (page in 0 until pageCount) {
         if (itemBounds[AllAppsPageControls.pageKey(page)]?.containsWithSlop(point) == true) {
-            return "Page ${page + 1}"
+            return AllAppsPageControls.pageHover(page)
         }
     }
     return null
@@ -520,8 +622,6 @@ private fun panelTitle(panel: PanelState): String = when (panel.id) {
 }
 
 private const val LOG_TAG = "XRLauncher/Pointer"
-private const val PAGE_PREV_HOVER = "Previous page"
-private const val PAGE_NEXT_HOVER = "Next page"
 /** Extra pixels around chrome controls — compensates for cursor/visual offset on glasses. */
 private const val CONTROL_HIT_SLOP_PX = 16f
 private const val APP_HIT_SLOP_PX = 8f

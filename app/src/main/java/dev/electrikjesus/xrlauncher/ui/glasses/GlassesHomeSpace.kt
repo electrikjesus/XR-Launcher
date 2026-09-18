@@ -36,6 +36,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
+import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
@@ -95,6 +97,9 @@ fun GlassesHomeSpace(
 ) {
     val homeApps = remember(launchableApps, hotseatApps) {
         (hotseatApps + launchableApps).distinctBy { it.packageName }
+    }
+    LaunchedEffect(homeApps.size) {
+        HomeAppsPaginationState.updatePageCount(homeApps.size, pageSize = 10)
     }
     Column(
         modifier = modifier
@@ -152,7 +157,7 @@ fun GlassesXrAllAppsLayer(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.04f))
+            .background(Color.Black.copy(alpha = 0.62f))
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -607,7 +612,6 @@ fun GlassesHomeCarousel(
     cursorX: Float,
     cursorY: Float,
     appPlanes: List<GlassesAppPlane>,
-    left: @Composable () -> Unit,
     center: @Composable () -> Unit,
     right: @Composable () -> Unit,
     appPane: @Composable (GlassesAppPlane) -> Unit,
@@ -625,7 +629,6 @@ fun GlassesHomeCarousel(
         val paneHeight = HomeSpaceScene.paneHeightFraction(panelScale)
         data class Slot(val key: String, val worldX: Float, val content: @Composable () -> Unit)
         val composed = buildList {
-            add(Slot("all_apps", GlassesHomeLook.PANE_LEFT, left))
             add(Slot("home", GlassesHomeLook.PANE_HOME, center))
             appPlanes.forEachIndexed { index, plane ->
                 add(Slot(plane.panelId, GlassesHomeLook.appPane(index)) { appPane(plane) })

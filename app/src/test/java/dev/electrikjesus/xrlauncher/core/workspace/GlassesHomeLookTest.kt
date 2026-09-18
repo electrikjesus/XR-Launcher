@@ -46,11 +46,11 @@ class GlassesHomeLookTest {
     }
 
     @Test
-    fun lookAtHome_clearsAllAppsFlag() {
+    fun lookAtHome_clearsDesktopFlag() {
         GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
-        assertTrue(GlassesHomeLook.lookingAtAllApps())
+        assertTrue(GlassesHomeLook.lookingAtDesktop())
         GlassesHomeLook.lookAt(GlassesHomeLook.PANE_HOME)
-        assertFalse(GlassesHomeLook.lookingAtAllApps())
+        assertFalse(GlassesHomeLook.lookingAtDesktop())
     }
 
     @Test

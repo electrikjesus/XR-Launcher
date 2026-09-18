@@ -9,7 +9,9 @@ import org.junit.Test
 class WorkspaceJsonTest {
     @Test
     fun defaultAppearance_usesReadableUiScale() {
-        assertEquals(1.5f, WorkspaceAppearance.default().uiScale, 0.001f)
+        assertEquals(1.20f, WorkspaceAppearance.default().uiScale, 0.001f)
+        assertEquals(0.70f, WorkspaceAppearance.default().panelScale, 0.001f)
+        assertEquals(1.0f, WorkspaceAppearance.default().sphereScale, 0.001f)
     }
 
     @Test

@@ -5,12 +5,14 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.PanelTextureSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneMesh
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
@@ -55,6 +57,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var cursorX: Float = 0.5f
     var cursorY: Float = 0.5f
     var showSphereCursor: Boolean = false
+    var deskIcons: List<HomeSpaceDesk.Icon> = emptyList()
+    var deskHoveredKey: String? = null
+
+    @Volatile
+    private var pendingDeskTextures: List<DeskIconSnapshot> = emptyList()
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -127,9 +134,19 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     )
 
     private val uploadedTextures = LinkedHashMap<String, GlTextureEntry>()
+    private val uploadedDeskTextures = LinkedHashMap<String, GlTextureEntry>()
+    private var deskPlaneBuffer: FloatBuffer? = null
+    private var deskPlaneVertexCount = 0
+    private var deskMeshKey: String = ""
+    private val deskIconBuffers = LinkedHashMap<String, FloatBuffer>()
+    private val deskIconVertexCounts = LinkedHashMap<String, Int>()
 
     fun setPanelTextures(snapshots: List<PanelTextureSnapshot>) {
         pendingTextures = snapshots
+    }
+
+    fun setDeskTextures(snapshots: List<DeskIconSnapshot>) {
+        pendingDeskTextures = snapshots
     }
 
     fun setWallpaperBitmap(bitmap: Bitmap?, generation: Long) {
@@ -197,6 +214,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         applySceneSpan()
         uploadPendingWallpaper()
         uploadPendingTextures()
+        uploadPendingDeskTextures()
         pruneStaleTextures()
 
         if (shouldDrawRoom()) {
@@ -207,6 +225,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
+            drawDesk()
             drawSphereCursor()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
@@ -330,10 +349,89 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glEnable(GLES20.GL_CULL_FACE)
     }
 
+    private fun rebuildDeskMeshes() {
+        val yaw = HomeSpaceDesk.yawDegrees(
+            viewportWidthPx,
+            viewportHeightPx,
+            homeSpacePanelScale,
+            homeSpaceSphereScale,
+        )
+        val key = listOf(
+            homeSpaceSphereScale,
+            homeSpacePanelScale,
+            yaw,
+            deskIcons.joinToString { "${it.componentKey}:${it.center.x}:${it.center.z}" },
+        ).joinToString("|")
+        if (key == deskMeshKey && deskPlaneBuffer != null) return
+        deskMeshKey = key
+        val plane = HomeSpaceDesk.planeMesh(homeSpaceSphereScale, yaw)
+        deskPlaneBuffer = plane.interleaved.toFloatBuffer()
+        deskPlaneVertexCount = plane.vertexCount
+        deskIconBuffers.clear()
+        deskIconVertexCounts.clear()
+        deskIcons.forEach { icon ->
+            val mesh = HomeSpaceDesk.iconMesh(icon, yaw)
+            deskIconBuffers[icon.componentKey] = mesh.interleaved.toFloatBuffer()
+            deskIconVertexCounts[icon.componentKey] = mesh.vertexCount
+        }
+    }
+
+    private fun drawDesk() {
+        rebuildDeskMeshes()
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(litProgram)
+        GLES20.glUniformMatrix4fv(litMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glUniform3f(litLightHandle, 0.2f, 1.4f, 0.4f)
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
+        val stride = HomeSpacePaneMesh.STRIDE * 4
+
+        fun drawMesh(buffer: FloatBuffer, count: Int, textureId: Int, ambient: Float, useTexture: Boolean) {
+            GLES20.glUniform1f(litAmbientHandle, ambient)
+            GLES20.glUniform1i(litUseTextureHandle, if (useTexture && textureId != 0) 1 else 0)
+            if (useTexture && textureId != 0) {
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+                GLES20.glUniform1i(litSamplerHandle, 0)
+            }
+            buffer.position(0)
+            GLES20.glEnableVertexAttribArray(litPositionHandle)
+            GLES20.glVertexAttribPointer(litPositionHandle, 3, GLES20.GL_FLOAT, false, stride, buffer)
+            buffer.position(3)
+            GLES20.glEnableVertexAttribArray(litNormalHandle)
+            GLES20.glVertexAttribPointer(litNormalHandle, 3, GLES20.GL_FLOAT, false, stride, buffer)
+            buffer.position(6)
+            GLES20.glEnableVertexAttribArray(litTexCoordHandle)
+            GLES20.glVertexAttribPointer(litTexCoordHandle, 2, GLES20.GL_FLOAT, false, stride, buffer)
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, count)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        }
+
+        deskPlaneBuffer?.let { buffer ->
+            drawMesh(buffer, deskPlaneVertexCount, 0, ambient = 0.22f, useTexture = false)
+        }
+        deskIcons.forEach { icon ->
+            val buffer = deskIconBuffers[icon.componentKey] ?: return@forEach
+            val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
+            val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
+            val hovered = icon.componentKey == deskHoveredKey
+            drawMesh(
+                buffer,
+                count,
+                textureId,
+                ambient = if (hovered) 0.72f else 0.34f,
+                useTexture = true,
+            )
+        }
+        GLES20.glDisableVertexAttribArray(litPositionHandle)
+        GLES20.glDisableVertexAttribArray(litNormalHandle)
+        GLES20.glDisableVertexAttribArray(litTexCoordHandle)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
+    }
+
     private fun drawSphereCursor() {
         if (!showSphereCursor) return
         val sceneCamera = HomeSpaceScene.Camera(camera.yawDegrees, camera.pitchDegrees)
-        val hit = HomeSpaceScene.sphereHit(
+        val sphere = HomeSpaceScene.sphereHit(
             cursorX = cursorX,
             cursorY = cursorY,
             camera = sceneCamera,
@@ -341,9 +439,31 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             viewportHeightPx = viewportHeightPx,
             sphereScale = homeSpaceSphereScale,
         )
-        val origin = hit.world
-        val radial = origin.normalized()
-        val up = Vec3(0f, 1f, 0f)
+        val deskWorld = HomeSpaceDesk.planeHit(
+            camera = sceneCamera,
+            cursorX = cursorX,
+            cursorY = cursorY,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
+            sphereScale = homeSpaceSphereScale,
+        )
+        val onDesk = deskWorld != null && HomeSpaceDesk.containsHit(
+            deskWorld,
+            homeSpaceSphereScale,
+            viewportWidthPx,
+            viewportHeightPx,
+            homeSpacePanelScale,
+        )
+        val origin = if (onDesk) deskWorld!! else sphere.world
+        val radial = if (onDesk) Vec3(0f, 1f, 0f) else origin.normalized()
+        val up = if (onDesk) HomeSpaceDesk.awayAxis(
+            HomeSpaceDesk.yawDegrees(
+                viewportWidthPx,
+                viewportHeightPx,
+                homeSpacePanelScale,
+                homeSpaceSphereScale,
+            ),
+        ) else Vec3(0f, 1f, 0f)
         var tangent = Vec3(
             up.y * radial.z - up.z * radial.y,
             up.z * radial.x - up.x * radial.z,
@@ -360,7 +480,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             radial.x * tangent.y - radial.y * tangent.x,
         )
         val radius = 0.038f * homeSpaceSphereScale.coerceAtLeast(0.5f)
-        val center = origin * 0.988f
+        val center = if (onDesk) origin + Vec3(0f, 0.02f, 0f) else origin * 0.988f
         fun corner(sx: Float, sy: Float): Vec3 = Vec3(
             center.x + tangent.x * sx * radius + bitangent.x * sy * radius,
             center.y + tangent.y * sx * radius + bitangent.y * sy * radius,
@@ -378,7 +498,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             br.x, br.y, br.z,
             tr.x, tr.y, tr.z,
         ).toFloatBuffer()
-        val near = radial * 0.14f
+        val near = (if (onDesk) origin.normalized() else radial) * 0.14f
         val shaft = floatArrayOf(
             near.x, near.y, near.z,
             origin.x, origin.y, origin.z,
@@ -779,11 +899,30 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
     }
 
+    private fun uploadPendingDeskTextures() {
+        pendingDeskTextures.forEach { snapshot ->
+            val entry = uploadedDeskTextures.getOrPut(snapshot.componentKey) {
+                GlTextureEntry(textureId = createTextureId())
+            }
+            if (entry.generation == snapshot.generation) return@forEach
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, entry.textureId)
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, snapshot.bitmap, 0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+            entry.generation = snapshot.generation
+        }
+    }
+
     private fun pruneStaleTextures() {
         val activeIds = pendingTextures.map { it.panelId }.toSet()
         val stale = uploadedTextures.keys.filter { it !in activeIds }
         stale.forEach { panelId ->
             uploadedTextures.remove(panelId)?.let { entry ->
+                GLES20.glDeleteTextures(1, intArrayOf(entry.textureId), 0)
+            }
+        }
+        val activeDesk = pendingDeskTextures.map { it.componentKey }.toSet()
+        uploadedDeskTextures.keys.filter { it !in activeDesk }.forEach { key ->
+            uploadedDeskTextures.remove(key)?.let { entry ->
                 GLES20.glDeleteTextures(1, intArrayOf(entry.textureId), 0)
             }
         }
