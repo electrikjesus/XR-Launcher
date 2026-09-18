@@ -137,7 +137,8 @@ fun LauncherWorkspacePointerEffects(
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
-    // Cursor keys only — look yaw/pitch must not re-enter grab (that ate pager chrome clicks).
+    // Cursor travel drives desk grab. FPS look must not re-enter here (pager chrome),
+    // but Hold-Left temporarily unlocks the cursor so drag still receives x/y updates.
     LaunchedEffect(
         cursor.x,
         cursor.y,
@@ -148,19 +149,6 @@ fun LauncherWorkspacePointerEffects(
         sphereScale,
     ) {
         trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-    }
-    // FPS keeps the cursor centered; while an icon grab is live, gaze must still move the tile.
-    LaunchedEffect(lookPitch, panNorm, cursor.isPressed) {
-        if (!cursor.isPressed || HomeSpaceDeskState.drag == null) return@LaunchedEffect
-        trackDeskDrag(
-            cursor.x,
-            cursor.y,
-            pressed = true,
-            rootWidthPx = rootWidthPx,
-            rootHeightPx = rootHeightPx,
-            panelScale = panelScale,
-            sphereScale = sphereScale,
-        )
     }
     LaunchedEffect(
         cursor.x,

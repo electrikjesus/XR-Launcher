@@ -71,14 +71,9 @@ object CompanionPointerBus {
     private const val GLASSES_IMU_CURSOR_SENSITIVITY = 0.011f
     /** Normalized distance above which pointer-up becomes drag instead of click. */
     private const val DRAG_THRESHOLD = 0.012f
-    /** FPS look change (panNorm / pitch deg) treated as a drag instead of a click. */
-    private const val FPS_LOOK_DRAG_PAN = 0.04f
-    private const val FPS_LOOK_DRAG_PITCH_DEG = 3.5f
 
     private var gestureAnchorX: Float? = null
     private var gestureAnchorY: Float? = null
-    private var gestureAnchorPan: Float? = null
-    private var gestureAnchorPitch: Float? = null
     private var gesturePressCount = 0
     private var leftButtonInGesture = false
     private var touchpadInGesture = false
@@ -161,9 +156,9 @@ object CompanionPointerBus {
             val scale = TOUCHPAD_SENSITIVITY * _touchpadSensitivity.value
             moveBy(event.deltaX * scale, event.deltaY * scale)
         } else if (event.action == PointerAction.DOWN) {
-            _cursor.value = _cursor.value.copy(isPressed = true)
+            _cursor.value = fpsPressCursor(_cursor.value, pressed = true)
         } else if (event.action == PointerAction.UP) {
-            _cursor.value = _cursor.value.copy(isPressed = false)
+            _cursor.value = fpsReleaseCursor(_cursor.value)
         }
         _events.tryEmit(event)
     }
@@ -171,6 +166,14 @@ object CompanionPointerBus {
     fun moveBy(deltaX: Float, deltaY: Float) {
         if (GlassesLookMode.effective() == GlassesLookMode.FPS) {
             val current = _cursor.value
+            if (current.isPressed) {
+                // Hold-Left / touchpad-drag: unlock the cursor so tap-drag works; look stays put.
+                _cursor.value = current.copy(
+                    x = (current.x + deltaX).coerceIn(0f, 1f),
+                    y = (current.y + deltaY).coerceIn(0f, 1f),
+                )
+                return
+            }
             _cursor.value = current.copy(x = 0.5f, y = 0.5f)
             GlassesHomeLook.addFpsLook(deltaX, deltaY)
             return
@@ -282,12 +285,13 @@ object CompanionPointerBus {
     fun beginPointerGesture() {
         val current = _cursor.value
         if (gesturePressCount++ == 0) {
-            gestureAnchorX = current.x
-            gestureAnchorY = current.y
-            gestureAnchorPan = GlassesHomeLook.panNorm
-            gestureAnchorPitch = GlassesHomeLook.lookPitch
+            val anchored = fpsPressCursor(current, pressed = true)
+            gestureAnchorX = anchored.x
+            gestureAnchorY = anchored.y
+            _cursor.value = anchored
+        } else {
+            _cursor.value = current.copy(isPressed = true)
         }
-        _cursor.value = current.copy(isPressed = true)
     }
 
     /**
@@ -325,33 +329,23 @@ object CompanionPointerBus {
         }
         val startX = gestureAnchorX
         val startY = gestureAnchorY
-        val startPan = gestureAnchorPan
-        val startPitch = gestureAnchorPitch
         gestureAnchorX = null
         gestureAnchorY = null
-        gestureAnchorPan = null
-        gestureAnchorPitch = null
         val hadLeftButton = leftButtonInGesture
         val hadTouchpadDrag = fromTouchpad && touchpadInGesture
         touchpadInGesture = false
         leftButtonInGesture = false
         val endPos = _cursor.value
         if (startX == null || startY == null) {
-            _cursor.value = endPos.copy(isPressed = false)
+            _cursor.value = fpsReleaseCursor(endPos)
             return
         }
-        val cursorMoved = hypot(endPos.x - startX, endPos.y - startY) > DRAG_THRESHOLD
-        // FPS locks the cursor; look deltas are the only signal that this was a drag.
-        val lookMoved = startPan != null && startPitch != null && (
-            kotlin.math.abs(GlassesHomeLook.panNorm - startPan) > FPS_LOOK_DRAG_PAN ||
-                kotlin.math.abs(GlassesHomeLook.lookPitch - startPitch) > FPS_LOOK_DRAG_PITCH_DEG
-            )
-        val moved = cursorMoved || lookMoved
+        val moved = hypot(endPos.x - startX, endPos.y - startY) > DRAG_THRESHOLD
         val primaryGesture = hadLeftButton || hadTouchpadDrag
         // Snapshot before clearing isPressed — Compose may sync-release the desk drag
         // and clear `pulling` before we decide whether to suppress the pointer-up click.
         val deskConsumesClick = HomeSpaceDeskState.notePointerUp(moved)
-        _cursor.value = endPos.copy(isPressed = false)
+        _cursor.value = fpsReleaseCursor(endPos)
         when {
             deskConsumesClick -> { }
             moved && primaryGesture && pointerInjectionAvailable() ->
@@ -363,8 +357,27 @@ object CompanionPointerBus {
                     endPos.y,
                     mapViaLauncherFrame = GlassesSessionState.launcherForeground,
                 )
-            !moved && primaryGesture -> deliverLeftClick(endPos.x, endPos.y)
+            !moved && primaryGesture -> deliverLeftClick(
+                x = if (GlassesLookMode.effective() == GlassesLookMode.FPS) 0.5f else endPos.x,
+                y = if (GlassesLookMode.effective() == GlassesLookMode.FPS) 0.5f else endPos.y,
+            )
         }
+    }
+
+    /** FPS: press starts from view center so look aim and click-drag share the same origin. */
+    private fun fpsPressCursor(current: CompanionCursorState, pressed: Boolean): CompanionCursorState {
+        if (GlassesLookMode.effective() != GlassesLookMode.FPS) {
+            return current.copy(isPressed = pressed)
+        }
+        return current.copy(x = 0.5f, y = 0.5f, isPressed = pressed)
+    }
+
+    /** FPS: re-lock the cursor to center after a click/drag so the next look stays crosshair-based. */
+    private fun fpsReleaseCursor(current: CompanionCursorState): CompanionCursorState {
+        if (GlassesLookMode.effective() != GlassesLookMode.FPS) {
+            return current.copy(isPressed = false)
+        }
+        return current.copy(x = 0.5f, y = 0.5f, isPressed = false)
     }
 
     private fun pointerInjectionAvailable(): Boolean =

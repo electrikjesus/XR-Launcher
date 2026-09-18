@@ -6,7 +6,6 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
-import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -303,6 +302,44 @@ class CompanionPointerBusTest {
     }
 
     @Test
+    fun moveBy_fpsWhilePressed_movesCursorWithoutTurningLook() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        GlassesHomeLook.reset()
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        CompanionPointerBus.beginLeftButton()
+        val panBefore = GlassesHomeLook.panNorm
+        CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 100f, deltaY = 0f))
+        assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
+        assertEquals(panBefore, GlassesHomeLook.panNorm, 0.001f)
+        CompanionPointerBus.endLeftButton()
+        assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
+        assertEquals(false, CompanionPointerBus.cursor.value.isPressed)
+        GlassesLookMode.preference = GlassesLookMode.GRADIENT
+    }
+
+    @Test
+    fun endLeftButton_fpsTapWithoutMove_deliversClickAtCrosshair() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        GlassesHomeLook.reset()
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        HomeSpaceDeskState.clear()
+        var clicked: PointerClick? = null
+        val listener: (PointerClick) -> Unit = { clicked = it }
+        CompanionPointerBus.addClickListener(listener)
+        try {
+            CompanionPointerBus.beginLeftButton()
+            CompanionPointerBus.endLeftButton()
+            assertEquals(0.5f, clicked!!.x, 0.001f)
+            assertEquals(0.5f, clicked!!.y, 0.001f)
+        } finally {
+            CompanionPointerBus.removeClickListener(listener)
+            GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        }
+    }
+
+    @Test
     fun moveBy_fpsFallsBackToCursorWhenAnAppIsInFront() {
         GlassesLookMode.preference = GlassesLookMode.FPS
         GlassesSessionState.launcherForeground = false
@@ -311,28 +348,5 @@ class CompanionPointerBusTest {
         assertTrue(CompanionPointerBus.cursor.value.x > 0.5f)
         GlassesLookMode.preference = GlassesLookMode.GRADIENT
         GlassesSessionState.markLauncherForeground()
-    }
-
-    @Test
-    fun endLeftButton_fpsLookDeltaCountsAsDragMoved() {
-        GlassesLookMode.preference = GlassesLookMode.FPS
-        GlassesSessionState.markLauncherForeground()
-        GlassesHomeLook.reset()
-        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
-        val icon = HomeSpaceDesk.iconOf(
-            HomeSpaceDesk.AppRef("a/.Main", "Alpha", "a"),
-            yawDeg = -40f,
-            pitchDeg = 0f,
-            sphereScale = 1f,
-            lift = 0.15f,
-        )
-        HomeSpaceDeskState.clear()
-        HomeSpaceDeskState.press(icon, 0.5f, 0.5f, hitYawDeg = -40f, hitPitchDeg = 0f)
-        CompanionPointerBus.beginLeftButton()
-        GlassesHomeLook.lookAt(0.55f)
-        CompanionPointerBus.endLeftButton()
-        assertTrue(HomeSpaceDeskState.drag!!.pulling)
-        HomeSpaceDeskState.clear()
-        GlassesLookMode.preference = GlassesLookMode.GRADIENT
     }
 }

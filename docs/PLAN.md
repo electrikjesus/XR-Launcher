@@ -606,7 +606,7 @@ Landed **0.1.18:** README screenshots; desk persist; pager speed/click fixes; mo
 
 **Do this next. One concern per change.**
 
-1. **Install / verify FPS Hold-Left drag** on device after the gaze-follow fix.
+1. **Device-verify FPS click-drag** — look when idle; Hold-Left tap/drag from crosshair.
 2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -775,8 +775,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Desk pager + open speed:** incremental icon bitmaps; drag effect ignores mouse-look; desk owns pageCount | Full rebuild on page; FPS look restarted drag and ate pager clicks |
 | 2026-09-18 | **0.1.18 release:** README screenshots (phone companion + glasses Home Space / All Apps) | Docs lagged the desk UI |
 | 2026-09-18 | **Tray look range** — `maxPan` = tray + SIDE_LOOK_EXTRA (mirror of Desktop left) | Mouse-look locked at tray center; right half unreachable |
-| 2026-09-18 | **FPS Hold-Left drag** — gaze-follow while grab live; press anchors to sphere hit; look delta counts as moved | Cursor locked so desk drag never updated; chrome clicks stayed safe |
+| 2026-09-18 | **FPS click-drag** — touchpad looks only when unpressed; Hold-Left unlocks cursor from center, then re-locks | Look ate every move so taps became no-op drags and grabs never traveled |
 
 ---
 
-*Last updated: 2026-09-18 (FPS mouse-look desk drag)*
+*Last updated: 2026-09-18 (FPS click-drag unlock)*
