@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
@@ -61,6 +63,8 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.ui.workspace.LocalWorkspaceViewportPx
+import dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import dev.electrikjesus.xrlauncher.ui.workspace.AppIconCell
 import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
@@ -610,6 +614,7 @@ fun GlassesHomeCarousel(
     uiScale: Float = WorkspaceAppearance.DEFAULT_UI_SCALE,
     panelScale: Float = WorkspaceAppearance.DEFAULT_PANEL_SCALE,
     sphereScale: Float = WorkspaceAppearance.DEFAULT_SPHERE_SCALE,
+    captureToGles: Boolean = true,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
@@ -617,7 +622,7 @@ fun GlassesHomeCarousel(
         val paneWidth = HomeSpaceScene.paneWidthFraction(panelScale)
         val paneHeight = HomeSpaceScene.paneHeightFraction(panelScale)
         data class Slot(val key: String, val worldX: Float, val content: @Composable () -> Unit)
-        val slots = buildList {
+        val composed = buildList {
             add(Slot("all_apps", GlassesHomeLook.PANE_LEFT, left))
             add(Slot("home", GlassesHomeLook.PANE_HOME, center))
             appPlanes.forEachIndexed { index, plane ->
@@ -625,9 +630,11 @@ fun GlassesHomeCarousel(
             }
             add(Slot("tray", GlassesHomeLook.trayPane(), right))
         }
-        slots
-            .map { slot ->
-                slot to GlassesHomeSpace3d.projectPane(
+        CompositionLocalProvider(
+            LocalWorkspaceViewportPx provides IntSize(widthPx.toInt().coerceAtLeast(1), heightPx.toInt().coerceAtLeast(1)),
+        ) {
+            composed.forEach { slot ->
+                val projected = GlassesHomeSpace3d.projectPane(
                     worldX = slot.worldX,
                     look = panNorm,
                     cursorX = cursorX,
@@ -637,29 +644,30 @@ fun GlassesHomeCarousel(
                     panelScale = panelScale,
                     sphereScale = sphereScale,
                 )
-            }
-            .filter { it.second.visible }
-            .sortedBy { it.second.viewZ }
-            .forEach { (slot, projected) ->
                 androidx.compose.runtime.key(slot.key) {
                     CarouselPane(
+                        panelId = slot.key,
                         projected = projected,
                         uiScale = uiScale,
                         paneWidthFraction = paneWidth,
                         paneHeightFraction = paneHeight,
+                        captureToGles = captureToGles,
                         content = slot.content,
                     )
                 }
             }
+        }
     }
 }
 
 @Composable
 private fun CarouselPane(
+    panelId: String,
     projected: GlassesHomeSpace3d.ProjectedPane,
     uiScale: Float,
     paneWidthFraction: Float,
     paneHeightFraction: Float,
+    captureToGles: Boolean,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -677,14 +685,23 @@ private fun CarouselPane(
                     rotationX = projected.rotationXDeg
                     scaleX = projected.scale
                     scaleY = projected.scale
-                    alpha = projected.alpha
+                    alpha = if (captureToGles) 0f else projected.alpha
                     cameraDistance = projected.cameraDistancePx
                     transformOrigin = TransformOrigin(0.5f, 0.5f)
                 }
                 .clipToBounds(),
         ) {
-            WorkspaceScaledLayer(uiScale = uiScale) {
-                content()
+            PanelTextureCapture(
+                panelId = panelId,
+                centerXNorm = 0.5f,
+                centerYNorm = 0.5f,
+                enabled = captureToGles,
+                drawToScreen = !captureToGles,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                WorkspaceScaledLayer(uiScale = uiScale) {
+                    content()
+                }
             }
         }
     }

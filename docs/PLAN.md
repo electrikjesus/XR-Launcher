@@ -575,7 +575,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☐ **after 2.22** |
 | 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and **DeskRepository**. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☐ **after 2.20** |
-| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☐ Partial — `HomeSpaceScene` + Compose view only (still isometric) |
+| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☑ Partial — 0.1.8 GLES tessellated thick panes + Compose texture capture; icons/widgets still captured Compose, not `ItemRenderer` |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☑ Partial — 0.1.7 on-device: companion + glasses windows have `KEEP_SCREEN_ON`; WM holds `SCREEN_BRIGHT_WAKE_LOCK` on display 0 and 46. Override display can still report OFF (OEM quirk). |
 | 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☐ **after 2.22** |
 
@@ -595,12 +595,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-1. **2.22 GLES panels** — Port BumpDesk `BumpRenderer` / `CameraManager` / `RoomRenderer` / `Box`. Tessellate Home, Desktop, and Tray faces on the sphere; give panels thickness so FPS look shows inner bevel. Success: looking left/right, panel edges **converge and bow**; they must not stay a rigid rectangle. **No test APK until this is on-device-visible in GLES.**
+1. **On-device check of 2.22** — Confirm looking left/right shows converging/bowed panel edges and inner bevel (not a sliding rectangle).
 2. **2.20 Items on panels** — Recreate icons, shortcuts, pills/controls, and widgets with `ItemRenderer` / `WidgetRenderer` / `TextureUtils` / `UIRenderer`.
 3. **2.21 Desktop DND** — BumpDesk `InteractionManager` + `Pile` + arrange on the Desktop pane; All Apps remains a control.
-4. **2.23 Keep-awake** — Land `SessionWake` with the GLES session (companion + glasses `FLAG_KEEP_SCREEN_ON`).
-5. **2.24 Edit mode** — Panel / sphere / icon scale in the 3D scene; persist as default appearance.
-6. **Stop** — Do not ship more Compose `graphicsLayer` perspective tweaks; do not start 6.9 onboarding in this pass.
+4. **2.24 Edit mode** — Panel / sphere / icon scale in the GLES scene; persist as default appearance.
+5. **Stop** — Do not start 6.9 onboarding in this pass.
 
 ---
 
@@ -740,9 +739,9 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.20:** recreate icons/shortcuts/controls/widgets with BumpDesk `ItemRenderer` / `WidgetRenderer` **on GLES panels** | Compose grids cannot sit in FPS perspective |
 | 2026-09-18 | **2.21:** Desktop pane with BumpDesk DND, piles, arrange, widgets | After GLES panels + items exist |
 | 2026-09-18 | **2.22 blocking:** BumpDesk GLES engine is the Home Space view | Compose `graphicsLayer` keeps straight/isometric edges; no inner bevel |
-| 2026-09-18 | **No more Compose perspective APKs** until 2.22 GLES panels show curved/thick edges | User confirmed look still isometric with straight panel edges |
+| 2026-09-18 | **2.22 GLES panes in 0.1.8:** tessellated sphere patches + thickness, Compose captured as textures | graphicsLayer kept only as an invisible hit overlay |
 | 2026-09-18 | **2.23 keep-awake** + **2.24 GLES Edit mode** after the engine | Caffeine proved phone sleep blanks glasses; scale sliders belong in the 3D scene |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.7 on device: keep-awake verified; 2.22 BumpDesk GLES still next)*
+*Last updated: 2026-09-18 (2.22 GLES tessellated thick panes in 0.1.8; next 2.20 ItemRenderer)*

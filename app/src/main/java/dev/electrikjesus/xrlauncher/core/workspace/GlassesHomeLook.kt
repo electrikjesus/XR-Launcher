@@ -3,6 +3,7 @@ package dev.electrikjesus.xrlauncher.core.workspace
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
 import kotlin.math.abs
 
 /** An app hosted as a spatial plane in the Home Space carousel. */
@@ -70,6 +71,18 @@ object GlassesHomeLook {
     fun trayPane(): Float = maxPan()
 
     fun appPane(index: Int): Float = PANE_RIGHT + index
+
+    fun homeSpaceSlots(appPlanes: List<GlassesAppPlane> = this.appPlanes): List<HomeSpacePaneSlot> {
+        val slots = mutableListOf(
+            HomeSpacePaneSlot("all_apps", PANE_LEFT),
+            HomeSpacePaneSlot("home", PANE_HOME),
+        )
+        appPlanes.forEachIndexed { index, plane ->
+            slots += HomeSpacePaneSlot(plane.panelId, appPane(index))
+        }
+        slots += HomeSpacePaneSlot("tray", trayPane())
+        return slots
+    }
 
     var panNorm: Float
         get() = _panNorm.value

@@ -11,6 +11,10 @@ import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneMesh
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.paneMesh
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -41,6 +45,10 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var surroundRoom: Boolean = false
     /** GLES surround-room radius; scales with [WorkspaceAppearance.sphereScale]. */
     var roomRadius: Float = GlassesHomeSpace3d.ROOM_RADIUS
+    var homeSpaceSlots: List<HomeSpacePaneSlot> = emptyList()
+    var homeSpacePanelScale: Float = 1f
+    var homeSpaceSphereScale: Float = 1f
+    var homeSpacePanesEnabled: Boolean = false
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -65,6 +73,20 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private var wallpaperTexCoordHandle = 0
     private var wallpaperMvpHandle = 0
     private var wallpaperSamplerHandle = 0
+
+    private var litProgram = 0
+    private var litPositionHandle = 0
+    private var litNormalHandle = 0
+    private var litTexCoordHandle = 0
+    private var litMvpHandle = 0
+    private var litSamplerHandle = 0
+    private var litLightHandle = 0
+    private var litAmbientHandle = 0
+    private var litUseTextureHandle = 0
+
+    private val paneMeshBuffers = LinkedHashMap<String, FloatBuffer>()
+    private val paneMeshVertexCounts = LinkedHashMap<String, Int>()
+    private var paneMeshKey: String = ""
 
     private lateinit var cylinderLineBuffer: FloatBuffer
     private var cylinderLineVertexCount = 0
@@ -134,6 +156,16 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         wallpaperMvpHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uMvp")
         wallpaperSamplerHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uTexture")
 
+        litProgram = buildProgram(LIT_VERTEX_SHADER, LIT_FRAGMENT_SHADER)
+        litPositionHandle = GLES20.glGetAttribLocation(litProgram, "aPosition")
+        litNormalHandle = GLES20.glGetAttribLocation(litProgram, "aNormal")
+        litTexCoordHandle = GLES20.glGetAttribLocation(litProgram, "aTexCoord")
+        litMvpHandle = GLES20.glGetUniformLocation(litProgram, "uMvp")
+        litSamplerHandle = GLES20.glGetUniformLocation(litProgram, "uTexture")
+        litLightHandle = GLES20.glGetUniformLocation(litProgram, "uLightPos")
+        litAmbientHandle = GLES20.glGetUniformLocation(litProgram, "uAmbient")
+        litUseTextureHandle = GLES20.glGetUniformLocation(litProgram, "uUseTexture")
+
         rebuildCylinderMeshes()
     }
 
@@ -167,11 +199,14 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 drawRoomCaps()
             }
         }
+        if (homeSpacePanesEnabled && surroundRoom) {
+            drawHomeSpacePanes()
+        }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
             drawCylinderGuideLine()
             drawPanelGuides()
         }
-        if (WorkspaceGlesConfig.texturedPanelsEnabled && curvature > 0.01f) {
+        if (WorkspaceGlesConfig.texturedPanelsEnabled && curvature > 0.01f && !homeSpacePanesEnabled) {
             drawTexturedPanels()
         }
     }
@@ -219,6 +254,73 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         rebuildCylinderGuideLine()
         rebuildWallpaperMesh()
         rebuildRoomCaps()
+        if (homeSpacePanesEnabled) {
+            paneMeshKey = ""
+            rebuildHomeSpacePaneMeshes()
+        }
+    }
+
+    private fun rebuildHomeSpacePaneMeshes() {
+        val key = listOf(
+            viewportWidthPx,
+            viewportHeightPx,
+            homeSpacePanelScale,
+            homeSpaceSphereScale,
+            homeSpaceSlots.joinToString { "${it.panelId}:${it.worldX}" },
+        ).joinToString("|")
+        if (key == paneMeshKey && paneMeshBuffers.isNotEmpty()) return
+        paneMeshKey = key
+        paneMeshBuffers.clear()
+        paneMeshVertexCounts.clear()
+        homeSpaceSlots.forEach { slot ->
+            val mesh = HomeSpaceScene.paneMesh(
+                worldX = slot.worldX,
+                viewportWidthPx = viewportWidthPx,
+                viewportHeightPx = viewportHeightPx,
+                panelScale = homeSpacePanelScale,
+                sphereScale = homeSpaceSphereScale,
+            )
+            paneMeshBuffers[slot.panelId] = mesh.interleaved.toFloatBuffer()
+            paneMeshVertexCounts[slot.panelId] = mesh.vertexCount
+        }
+    }
+
+    private fun drawHomeSpacePanes() {
+        rebuildHomeSpacePaneMeshes()
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(litProgram)
+        GLES20.glUniformMatrix4fv(litMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glUniform3f(litLightHandle, 0f, 0f, 0f)
+        GLES20.glUniform1f(litAmbientHandle, 0.28f)
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
+
+        homeSpaceSlots.forEach { slot ->
+            val buffer = paneMeshBuffers[slot.panelId] ?: return@forEach
+            val count = paneMeshVertexCounts[slot.panelId] ?: return@forEach
+            val textureId = uploadedTextures[slot.panelId]?.textureId ?: 0
+            GLES20.glUniform1i(litUseTextureHandle, if (textureId != 0) 1 else 0)
+            if (textureId != 0) {
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+                GLES20.glUniform1i(litSamplerHandle, 0)
+            }
+            val stride = HomeSpacePaneMesh.STRIDE * 4
+            buffer.position(0)
+            GLES20.glEnableVertexAttribArray(litPositionHandle)
+            GLES20.glVertexAttribPointer(litPositionHandle, 3, GLES20.GL_FLOAT, false, stride, buffer)
+            buffer.position(3)
+            GLES20.glEnableVertexAttribArray(litNormalHandle)
+            GLES20.glVertexAttribPointer(litNormalHandle, 3, GLES20.GL_FLOAT, false, stride, buffer)
+            buffer.position(6)
+            GLES20.glEnableVertexAttribArray(litTexCoordHandle)
+            GLES20.glVertexAttribPointer(litTexCoordHandle, 2, GLES20.GL_FLOAT, false, stride, buffer)
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, count)
+            GLES20.glDisableVertexAttribArray(litPositionHandle)
+            GLES20.glDisableVertexAttribArray(litNormalHandle)
+            GLES20.glDisableVertexAttribArray(litTexCoordHandle)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        }
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
     }
 
     private fun rebuildCylinderGuideLine() {
@@ -686,6 +788,47 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                     smoothstep(1.0, 0.88, vTexCoord.y);
                 color.rgb *= mix(0.72, 1.0, vertical);
                 gl_FragColor = color;
+            }
+        """
+        private const val LIT_VERTEX_SHADER = """
+            uniform mat4 uMvp;
+            attribute vec4 aPosition;
+            attribute vec3 aNormal;
+            attribute vec2 aTexCoord;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec2 vTexCoord;
+            void main() {
+                gl_Position = uMvp * aPosition;
+                vPosition = aPosition.xyz;
+                vNormal = aNormal;
+                vTexCoord = aTexCoord;
+            }
+        """
+        private const val LIT_FRAGMENT_SHADER = """
+            precision mediump float;
+            uniform sampler2D uTexture;
+            uniform vec3 uLightPos;
+            uniform float uAmbient;
+            uniform int uUseTexture;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec2 vTexCoord;
+            void main() {
+                vec4 base;
+                if (vTexCoord.x < 0.0) {
+                    base = vec4(0.14, 0.15, 0.18, 1.0);
+                } else if (uUseTexture == 1) {
+                    base = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
+                } else {
+                    base = vec4(0.18, 0.20, 0.24, 0.95);
+                }
+                if (base.a < 0.08) discard;
+                vec3 n = normalize(vNormal);
+                vec3 lightDir = normalize(uLightPos - vPosition);
+                float diffuse = max(dot(n, lightDir), 0.0);
+                vec3 color = base.rgb * (uAmbient + diffuse * 1.35);
+                gl_FragColor = vec4(color, base.a);
             }
         """
     }

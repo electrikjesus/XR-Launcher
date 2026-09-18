@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
@@ -43,6 +44,10 @@ fun WorkspaceGlesBackdrop(
     showWallpaperCylinder: Boolean = true,
     surroundRoom: Boolean = false,
     roomRadius: Float = GlassesHomeSpace3d.ROOM_RADIUS,
+    homeSpaceSlots: List<HomeSpacePaneSlot> = emptyList(),
+    homeSpacePanelScale: Float = 1f,
+    homeSpaceSphereScale: Float = 1f,
+    homeSpacePanesEnabled: Boolean = false,
     modifier: Modifier = Modifier,
     enabled: Boolean = surroundRoom || (curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -91,12 +96,16 @@ fun WorkspaceGlesBackdrop(
         }
     }
 
-    DisposableEffect(curvature, workspaceWidth, workspaceHeight, surroundRoom, roomRadius) {
+    DisposableEffect(curvature, workspaceWidth, workspaceHeight, surroundRoom, roomRadius, homeSpaceSlots, homeSpacePanelScale, homeSpaceSphereScale, homeSpacePanesEnabled) {
         renderer.curvature = curvature
         renderer.workspaceWidth = workspaceWidth
         renderer.workspaceHeight = workspaceHeight
         renderer.surroundRoom = surroundRoom
         renderer.roomRadius = roomRadius
+        renderer.homeSpaceSlots = homeSpaceSlots
+        renderer.homeSpacePanelScale = homeSpacePanelScale
+        renderer.homeSpaceSphereScale = homeSpaceSphereScale
+        renderer.homeSpacePanesEnabled = homeSpacePanesEnabled
         renderer.rebuildCylinderMesh()
         onDispose { }
     }
@@ -132,6 +141,10 @@ fun WorkspaceGlesBackdrop(
             renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.surroundRoom = surroundRoom
             renderer.roomRadius = roomRadius
+            renderer.homeSpaceSlots = homeSpaceSlots
+            renderer.homeSpacePanelScale = homeSpacePanelScale
+            renderer.homeSpaceSphereScale = homeSpaceSphereScale
+            renderer.homeSpacePanesEnabled = homeSpacePanesEnabled
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

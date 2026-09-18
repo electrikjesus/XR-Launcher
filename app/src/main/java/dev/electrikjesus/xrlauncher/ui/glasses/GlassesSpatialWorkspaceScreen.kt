@@ -37,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.withFrameNanos
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.PerspectiveCursorProbe
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
@@ -170,6 +171,7 @@ fun GlassesSpatialWorkspaceScreen(
         }
     }
 
+    val homeSlots = remember(appPlanes) { GlassesHomeLook.homeSpaceSlots(appPlanes) }
     Box(modifier = modifier.fillMaxSize()) {
         WorkspaceGlesBackdrop(
             camera = homeCamera,
@@ -179,6 +181,11 @@ fun GlassesSpatialWorkspaceScreen(
             wallpaperChoice = tuned.wallpaperChoice,
             showWallpaperCylinder = true,
             surroundRoom = true,
+            roomRadius = HomeSpaceScene.roomRadius(tuned.sphereScale),
+            homeSpaceSlots = homeSlots,
+            homeSpacePanelScale = tuned.panelScale,
+            homeSpaceSphereScale = tuned.sphereScale,
+            homeSpacePanesEnabled = true,
             enabled = true,
             modifier = Modifier.fillMaxSize(),
         )
@@ -190,6 +197,9 @@ fun GlassesSpatialWorkspaceScreen(
             cursorY = cursor.y,
             appPlanes = appPlanes,
             uiScale = tuned.uiScale,
+            panelScale = tuned.panelScale,
+            sphereScale = tuned.sphereScale,
+            captureToGles = true,
             left = {
                 GlassesXrAllAppsLayer(
                     apps = filteredAllApps,
