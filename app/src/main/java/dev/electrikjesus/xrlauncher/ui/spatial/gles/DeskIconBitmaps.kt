@@ -60,14 +60,7 @@ object DeskIconBitmaps {
     }
 
     private fun drawBacking(canvas: Canvas, width: Int, iconSize: Int) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = Color.argb(200, 28, 32, 44)
-        canvas.drawRoundRect(RectF(4f, 4f, width - 4f, iconSize + 28f), 36f, 36f, paint)
-        paint.color = Color.argb(70, 138, 180, 248)
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 6f
-        canvas.drawRoundRect(RectF(10f, 10f, width - 10f, iconSize + 22f), 30f, 30f, paint)
-        paint.style = Paint.Style.FILL
+        // Intentionally blank — open-drawer backing is pick/physics only (no GLES panel).
     }
 
     private fun drawChevron(canvas: Canvas, width: Int, iconSize: Int, left: Boolean) {

@@ -371,7 +371,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         deskIconBuffers.clear()
         deskIconVertexCounts.clear()
         deskIcons.forEach { icon ->
-            val lift = if (icon.componentKey == deskHoveredKey && !icon.isBacking) {
+            if (icon.isBacking) return@forEach // collision/pick only — no stretched panel texture
+            val lift = if (icon.componentKey == deskHoveredKey) {
                 HomeSpaceDesk.HOVER_LIFT
             } else {
                 0f
