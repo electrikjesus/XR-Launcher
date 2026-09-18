@@ -1,10 +1,13 @@
 package dev.electrikjesus.xrlauncher.external
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
+import android.view.Gravity
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +36,7 @@ import kotlinx.coroutines.launch
 
 class ExternalDisplayActivity : ComponentActivity() {
     private var lastLaunchAtMs = 0L
+    private var fullscreenRelaunchTried = false
     private lateinit var launchCoordinator: WorkspaceAppLaunchCoordinator
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +51,7 @@ class ExternalDisplayActivity : ComponentActivity() {
             embedRegistry = embedRegistry,
         )
         GlassesSessionState.panelEmbedRegistry = embedRegistry
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         applyImmersiveFullscreen()
         syncSessionDisplayId()
         AllAppsGridConfigStore.init(this)
@@ -92,8 +97,16 @@ class ExternalDisplayActivity : ComponentActivity() {
             }
         }
 
-        window.decorView.viewTreeObserver.addOnGlobalLayoutListener { updateInjectFrame() }
-        window.decorView.post { updateInjectFrame() }
+        window.decorView.viewTreeObserver.addOnGlobalLayoutListener {
+            applyImmersiveFullscreen()
+            updateInjectFrame()
+            ensureFullscreenWindow()
+        }
+        window.decorView.post {
+            applyImmersiveFullscreen()
+            updateInjectFrame()
+            ensureFullscreenWindow()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -116,7 +129,9 @@ class ExternalDisplayActivity : ComponentActivity() {
         GlassesSessionState.markLauncherForeground()
         syncSessionDisplayId()
         window.decorView.post {
+            applyImmersiveFullscreen()
             updateInjectFrame()
+            ensureFullscreenWindow()
             consumePendingAppLaunch()
         }
         if (isDebugBuild()) {
@@ -142,6 +157,7 @@ class ExternalDisplayActivity : ComponentActivity() {
             applyImmersiveFullscreen()
             syncSessionDisplayId()
             updateInjectFrame()
+            ensureFullscreenWindow()
         }
     }
 
@@ -214,6 +230,18 @@ class ExternalDisplayActivity : ComponentActivity() {
 
     private fun applyImmersiveFullscreen() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        val metrics = displayRealMetrics()
+        val lp = window.attributes
+        if (metrics != null) {
+            lp.width = metrics.widthPixels
+            lp.height = metrics.heightPixels
+            lp.x = 0
+            lp.y = 0
+            lp.gravity = Gravity.FILL
+            window.attributes = lp
+        }
         window.setLayout(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -223,6 +251,31 @@ class ExternalDisplayActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    private fun ensureFullscreenWindow() {
+        val metrics = displayRealMetrics() ?: return
+        val decor = window.decorView
+        if (decor.width <= 1 || decor.height <= 1) return
+        val tooSmall = decor.width < metrics.widthPixels * 0.9f ||
+            decor.height < metrics.heightPixels * 0.9f
+        if (!tooSmall) return
+        if (isInMultiWindowMode && !fullscreenRelaunchTried) {
+            fullscreenRelaunchTried = true
+            Log.w(
+                TAG,
+                "Glasses window ${decor.width}x${decor.height} on ${metrics.widthPixels}x${metrics.heightPixels}; relaunching fullscreen",
+            )
+            DisplayLaunchHelper.showLauncherOnGlasses(this)
+        }
+    }
+
+    private fun displayRealMetrics(): DisplayMetrics? {
+        val display = display ?: return null
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        return metrics
     }
 
     companion object {

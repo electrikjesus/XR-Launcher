@@ -14,7 +14,10 @@ import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneMesh
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePaneSlot
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.Vec3
+import dev.electrikjesus.xrlauncher.core.workspace.scene.normalized
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneMesh
+import dev.electrikjesus.xrlauncher.core.workspace.scene.sphereHit
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -49,6 +52,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     var homeSpacePanelScale: Float = 1f
     var homeSpaceSphereScale: Float = 1f
     var homeSpacePanesEnabled: Boolean = false
+    var cursorX: Float = 0.5f
+    var cursorY: Float = 0.5f
+    var showSphereCursor: Boolean = false
 
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -201,6 +207,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         }
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
+            drawSphereCursor()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
             drawCylinderGuideLine()
@@ -321,6 +328,78 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
         }
         GLES20.glEnable(GLES20.GL_CULL_FACE)
+    }
+
+    private fun drawSphereCursor() {
+        if (!showSphereCursor) return
+        val sceneCamera = HomeSpaceScene.Camera(camera.yawDegrees, camera.pitchDegrees)
+        val hit = HomeSpaceScene.sphereHit(
+            cursorX = cursorX,
+            cursorY = cursorY,
+            camera = sceneCamera,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
+            sphereScale = homeSpaceSphereScale,
+        )
+        val origin = hit.world
+        val radial = origin.normalized()
+        val up = Vec3(0f, 1f, 0f)
+        var tangent = Vec3(
+            up.y * radial.z - up.z * radial.y,
+            up.z * radial.x - up.x * radial.z,
+            up.x * radial.y - up.y * radial.x,
+        )
+        if (tangent.lengthSq() < 1e-6f) {
+            tangent = Vec3(1f, 0f, 0f)
+        } else {
+            tangent = tangent.normalized()
+        }
+        val bitangent = Vec3(
+            radial.y * tangent.z - radial.z * tangent.y,
+            radial.z * tangent.x - radial.x * tangent.z,
+            radial.x * tangent.y - radial.y * tangent.x,
+        )
+        val radius = 0.038f * homeSpaceSphereScale.coerceAtLeast(0.5f)
+        val center = origin * 0.988f
+        fun corner(sx: Float, sy: Float): Vec3 = Vec3(
+            center.x + tangent.x * sx * radius + bitangent.x * sy * radius,
+            center.y + tangent.y * sx * radius + bitangent.y * sy * radius,
+            center.z + tangent.z * sx * radius + bitangent.z * sy * radius,
+        )
+        val bl = corner(-1f, -1f)
+        val br = corner(1f, -1f)
+        val tl = corner(-1f, 1f)
+        val tr = corner(1f, 1f)
+        val disc = floatArrayOf(
+            bl.x, bl.y, bl.z,
+            br.x, br.y, br.z,
+            tl.x, tl.y, tl.z,
+            tl.x, tl.y, tl.z,
+            br.x, br.y, br.z,
+            tr.x, tr.y, tr.z,
+        ).toFloatBuffer()
+        val near = radial * 0.14f
+        val shaft = floatArrayOf(
+            near.x, near.y, near.z,
+            origin.x, origin.y, origin.z,
+        ).toFloatBuffer()
+
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(lineProgram)
+        GLES20.glUniformMatrix4fv(lineMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+        GLES20.glEnableVertexAttribArray(linePositionHandle)
+
+        GLES20.glUniform4f(lineColorHandle, 0.55f, 0.82f, 1f, 0.28f)
+        GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, shaft)
+        GLES20.glDrawArrays(GLES20.GL_LINES, 0, 2)
+
+        GLES20.glUniform4f(lineColorHandle, 0.82f, 0.93f, 1f, 0.92f)
+        GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, disc)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
+
+        GLES20.glDisableVertexAttribArray(linePositionHandle)
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST)
     }
 
     private fun rebuildCylinderGuideLine() {
@@ -817,11 +896,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             void main() {
                 vec4 base;
                 if (vTexCoord.x < 0.0) {
-                    base = vec4(0.14, 0.15, 0.18, 1.0);
+                    base = vec4(0.16, 0.18, 0.22, 0.32);
                 } else if (uUseTexture == 1) {
                     base = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
                 } else {
-                    base = vec4(0.18, 0.20, 0.24, 0.95);
+                    base = vec4(0.18, 0.20, 0.24, 0.10);
                 }
                 if (base.a < 0.08) discard;
                 vec3 n = normalize(vNormal);

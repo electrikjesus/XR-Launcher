@@ -19,11 +19,18 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePanePick
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.overlayPx
+import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
+import dev.electrikjesus.xrlauncher.core.workspace.scene.pickPane
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceTitleBar
 import dev.electrikjesus.xrlauncher.ui.glasses.WorkspaceLayoutPresetBar
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
@@ -43,6 +50,9 @@ fun LauncherWorkspacePointerEffects(
     onOpenSettings: () -> Unit,
     onOpenAllApps: () -> Unit,
     onLayoutPresetSelected: (LayoutPreset) -> Unit,
+    onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
+    panelScale: Float = 1f,
+    sphereScale: Float = 1f,
 ) {
     val currentApps = rememberUpdatedState(apps)
     val currentPanels = rememberUpdatedState(panels)
@@ -55,6 +65,9 @@ fun LauncherWorkspacePointerEffects(
     val currentOnOpenSettings = rememberUpdatedState(onOpenSettings)
     val currentOnOpenAllApps = rememberUpdatedState(onOpenAllApps)
     val currentOnLayoutPresetSelected = rememberUpdatedState(onLayoutPresetSelected)
+    val currentOnTuneAppearance = rememberUpdatedState(onTuneAppearance)
+    val currentPanelScale = rememberUpdatedState(panelScale)
+    val currentSphereScale = rememberUpdatedState(sphereScale)
 
     DisposableEffect(Unit) {
         val listener: (dev.electrikjesus.xrlauncher.core.input.PointerClick) -> Unit = { click ->
@@ -79,12 +92,19 @@ fun LauncherWorkspacePointerEffects(
                     )
                     handleLeftClick(
                         point = point,
+                        cursorX = click.x,
+                        cursorY = click.y,
                         itemBounds = currentItemBounds.value,
                         onLaunchApp = currentOnLaunchApp.value,
                         onOpenSettings = currentOnOpenSettings.value,
                         onOpenAllApps = currentOnOpenAllApps.value,
                         onLayoutPresetSelected = currentOnLayoutPresetSelected.value,
+                        onTuneAppearance = currentOnTuneAppearance.value,
                         apps = currentApps.value,
+                        rootWidthPx = rootW,
+                        rootHeightPx = rootH,
+                        panelScale = currentPanelScale.value,
+                        sphereScale = currentSphereScale.value,
                     )
                 }
             }
@@ -104,39 +124,53 @@ fun LauncherWorkspacePointerEffects(
         rootHeightPx,
         apps,
         allAppsOverlayVisible,
+        panelScale,
+        sphereScale,
     ) {
-        val point = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
-        val homeHover = homeHitKey(point, itemBounds)?.let { GlassesHomeHits.hoverLabel(it) }
+        val screenPoint = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
+        val pick = homeSpacePick(cursor.x, cursor.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
+        val paneBounds = paneItemBounds(itemBounds, pick?.slot?.panelId)
+        val homeHover = homeHitKey(screenPoint, screenSpaceBounds(itemBounds))?.let {
+            GlassesHomeHits.hoverLabel(it)
+        } ?: homeHitKey(panePoint, paneBounds)?.let { GlassesHomeHits.hoverLabel(it) }
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
             homeHover != null -> homeHover
             allAppsOverlayVisible &&
-                itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true ->
+                itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
                 AllAppsOverlayHits.CLOSE_HOVER_LABEL
-            itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ->
+            itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
                 GlassesWorkspaceTitleBar.HOVER_LABEL
-            itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ->
+            itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
                 GlassesWorkspaceTitleBar.LAYOUT_HOVER_LABEL
-            itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true ->
+            itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
                 AllAppsLauncher.HOVER_LABEL
-            itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(point) == true ->
+            itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(panePoint) == true ||
+                itemBounds[AllAppsPageControls.PREV_KEY]?.containsWithSlop(screenPoint) == true ->
                 PAGE_PREV_HOVER
-            itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(point) == true ->
+            itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(panePoint) == true ||
+                itemBounds[AllAppsPageControls.NEXT_KEY]?.containsWithSlop(screenPoint) == true ->
                 PAGE_NEXT_HOVER
-            paginationPageHoverLabel(point, itemBounds) != null ->
-                paginationPageHoverLabel(point, itemBounds)
-            layoutPresetHoverLabel(point, itemBounds) != null ->
-                layoutPresetHoverLabel(point, itemBounds)
-            findAppAt(point, itemBounds, apps)?.label != null ->
-                findAppAt(point, itemBounds, apps)?.label
-            findPanelAt(point, panelBounds, panels)?.let { panelTitle(it) } != null ->
-                findPanelAt(point, panelBounds, panels)?.let { panelTitle(it) }
+            paginationPageHoverLabel(panePoint, paneBounds) != null ->
+                paginationPageHoverLabel(panePoint, paneBounds)
+            paginationPageHoverLabel(screenPoint, itemBounds) != null ->
+                paginationPageHoverLabel(screenPoint, itemBounds)
+            layoutPresetHoverLabel(screenPoint, itemBounds) != null ->
+                layoutPresetHoverLabel(screenPoint, itemBounds)
+            findAppAt(panePoint, paneBounds, apps)?.label != null ->
+                findAppAt(panePoint, paneBounds, apps)?.label
+            findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label != null ->
+                findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)?.label
+            findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) } != null ->
+                findPanelAt(screenPoint, panelBounds, panels)?.let { panelTitle(it) }
             else -> null
         }
         if (hoverLabel != lastLoggedHoverLabel) {
             Log.d(
                 LOG_TAG,
-                "hover label=$hoverLabel norm=(${cursor.x}, ${cursor.y}) px=(${point.x}, ${point.y}) " +
+                "hover label=$hoverLabel norm=(${cursor.x}, ${cursor.y}) px=(${screenPoint.x}, ${screenPoint.y}) " +
+                    "pane=${pick?.slot?.panelId} uv=${pick?.u},${pick?.v} " +
                     "pageCount=${AllAppsPaginationState.pageCountFlow.value}",
             )
             lastLoggedHoverLabel = hoverLabel
@@ -208,29 +242,42 @@ private fun handleRightClick(
 
 private fun handleLeftClick(
     point: Offset,
+    cursorX: Float,
+    cursorY: Float,
     itemBounds: Map<String, Rect>,
     onLaunchApp: (LaunchableApp) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAllApps: () -> Unit,
     onLayoutPresetSelected: (LayoutPreset) -> Unit,
+    onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit,
     apps: List<LaunchableApp>,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
 ) {
     if (LauncherContextMenuState.isOpen) {
         Log.d(LOG_TAG, "left-click dismiss context menu")
         LauncherContextMenuState.dismiss()
         return
     }
-    if (handleHomeSpaceClick(point, itemBounds, onOpenSettings, onOpenAllApps)) return
+    val pick = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    val panePoint = overlayPoint(pick, itemBounds) ?: point
+    val paneBounds = paneItemBounds(itemBounds, pick?.slot?.panelId)
+    val screenBounds = screenSpaceBounds(itemBounds)
+    if (handleHomeSpaceClick(point, screenBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
+    if (handleHomeSpaceClick(panePoint, paneBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     val overlayVisible = GlassesSessionState.allAppsOverlayVisible
     val hitClose = itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitAllAppsLauncher = itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitOtherTarget = itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ||
         itemBounds[GlassesWorkspaceTitleBar.LAYOUT_BOUNDS_KEY]?.containsWithSlop(point) == true ||
+        isPaginationHit(panePoint, paneBounds) ||
         isPaginationHit(point, itemBounds) ||
         LayoutPreset.entries.any { preset ->
             itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
         } ||
-        findAppAt(point, itemBounds, apps) != null
+        findAppAt(panePoint, paneBounds, apps) != null
     if (
         AllAppsOverlayHits.shouldDismiss(
             overlayVisible = overlayVisible,
@@ -257,6 +304,7 @@ private fun handleLeftClick(
         onOpenAllApps()
         return
     }
+    if (handlePaginationClick(panePoint, paneBounds)) return
     if (handlePaginationClick(point, itemBounds)) return
     LayoutPreset.entries.firstOrNull { preset ->
         itemBounds[WorkspaceLayoutPresetBar.boundsKey(preset)]?.containsWithSlop(point) == true
@@ -265,8 +313,8 @@ private fun handleLeftClick(
         onLayoutPresetSelected(preset)
         return
     }
-    findAppAt(point, itemBounds, apps)?.let { app ->
-        Log.d(LOG_TAG, "left-click hit app=${app.label}")
+    findAppAt(panePoint, paneBounds, apps)?.let { app ->
+        Log.d(LOG_TAG, "left-click hit app=${app.label} pane=${pick?.slot?.panelId}")
         GlassesSessionState.hideHomeOverlays()
         onLaunchApp(app)
         return
@@ -289,6 +337,7 @@ private fun handleHomeSpaceClick(
     itemBounds: Map<String, Rect>,
     onOpenSettings: () -> Unit,
     onOpenAllApps: () -> Unit,
+    onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
 ): Boolean {
     val key = homeHitKey(point, itemBounds) ?: return false
     Log.d(LOG_TAG, "left-click hit home chrome=$key")
@@ -310,9 +359,65 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.SETTINGS -> onOpenSettings()
         GlassesHomeHits.RECENTS_CLEAR -> GlassesRecentApps.clear()
         GlassesHomeHits.NOTIFICATIONS_CLEAR -> { }
+        GlassesHomeHits.EDIT_TOGGLE -> GlassesSessionState.toggleHomeSpaceEdit()
+        GlassesHomeHits.EDIT_PANEL_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_PANEL_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_SPHERE_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_SPHERE_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_ELEMENT_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP)
+        GlassesHomeHits.EDIT_ELEMENT_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP)
         else -> return false
     }
     return true
+}
+
+private fun homeSpacePick(
+    cursorX: Float,
+    cursorY: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+): HomeSpacePanePick? {
+    val camera = HomeSpaceScene.camera(
+        look = GlassesHomeLook.panNorm,
+        cursorX = 0.5f,
+        cursorY = 0.5f,
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        panelScale = panelScale,
+    )
+    return HomeSpaceScene.pickPane(
+        cursorX = cursorX,
+        cursorY = cursorY,
+        camera = camera,
+        slots = GlassesHomeLook.homeSpaceSlots(),
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        panelScale = panelScale,
+        sphereScale = sphereScale,
+    )
+}
+
+private fun overlayPoint(
+    pick: HomeSpacePanePick?,
+    itemBounds: Map<String, Rect>,
+): Offset? {
+    pick ?: return null
+    val root = itemBounds[HomeSpaceScene.paneRootKey(pick.slot.panelId)] ?: return null
+    val (x, y) = HomeSpaceScene.overlayPx(pick, root.left, root.top, root.width, root.height)
+    return Offset(x, y)
+}
+
+private fun screenSpaceBounds(itemBounds: Map<String, Rect>): Map<String, Rect> =
+    itemBounds.filterKeys { key -> !key.contains("::") && !key.startsWith("__xr_pane_root_") }
+
+private fun paneItemBounds(itemBounds: Map<String, Rect>, paneId: String?): Map<String, Rect> {
+    if (paneId == null) return emptyMap()
+    val prefix = "$paneId::"
+    return itemBounds
+        .filterKeys { it.startsWith(prefix) }
+        .mapKeys { it.key.removePrefix(prefix) }
 }
 
 private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>): Boolean {

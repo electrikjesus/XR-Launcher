@@ -63,6 +63,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
 import dev.electrikjesus.xrlauncher.ui.workspace.LocalWorkspaceViewportPx
 import dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
@@ -71,7 +72,7 @@ import dev.electrikjesus.xrlauncher.ui.workspace.ClockWidgetPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.PaginatedAppGrid
 
 private val PillBg = Color(0xCC1C1C1E)
-private val CardBg = Color(0xE61C1C1E)
+private val CardBg = Color(0x661C1C1E)
 private val Accent = Color(0xFF8AB4F8)
 
 @Composable
@@ -151,7 +152,7 @@ fun GlassesXrAllAppsLayer(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.18f))
+            .background(Color.Black.copy(alpha = 0.04f))
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -610,6 +611,7 @@ fun GlassesHomeCarousel(
     center: @Composable () -> Unit,
     right: @Composable () -> Unit,
     appPane: @Composable (GlassesAppPlane) -> Unit,
+    onBoundsChanged: (String, Rect) -> Unit,
     modifier: Modifier = Modifier,
     uiScale: Float = WorkspaceAppearance.DEFAULT_UI_SCALE,
     panelScale: Float = WorkspaceAppearance.DEFAULT_PANEL_SCALE,
@@ -652,6 +654,7 @@ fun GlassesHomeCarousel(
                         paneWidthFraction = paneWidth,
                         paneHeightFraction = paneHeight,
                         captureToGles = captureToGles,
+                        onBoundsChanged = onBoundsChanged,
                         content = slot.content,
                     )
                 }
@@ -668,6 +671,7 @@ private fun CarouselPane(
     paneWidthFraction: Float,
     paneHeightFraction: Float,
     captureToGles: Boolean,
+    onBoundsChanged: (String, Rect) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -678,17 +682,27 @@ private fun CarouselPane(
             modifier = Modifier
                 .fillMaxWidth(paneWidthFraction)
                 .fillMaxHeight(paneHeightFraction)
-                .graphicsLayer {
-                    translationX = projected.translationXPx
-                    translationY = projected.translationYPx
-                    rotationY = projected.rotationYDeg
-                    rotationX = projected.rotationXDeg
-                    scaleX = projected.scale
-                    scaleY = projected.scale
-                    alpha = if (captureToGles) 0f else projected.alpha
-                    cameraDistance = projected.cameraDistancePx
-                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                }
+                .then(
+                    if (captureToGles) {
+                        Modifier
+                            .graphicsLayer { alpha = 0f }
+                            .onGloballyPositioned {
+                                onBoundsChanged(HomeSpaceScene.paneRootKey(panelId), it.boundsInRoot())
+                            }
+                    } else {
+                        Modifier.graphicsLayer {
+                            translationX = projected.translationXPx
+                            translationY = projected.translationYPx
+                            rotationY = projected.rotationYDeg
+                            rotationX = projected.rotationXDeg
+                            scaleX = projected.scale
+                            scaleY = projected.scale
+                            alpha = projected.alpha
+                            cameraDistance = projected.cameraDistancePx
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        }
+                    },
+                )
                 .clipToBounds(),
         ) {
             PanelTextureCapture(

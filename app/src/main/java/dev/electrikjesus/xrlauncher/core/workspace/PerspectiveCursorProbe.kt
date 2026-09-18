@@ -14,8 +14,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Cursor path used to check Home Space perspective: a small on-screen circle,
- * then a larger circle through the four display corners.
+ * Cursor path used to check Home Space perspective: a 3-turn spiral from the
+ * view center out to the display edges (sphere-ray hover, not a flat HUD plane).
  */
 object PerspectiveCursorProbe {
     const val ACTION = "dev.electrikjesus.xrlauncher.PERSPECTIVE_PROBE"
@@ -31,6 +31,21 @@ object PerspectiveCursorProbe {
 
     fun requestPlay() {
         _requests.tryEmit(Unit)
+    }
+
+    fun spiralSamples(
+        turns: Int = 3,
+        steps: Int = 216,
+        widthPx: Float = DEFAULT_WIDTH_PX,
+        heightPx: Float = DEFAULT_HEIGHT_PX,
+    ): List<Pair<Float, Float>> {
+        val count = steps.coerceAtLeast(turns * 24)
+        val maxRadius = hypot(widthPx * 0.5f, heightPx * 0.5f)
+        return (0 until count).map { index ->
+            val t = if (count == 1) 1f else index / (count - 1).toFloat()
+            val angle = t * turns * 2f * PI.toFloat()
+            displayPoint(maxRadius * t, angle, widthPx, heightPx)
+        }
     }
 
     fun smallCircleSamples(
@@ -64,20 +79,9 @@ object PerspectiveCursorProbe {
         _playing.value = true
         try {
             GlassesHomeLook.lookHome()
-            for (point in smallCircleSamples(steps = 48, widthPx = widthPx, heightPx = heightPx)) {
+            for (point in spiralSamples(turns = 3, steps = 216, widthPx = widthPx, heightPx = heightPx)) {
                 CompanionPointerBus.setCursorPosition(point.first, point.second)
-                delay(28L)
-            }
-            delay(180L)
-            val corners = cornerAngles()
-            val samples = cornerCircleSamples(steps = 96, widthPx = widthPx, heightPx = heightPx)
-            for ((index, point) in samples.withIndex()) {
-                CompanionPointerBus.setCursorPosition(point.first, point.second)
-                val angle = (index.toFloat() / samples.size) * 2f * PI.toFloat()
-                val atCorner = corners.any { corner ->
-                    angularDistance(angle, corner) < (2f * PI.toFloat() / samples.size) * 1.6f
-                }
-                delay(if (atCorner) 220L else 22L)
+                delay(22L)
             }
             CompanionPointerBus.recenterCursor()
         } finally {

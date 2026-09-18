@@ -8,6 +8,22 @@ import kotlin.math.hypot
 
 class PerspectiveCursorProbeTest {
     @Test
+    fun spiral_startsAtCenterAndSweepsThreeTurnsToTheEdges() {
+        val samples = PerspectiveCursorProbe.spiralSamples(turns = 3, steps = 216)
+        assertEquals(216, samples.size)
+        val first = samples.first()
+        assertTrue(abs(first.first - 0.5f) < 0.02f)
+        assertTrue(abs(first.second - 0.5f) < 0.02f)
+        val last = samples.last()
+        val edgeDist = hypot(last.first - 0.5f, last.second - 0.5f)
+        assertTrue("last sample should reach a display corner, dist=$edgeDist", edgeDist > 0.45f)
+        val mid = samples[samples.size / 2]
+        val midDist = hypot(mid.first - 0.5f, mid.second - 0.5f)
+        assertTrue(midDist > 0.2f)
+        assertTrue(midDist < edgeDist)
+    }
+
+    @Test
     fun smallCircle_staysInsideTheDisplay() {
         val samples = PerspectiveCursorProbe.smallCircleSamples(32)
         assertEquals(32, samples.size)

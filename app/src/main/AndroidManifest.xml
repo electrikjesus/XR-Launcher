@@ -62,6 +62,7 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:resizeableActivity="false"
+            android:screenOrientation="landscape"
             android:theme="@style/Theme.XRLauncher.Glasses" />
 
         <activity

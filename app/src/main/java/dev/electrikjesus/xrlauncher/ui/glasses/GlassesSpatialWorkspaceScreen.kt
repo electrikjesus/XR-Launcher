@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
@@ -37,7 +38,9 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.withFrameNanos
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.paneKeyPrefix
 import dev.electrikjesus.xrlauncher.core.workspace.PerspectiveCursorProbe
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
@@ -81,6 +84,7 @@ fun GlassesSpatialWorkspaceScreen(
     onPanelRestore: (String) -> Unit = {},
     onCloseEmbedded: (String) -> Unit = {},
     onPopOutEmbedded: (String) -> Unit = {},
+    onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
     modifier: Modifier = Modifier,
 ) {
@@ -96,6 +100,7 @@ fun GlassesSpatialWorkspaceScreen(
     }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
+    val editingHomeSpace by GlassesSessionState.homeSpaceEditFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
@@ -139,8 +144,8 @@ fun GlassesSpatialWorkspaceScreen(
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
-        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(panNorm, cursor.x),
-        pitchDegrees = GlassesHomeSpace3d.cameraPitchDegrees(cursor.y),
+        yawDegrees = GlassesHomeSpace3d.cameraYawDegrees(panNorm, 0.5f),
+        pitchDegrees = 0f,
         panNormX = 0f,
         panNormY = 0f,
     )
@@ -186,11 +191,17 @@ fun GlassesSpatialWorkspaceScreen(
             homeSpacePanelScale = tuned.panelScale,
             homeSpaceSphereScale = tuned.sphereScale,
             homeSpacePanesEnabled = true,
+            cursorX = cursor.x,
+            cursorY = cursor.y,
+            showSphereCursor = true,
             enabled = true,
             modifier = Modifier.fillMaxSize(),
         )
 
         val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
+        val prefixBounds: (String) -> ((String, Rect) -> Unit) = { paneId ->
+            { key, rect -> onBoundsChanged(HomeSpaceScene.paneKeyPrefix(paneId) + key, rect) }
+        }
         GlassesHomeCarousel(
             panNorm = panNorm,
             cursorX = cursor.x,
@@ -200,6 +211,7 @@ fun GlassesSpatialWorkspaceScreen(
             panelScale = tuned.panelScale,
             sphereScale = tuned.sphereScale,
             captureToGles = true,
+            onBoundsChanged = onBoundsChanged,
             left = {
                 GlassesXrAllAppsLayer(
                     apps = filteredAllApps,
@@ -207,7 +219,7 @@ fun GlassesSpatialWorkspaceScreen(
                     pinnedComponentKeys = pinnedComponentKeys,
                     pageIndex = allAppsPage,
                     onPageChange = { AllAppsPaginationState.goToPage(it) },
-                    onBoundsChanged = onBoundsChanged,
+                    onBoundsChanged = prefixBounds("all_apps"),
                     onLaunchApp = launchApp,
                     onDismiss = { GlassesHomeLook.lookHome() },
                     onAppContextMenu = onAppContextMenu,
@@ -222,7 +234,7 @@ fun GlassesSpatialWorkspaceScreen(
                     hoveredLabel = cursor.hoveredLabel,
                     pageIndex = homePageIndex,
                     onPageChange = { homePageIndex = it },
-                    onBoundsChanged = onBoundsChanged,
+                    onBoundsChanged = prefixBounds("home"),
                     onLaunchApp = launchApp,
                     onOpenAllApps = openAllApps,
                     onOpenRecents = { GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS) },
@@ -236,7 +248,7 @@ fun GlassesSpatialWorkspaceScreen(
             right = {
                 GlassesHomeTrayPane(
                     hoveredLabel = cursor.hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
+                    onBoundsChanged = prefixBounds("tray"),
                     onOpenSettings = onOpenSettings,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -245,7 +257,7 @@ fun GlassesSpatialWorkspaceScreen(
                 GlassesAppPlaneLayer(
                     plane = plane,
                     hoveredLabel = cursor.hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
+                    onBoundsChanged = prefixBounds(plane.panelId),
                     onClose = { onCloseEmbedded(plane.panelId) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -265,8 +277,20 @@ fun GlassesSpatialWorkspaceScreen(
             )
         }
 
+        GlassesHomeTuneOverlay(
+            appearance = tuned,
+            hoveredLabel = cursor.hoveredLabel,
+            editing = editingHomeSpace,
+            onBoundsChanged = onBoundsChanged,
+            onToggleEdit = { GlassesSessionState.toggleHomeSpaceEdit() },
+            onNudge = onTuneAppearance,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .zIndex(4f),
+        )
+
         if (showInAppCursor) {
-            ExternalCursorDot(modifier = Modifier.fillMaxSize())
+            ExternalCursorDot(modifier = Modifier.fillMaxSize().zIndex(5f))
         }
     }
 }

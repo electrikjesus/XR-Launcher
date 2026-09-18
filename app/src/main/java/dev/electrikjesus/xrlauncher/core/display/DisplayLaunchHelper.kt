@@ -22,6 +22,8 @@ import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
     private const val TAG = "XRLauncher/Display"
+    /** android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN (hidden from SDK stubs). */
+    private const val WINDOWING_MODE_FULLSCREEN = 1
 
     fun findSecondaryDisplayId(context: Context): Int? {
         val displayManager = context.getSystemService(DisplayManager::class.java)
@@ -248,13 +250,29 @@ object DisplayLaunchHelper {
     private fun buildLaunchOptions(displayManager: DisplayManager, displayId: Int): ActivityOptions {
         val options = ActivityOptions.makeBasic()
         options.launchDisplayId = displayId
+        applyFullscreenWindowing(options)
         val display = displayManager.getDisplay(displayId) ?: return options
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
         display.getRealMetrics(metrics)
         options.setLaunchBounds(Rect(0, 0, metrics.widthPixels, metrics.heightPixels))
-        Log.d(TAG, "Launch options displayId=$displayId size=${metrics.widthPixels}x${metrics.heightPixels}")
+        Log.d(
+            TAG,
+            "Launch options displayId=$displayId size=${metrics.widthPixels}x${metrics.heightPixels} fullscreen",
+        )
         return options
+    }
+
+    private fun applyFullscreenWindowing(options: ActivityOptions) {
+        try {
+            val method = ActivityOptions::class.java.getMethod(
+                "setLaunchWindowingMode",
+                Int::class.javaPrimitiveType,
+            )
+            method.invoke(options, WINDOWING_MODE_FULLSCREEN)
+        } catch (e: ReflectiveOperationException) {
+            Log.d(TAG, "setLaunchWindowingMode unavailable: ${e.message}")
+        }
     }
 
     private fun Display.isValidSecondaryTarget(displayManager: DisplayManager): Boolean {

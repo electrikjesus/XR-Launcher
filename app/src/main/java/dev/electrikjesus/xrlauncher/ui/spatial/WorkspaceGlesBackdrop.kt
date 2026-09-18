@@ -48,6 +48,9 @@ fun WorkspaceGlesBackdrop(
     homeSpacePanelScale: Float = 1f,
     homeSpaceSphereScale: Float = 1f,
     homeSpacePanesEnabled: Boolean = false,
+    cursorX: Float = 0.5f,
+    cursorY: Float = 0.5f,
+    showSphereCursor: Boolean = false,
     modifier: Modifier = Modifier,
     enabled: Boolean = surroundRoom || (curvature > 0.01f && (
         WorkspaceGlesConfig.showWallpaperCylinder ||
@@ -145,6 +148,9 @@ fun WorkspaceGlesBackdrop(
             renderer.homeSpacePanelScale = homeSpacePanelScale
             renderer.homeSpaceSphereScale = homeSpaceSphereScale
             renderer.homeSpacePanesEnabled = homeSpacePanesEnabled
+            renderer.cursorX = cursorX
+            renderer.cursorY = cursorY
+            renderer.showSphereCursor = showSphereCursor
             renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
             view.requestRender()
         },

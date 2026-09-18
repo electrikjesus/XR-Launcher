@@ -42,6 +42,8 @@ Home Space on glasses must feel like an **FPS camera inside a room**, not a 2D c
 | `UIRenderer` / `OverlayRenderer` | Close, pagination, Edit-mode chrome as GLES controls |
 | `InteractionManager` | Ray-pick from inverted VP matrix (drag, piles, widget hit) |
 
+**Cursor.** Companion (x, y) is a **camera ray**, not a HUD on a flat plane in front of the view. The ray hits the inner Home Space sphere; hover, clicks, and the GLES cursor sit at that intersection (pane UV). Look is `panNorm` only — the cursor does not yaw the camera.
+
 Compose stays as: phone companion UI, offscreen content for textures if needed, and hit-test overlay **after** GLES poses are authoritative.
 
 **Build order (do not skip ahead to a device APK until 2.22 GLES panels exist):**
@@ -575,9 +577,9 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate panel contents with BumpDesk items.** After 2.22 GLES panels exist, port `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture) and `WidgetRenderer` (`AppWidgetHostView` → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`). Home / Desktop / Tray **icons, shortcuts, chrome controls, and widgets** are posed 3D objects on the panel surface (BumpDesk `Box` / `Plane`), not Compose `AppIconCell` grids. Ray-pick via `InteractionManager` (Compose overlay only if GLES hits need a 2D mirror). | ☐ **after 2.22** |
 | 2.21 | **Desktop pane instead of All Apps.** Replace the left carousel pane with a **Desktop** surface: favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop**, **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange**, and **DeskRepository**. All Apps stays a control (pill / search). Requires 2.22 + 2.20. | ☐ **after 2.20** |
-| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☑ Partial — 0.1.8 GLES tessellated thick panes + Compose texture capture; icons/widgets still captured Compose, not `ItemRenderer` |
+| 2.22 | **BumpDesk GLES Home Space (blocking).** Stop using Compose `graphicsLayer` as the camera. Port `BumpRenderer` frame loop (`perspectiveM` + `setLookAtM`), `CameraManager`, `RoomRenderer`, and **tessellated + thick panel meshes** on the Home-Space sphere so look-left/right shows **FPS trapezoids and inner bevels**, not a sliding rectangle. Clock / pills / grids may start as a single panel texture; replace with 2.20 items next. `HomeSpaceScene` math stays as layout authority. **No further Compose perspective APKs until this lands.** | ☑ Partial — 0.1.9 sphere-ray cursor + transparent pane faces; icons/widgets still captured Compose, not `ItemRenderer` |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake` on `ExternalDisplayActivity`, projected glasses activity, and companion while the session is open. Phone sleep was setting SmartGlasses `mOverrideDisplayInfo` OFF. | ☑ Partial — 0.1.7 on-device: companion + glasses windows have `KEEP_SCREEN_ON`; WM holds `SCREEN_BRIGHT_WAKE_LOCK` on display 0 and 46. Override display can still report OFF (OEM quirk). |
-| 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☐ **after 2.22** |
+| 2.24 | **In-scene Edit mode.** Corner control to tune panel scale, sphere/room radius, and icon/element scale on the **GLES** Home Space; persist via `WorkspaceAppearance`. Do not treat Compose sliders as the way to “fix” perspective. | ☑ Partial — 0.1.9 corner Edit overlay on glasses; persists `panelScale` / `sphereScale` / `uiScale` |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -595,11 +597,10 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-1. **On-device check of 2.22** — Confirm looking left/right shows converging/bowed panel edges and inner bevel (not a sliding rectangle).
+1. **On-device check of 0.1.9** — Fullscreen glasses window; Edit in the corner; hover follows the camera→sphere ray out to pane edges (3-turn spiral); pane faces mostly transparent.
 2. **2.20 Items on panels** — Recreate icons, shortcuts, pills/controls, and widgets with `ItemRenderer` / `WidgetRenderer` / `TextureUtils` / `UIRenderer`.
 3. **2.21 Desktop DND** — BumpDesk `InteractionManager` + `Pile` + arrange on the Desktop pane; All Apps remains a control.
-4. **2.24 Edit mode** — Panel / sphere / icon scale in the GLES scene; persist as default appearance.
-5. **Stop** — Do not start 6.9 onboarding in this pass.
+4. **Stop** — Do not start 6.9 onboarding in this pass.
 
 ---
 
@@ -741,7 +742,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.22 blocking:** BumpDesk GLES engine is the Home Space view | Compose `graphicsLayer` keeps straight/isometric edges; no inner bevel |
 | 2026-09-18 | **2.22 GLES panes in 0.1.8:** tessellated sphere patches + thickness, Compose captured as textures | graphicsLayer kept only as an invisible hit overlay |
 | 2026-09-18 | **2.23 keep-awake** + **2.24 GLES Edit mode** after the engine | Caffeine proved phone sleep blanks glasses; scale sliders belong in the 3D scene |
+| 2026-09-18 | **0.1.9:** camera ray onto the inner sphere is the cursor; pane faces mostly transparent; glasses forced fullscreen; Edit in the corner | HUD-plane hover only worked near view center; Desktop Mode freeform; Edit overlay was unwired |
 
 ---
 
-*Last updated: 2026-09-18 (2.22 GLES tessellated thick panes in 0.1.8; next 2.20 ItemRenderer)*
+*Last updated: 2026-09-18 (0.1.9 sphere-ray cursor + Edit overlay + fullscreen; next 2.20 ItemRenderer)*

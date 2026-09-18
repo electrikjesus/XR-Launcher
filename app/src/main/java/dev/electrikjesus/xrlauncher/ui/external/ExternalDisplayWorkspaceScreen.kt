@@ -23,6 +23,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
@@ -129,6 +130,7 @@ private fun FlatGlassesWorkspaceScreen(
         val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
+        val appearance = workspace?.appearance ?: WorkspaceAppearance.default()
 
         Box(modifier = Modifier.fillMaxSize()) {
             GlassesSpatialWorkspaceScreen(
@@ -136,7 +138,7 @@ private fun FlatGlassesWorkspaceScreen(
                 hotseatApps = hotseatApps,
                 pinnedComponentKeys = pinnedKeys,
                 panels = panels,
-                appearance = workspace?.appearance ?: WorkspaceAppearance.default(),
+                appearance = appearance,
                 onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                 onPanelBoundsChanged = { id, rect -> panelBounds[id] = rect },
                 onPanelsChange = { updatedPanels -> panelSaver.save(updatedPanels) },
@@ -154,6 +156,11 @@ private fun FlatGlassesWorkspaceScreen(
                 },
                 onCloseEmbedded = onCloseEmbedded,
                 onPopOutEmbedded = onPopOutEmbedded,
+                onTuneAppearance = { axis, delta ->
+                    scope.launch {
+                        workspaceRepository.updateAppearance(HomeSpaceTune.apply(appearance, axis, delta))
+                    }
+                },
             )
 
             LauncherWorkspaceInteractionLayer(
@@ -172,6 +179,13 @@ private fun FlatGlassesWorkspaceScreen(
                 onLayoutPresetSelected = { preset ->
                     panelSaver.save(WorkspaceLayoutPresets.apply(panels, preset))
                 },
+                onTuneAppearance = { axis, delta ->
+                    scope.launch {
+                        workspaceRepository.updateAppearance(HomeSpaceTune.apply(appearance, axis, delta))
+                    }
+                },
+                panelScale = appearance.clamped().panelScale,
+                sphereScale = appearance.clamped().sphereScale,
                 onPanelBoundsChanged = { panelId, bounds ->
                     panelSaver.save(
                         panels.map { panel ->
