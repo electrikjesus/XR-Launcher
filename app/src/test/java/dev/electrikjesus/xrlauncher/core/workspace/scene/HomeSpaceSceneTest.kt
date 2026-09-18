@@ -40,4 +40,13 @@ class HomeSpaceSceneTest {
         assertTrue(view.x < 0f)
         assertTrue(abs(camera.yawDeg) > 40f)
     }
+
+    @Test
+    fun cursorAtRightEdge_yawsTheFpsCamera() {
+        val center = HomeSpaceScene.camera(0f, 0.5f, 0.5f, 1920f, 1080f)
+        val right = HomeSpaceScene.camera(0f, 1f, 0.5f, 1920f, 1080f)
+        assertEquals(0f, center.yawDeg, 0.2f)
+        assertEquals(HomeSpaceScene.CURSOR_YAW_DEGREES, right.yawDeg, 0.2f)
+        assertTrue(right.yawDeg >= 20f)
+    }
 }

@@ -18,7 +18,7 @@ object HomeSpaceScene {
     const val PANE_GAP_DEGREES = 8f
     const val PANE_WIDTH_FRACTION = 0.74f
     const val PANE_HEIGHT_FRACTION = 0.88f
-    const val CURSOR_YAW_DEGREES = 8f
+    const val CURSOR_YAW_DEGREES = 24f
     const val CURSOR_PITCH_DEGREES = 20f
     const val MAX_PITCH_DEGREES = 24f
 

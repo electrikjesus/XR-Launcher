@@ -25,7 +25,7 @@ object GlassesHomeLook {
     const val PANE_RIGHT = 1f
 
     const val EDGE_START = 0.12f
-    const val PAN_SPEED = 1.35f
+    const val PAN_SPEED = 0.85f
 
     /** Fraction of the viewport between pane centers so neighbors stay in view. */
     const val PANE_SPACING = 0.56f

@@ -648,27 +648,6 @@ private fun CarouselPane(
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                translationX = projected.translationXPx
-                translationY = projected.translationYPx
-                rotationY = projected.rotationYDeg
-                rotationX = projected.rotationXDeg
-                scaleX = projected.scale
-                scaleY = projected.scale
-                alpha = projected.alpha
-                cameraDistance = projected.cameraDistancePx
-                transformOrigin = TransformOrigin(0.5f, 0.5f)
-            },
-    ) {
-        GlassesFovStage(uiScale = uiScale, content = content)
-    }
-}
-
-@Composable
-private fun GlassesFovStage(uiScale: Float, content: @Composable () -> Unit) {
-    Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
@@ -676,6 +655,17 @@ private fun GlassesFovStage(uiScale: Float, content: @Composable () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(GlassesHomeSpace3d.PANE_WIDTH_FRACTION)
                 .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION)
+                .graphicsLayer {
+                    translationX = projected.translationXPx
+                    translationY = projected.translationYPx
+                    rotationY = projected.rotationYDeg
+                    rotationX = projected.rotationXDeg
+                    scaleX = projected.scale
+                    scaleY = projected.scale
+                    alpha = projected.alpha
+                    cameraDistance = projected.cameraDistancePx
+                    transformOrigin = TransformOrigin(0.5f, 0.5f)
+                }
                 .clipToBounds(),
         ) {
             WorkspaceScaledLayer(uiScale = uiScale) {
