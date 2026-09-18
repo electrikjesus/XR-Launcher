@@ -153,10 +153,6 @@ fun GlassesSpatialWorkspaceScreen(
         GlassesRecentApps.seedIfEmpty(hotseatApps)
     }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1_400)
-        PerspectiveCursorProbe.requestPlay()
-    }
-    LaunchedEffect(Unit) {
         PerspectiveCursorProbe.requests.collect {
             PerspectiveCursorProbe.play()
         }

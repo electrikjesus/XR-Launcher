@@ -10,7 +10,8 @@ class GlassesHomeSpace3dTest {
     fun focusedPane_sitsInFrontOfTheCamera() {
         val pose = GlassesHomeSpace3d.paneWorldPose(0f)
         assertEquals(0f, pose.x, 0.001f)
-        assertEquals(-GlassesHomeSpace3d.PANE_RADIUS, pose.z, 0.001f)
+        assertTrue(pose.z < 0f)
+        assertTrue(abs(pose.z) <= GlassesHomeSpace3d.PANE_RADIUS + 0.001f)
         assertEquals(0f, pose.rotationYDeg, 0.001f)
     }
 
@@ -20,7 +21,6 @@ class GlassesHomeSpace3dTest {
         assertTrue(pose.x > 0f)
         assertTrue(pose.z < 0f)
         assertTrue(pose.rotationYDeg < 0f)
-        assertTrue(abs(pose.z) < GlassesHomeSpace3d.PANE_RADIUS)
     }
 
     @Test
@@ -41,7 +41,7 @@ class GlassesHomeSpace3dTest {
     }
 
     @Test
-    fun project_rightPaneSitsToTheRightWithoutSpinning() {
+    fun project_rightPaneSitsToTheRightAtAWorldFacingAngle() {
         val projected = GlassesHomeSpace3d.projectPane(
             worldX = 1f,
             look = 0f,
@@ -52,12 +52,12 @@ class GlassesHomeSpace3dTest {
         )
         assertTrue(projected.visible)
         assertTrue(projected.translationXPx > 700f)
-        assertEquals(0f, projected.rotationYDeg, 0.2f)
+        assertTrue(projected.rotationYDeg < -40f)
         assertTrue(projected.viewZ > -GlassesHomeSpace3d.PANE_RADIUS)
     }
 
     @Test
-    fun lookingRight_centersTheRightPaneAndSlidesHomeLeft() {
+    fun lookingRight_centersTheRightPaneAndShowsHomeFromTheSide() {
         val right = GlassesHomeSpace3d.projectPane(
             worldX = 1f,
             look = 1f,
@@ -78,11 +78,11 @@ class GlassesHomeSpace3dTest {
         assertEquals(0f, right.translationXPx, 8f)
         assertEquals(0f, right.rotationYDeg, 0.5f)
         assertTrue(home.translationXPx < -700f)
-        assertEquals(0f, home.rotationYDeg, 0.5f)
+        assertTrue(home.rotationYDeg > 40f)
     }
 
     @Test
-    fun lookingDown_shiftsTheFrontPaneUp() {
+    fun lookingDown_shiftsTheFrontPaneUpAndPitchesTheCamera() {
         val projected = GlassesHomeSpace3d.projectPane(
             worldX = 0f,
             look = 0f,
@@ -93,7 +93,7 @@ class GlassesHomeSpace3dTest {
         )
         assertTrue(projected.visible)
         assertTrue(projected.translationYPx < -80f)
-        assertEquals(0f, projected.rotationXDeg, 0.2f)
+        assertTrue(projected.rotationXDeg < -10f)
         val lookingUp = GlassesHomeSpace3d.projectPane(
             worldX = 0f,
             look = 0f,
@@ -103,7 +103,13 @@ class GlassesHomeSpace3dTest {
             viewportHeightPx = 1080f,
         )
         assertTrue(lookingUp.translationYPx > 80f)
-        assertEquals(0f, lookingUp.rotationXDeg, 0.2f)
+        assertTrue(lookingUp.rotationXDeg > 10f)
+    }
+
+    @Test
+    fun cameraDistance_matchesVerticalFov() {
+        val distance = GlassesHomeSpace3d.perspectiveCameraDistancePx(1080f)
+        assertTrue(distance in 800f..950f)
     }
 
     @Test

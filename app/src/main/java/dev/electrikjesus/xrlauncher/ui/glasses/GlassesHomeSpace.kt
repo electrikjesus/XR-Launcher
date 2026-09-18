@@ -675,7 +675,8 @@ private fun GlassesFovStage(uiScale: Float, content: @Composable () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(GlassesHomeSpace3d.PANE_WIDTH_FRACTION)
-                .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION),
+                .fillMaxHeight(GlassesHomeSpace3d.PANE_HEIGHT_FRACTION)
+                .clipToBounds(),
         ) {
             WorkspaceScaledLayer(uiScale = uiScale) {
                 content()

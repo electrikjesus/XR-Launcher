@@ -539,7 +539,8 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Borrow BumpDesk icon + widget paths** (`/home/electrikjesus/AndroidStudioProjects/BumpDesk`) that already work in a real 3D scene, instead of re-solving them. Icons: `ItemRenderer` + `TextureUtils` (drawable → bitmap, icon+label atlas, cache keys, GL texture). Widgets: `WidgetRenderer` (`AppWidgetHostView` measure/layout → `Canvas`/`Bitmap` → `textureManager.updateTextureFromBitmap`, posed on a wall/floor with XYZ). Port the working methods into XR-Launcher’s Home Space objects (each with a Z) and keep Compose hit-testing. | ☐ |
-| 2.21 | **Desktop pane instead of All Apps.** Replace the left All Apps carousel pane with a **Desktop** pane: user favorites (pinned / hotseat) plus widgets, BumpDesk-style. All Apps stays reachable from a control (pill / search) rather than occupying a dedicated look-left pane. | ☐ |
+| 2.21 | **Desktop pane instead of All Apps.** Replace the left All Apps carousel pane with a **Desktop** pane: user favorites (pinned / hotseat) plus widgets. Port BumpDesk **drag/drop** (`InteractionManager` ray-pick + drag), **piles/groups** (`Pile` stack/grid/carousel, lasso), **arrange on a surface**, and **DeskRepository** persistence so users can move icons, group them, and lay out widgets. All Apps stays reachable from a control (pill / search). | ☐ |
+| 2.22 | **Game-engine Home Space.** Treat Home Space like BumpTop/BumpDesk, not a Compose carousel: `Vec3` entities, FPS camera at the origin (`setLookAt` / yaw-pitch), pane quads whose **corners sit on an invisible sphere**, overlap tests in world space, later GLES textured quads (`RoomRenderer` / `ItemRenderer`) with Compose as a view of the scene. Spatial feel (look, spacing, intersection) is checked against the scene, not screen-space fakes. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -700,8 +701,9 @@ Record major choices here as they are made.
 | 2026-06-11 | **No `adb install` over Wi‑Fi** on dev machine | Use file-transfer app; ADB for logcat/dumpsys only |
 | 2026-09-18 | **Onboarding 6.9 (backlog):** full permission check + App Info restricted-settings path for desktop cursor accessibility | Sideloaded builds cannot enable the accessibility service until Restricted settings is allowed on App Info |
 | 2026-09-18 | **2.20 (backlog):** reuse BumpDesk `ItemRenderer` / `WidgetRenderer` for 3D launcher icons and live AppWidget textures | Those paths already bind icons and host widgets onto posed 3D surfaces |
-| 2026-09-18 | **2.21 (backlog):** replace the All Apps look-left pane with a Desktop pane (favorites + widgets) | Home Space should feel like a desk, not a drawer; All Apps remains a control |
+| 2026-09-18 | **2.21 (backlog):** Desktop pane with BumpDesk drag/drop, piles/groups, arrange, and widgets | Home Space should feel like a desk; All Apps remains a control |
+| 2026-09-18 | **2.22:** game-engine Home Space (FPS camera, sphere-corner panes, world overlap tests) | Compose graphicsLayer fakes read as isometric and overlapping; BumpDesk already solves this as a scene |
 
 ---
 
-*Last updated: 2026-09-18 (2.21 Desktop pane; Home Space camera-turn)*
+*Last updated: 2026-09-18 (2.22 game-engine Home Space; 2.21 desktop DND/piles)*
