@@ -3,6 +3,7 @@ package dev.electrikjesus.xrlauncher.core.display
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,25 +92,54 @@ object GlassesSessionState {
     /** Live XR session panel embedder when [PanelEmbedRegistry.fromActivity] succeeds (Tier 3). */
     var panelEmbedRegistry: PanelEmbedRegistry? = null
 
+    private val _homeOverlay = MutableStateFlow(GlassesHomeOverlay.NONE)
+    val homeOverlayFlow: StateFlow<GlassesHomeOverlay> = _homeOverlay.asStateFlow()
+
+    var homeOverlay: GlassesHomeOverlay
+        get() = _homeOverlay.value
+        set(value) {
+            _homeOverlay.value = value
+            _allAppsOverlayVisible.value = value == GlassesHomeOverlay.ALL_APPS
+        }
+
+    fun showHomeOverlay(overlay: GlassesHomeOverlay) {
+        homeOverlay = overlay
+    }
+
+    fun hideHomeOverlays() {
+        homeOverlay = GlassesHomeOverlay.NONE
+    }
+
+    fun toggleHomeOverlay(overlay: GlassesHomeOverlay) {
+        homeOverlay = if (homeOverlay == overlay) GlassesHomeOverlay.NONE else overlay
+    }
+
     private val _allAppsOverlayVisible = MutableStateFlow(false)
     val allAppsOverlayVisibleFlow: StateFlow<Boolean> = _allAppsOverlayVisible.asStateFlow()
 
     var allAppsOverlayVisible: Boolean
         get() = _allAppsOverlayVisible.value
         set(value) {
-            _allAppsOverlayVisible.value = value
+            homeOverlay = if (value) GlassesHomeOverlay.ALL_APPS else GlassesHomeOverlay.NONE
         }
 
     fun showAllAppsOverlay() {
-        allAppsOverlayVisible = true
+        homeOverlay = GlassesHomeOverlay.NONE
+        AllAppsPaginationState.reset()
+        GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
     }
 
     fun hideAllAppsOverlay() {
-        allAppsOverlayVisible = false
+        if (homeOverlay == GlassesHomeOverlay.ALL_APPS) {
+            homeOverlay = GlassesHomeOverlay.NONE
+        }
+        if (GlassesHomeLook.lookingAtAllApps()) {
+            GlassesHomeLook.lookHome()
+        }
     }
 
     fun toggleAllAppsOverlay() {
-        allAppsOverlayVisible = !allAppsOverlayVisible
+        toggleHomeOverlay(GlassesHomeOverlay.ALL_APPS)
     }
 
     private val _layoutPresetsVisible = MutableStateFlow(false)
@@ -152,9 +182,11 @@ object GlassesSessionState {
         )
         subspaceOuterComposed = false
         subspaceInnerComposed = false
+        _homeOverlay.value = GlassesHomeOverlay.NONE
         allAppsOverlayVisible = false
         layoutPresetsVisible = false
         AllAppsPaginationState.reset()
+        GlassesHomeLook.reset()
         _xrInputMode.value = GlassesXrInputMode.COMPANION
         rayNeoUsbAttached = false
         RayNeoHeadTrackingController.stop()

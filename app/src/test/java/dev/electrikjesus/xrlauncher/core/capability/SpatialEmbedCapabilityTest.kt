@@ -35,6 +35,24 @@ class SpatialEmbedCapabilityTest {
     }
 
     @Test
+    fun canOpenInFocusedPlane_requiresSpatialEmbed() {
+        assertEquals(
+            false,
+            SpatialEmbedCapability.canOpenInFocusedPlane(
+                hasSpatialApi = false,
+                canEmbedActivity = true,
+            ),
+        )
+        assertEquals(
+            false,
+            SpatialEmbedCapability.canOpenInFocusedPlane(
+                hasSpatialApi = true,
+                canEmbedActivity = false,
+            ),
+        )
+    }
+
+    @Test
     fun launchLabel_withoutSpatialApi_isFullLaunch() {
         val panel = PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT)
         assertEquals("Full launch", SpatialEmbedCapability.launchLabel(hasSpatialApi = false, panel))

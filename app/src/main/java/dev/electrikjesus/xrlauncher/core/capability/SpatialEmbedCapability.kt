@@ -12,6 +12,10 @@ object SpatialEmbedCapability {
 
     fun canEmbedActivities(context: Context): Boolean = hasSpatialApi(context)
 
+    /** True when a third-party app can occupy a focused Home Space plane. */
+    fun canOpenInFocusedPlane(hasSpatialApi: Boolean, canEmbedActivity: Boolean): Boolean =
+        hasSpatialApi && canEmbedActivity
+
     fun preferredEmbedMode(context: Context, panel: PanelState): EmbedMode =
         preferredEmbedMode(hasSpatialApi(context), panel)
 

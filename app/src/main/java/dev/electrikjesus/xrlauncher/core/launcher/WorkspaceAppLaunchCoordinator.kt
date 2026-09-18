@@ -5,7 +5,10 @@ import android.content.ComponentName
 import android.view.Display
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import dev.electrikjesus.xrlauncher.core.capability.SpatialEmbedCapability
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -27,20 +30,49 @@ class WorkspaceAppLaunchCoordinator(
         displayId: Int,
         moveLauncherToBack: () -> Unit,
     ): PanelLaunchResult {
-        val focusedPanelId = CompanionPointerBus.focusedPanelId.value
-        val panel = when (focusedPanelId) {
-            "empty_slot" -> PanelState(id = "empty_slot", kind = PanelKind.EMPTY_SLOT, visible = true)
-            else -> PanelState(id = "full_window", kind = PanelKind.EMPTY_SLOT)
-        }
-        if (panel.id == "empty_slot") {
-            assignEmptySlotHost(app)
+        if (tryOpenInFocusedPlane(app)) {
+            return PanelLaunchResult.Embedded
         }
         return panelLauncher.launchInPanel(
-            panel = panel,
+            panel = PanelState(id = "full_window", kind = PanelKind.EMPTY_SLOT),
             componentName = app.componentName,
             displayId = displayId,
             moveLauncherToBack = moveLauncherToBack,
         )
+    }
+
+    /**
+     * Host [app] on a new Home Space plane when Jetpack XR activity embed is live.
+     * Previous planes stay to the left of the new focus. Returns false to fullscreen.
+     */
+    private fun tryOpenInFocusedPlane(app: LaunchableApp): Boolean {
+        val registry = embedRegistry ?: return false
+        if (!SpatialEmbedCapability.canOpenInFocusedPlane(
+                hasSpatialApi = SpatialEmbedCapability.hasSpatialApi(activity),
+                canEmbedActivity = registry.canEmbed(),
+            )
+        ) {
+            return false
+        }
+        val panelId = "app_${app.packageName}"
+        val panel = PanelState(
+            id = panelId,
+            kind = PanelKind.EMPTY_SLOT,
+            visible = true,
+            hostedComponentKey = app.componentKey(),
+        )
+        if (!registry.embedLaunch(panel, app.componentName)) {
+            return false
+        }
+        GlassesHomeLook.openAppPlane(
+            GlassesAppPlane(
+                panelId = panelId,
+                componentKey = app.componentKey(),
+                label = app.label,
+            ),
+        )
+        CompanionPointerBus.setFocusedPanelId(panelId)
+        return true
     }
 
     fun launchFromSpatialDesktop(
@@ -69,12 +101,14 @@ class WorkspaceAppLaunchCoordinator(
         val registry = embedRegistry ?: return false
         val component = registry.getHostedComponent(panelId) ?: return false
         registry.closeEmbedded(panelId)
+        GlassesHomeLook.closeAppPlane(panelId)
         appLauncher.launchOnDisplay(component, displayId)
         return true
     }
 
     fun closeEmbedded(panelId: String) {
         embedRegistry?.closeEmbedded(panelId)
+        GlassesHomeLook.closeAppPlane(panelId)
         if (panelId == "empty_slot") {
             (activity as? ComponentActivity)?.lifecycleScope?.launch {
                 workspaceRepository.assignPanelHost("empty_slot", componentKey = null)

@@ -13,6 +13,7 @@ import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity
 
 object DisplayLaunchHelper {
@@ -138,7 +139,8 @@ object DisplayLaunchHelper {
     }
 
     fun showLauncherOnGlasses(context: Context): Boolean {
-        GlassesSessionState.hideAllAppsOverlay()
+        GlassesSessionState.hideHomeOverlays()
+        GlassesHomeLook.lookHome()
         val displayId = resolveSecondaryDisplayId(context, GlassesSessionState.secondaryDisplayId)
             ?: return false
         applySessionControlMode()
@@ -156,22 +158,23 @@ object DisplayLaunchHelper {
         }
     }
 
-    /** Bring launcher to foreground on glasses and open the full-screen All Apps picker. */
+    /** Bring launcher to foreground on glasses and look at the All Apps pane. */
     fun openAllAppsOnGlasses(context: Context): Boolean {
         val shown = showLauncherOnGlasses(context)
         if (shown) {
-            GlassesSessionState.showAllAppsOverlay()
+            GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT)
         }
         return shown
     }
 
     fun closeAllAppsOnGlasses() {
-        GlassesSessionState.hideAllAppsOverlay()
+        GlassesSessionState.hideHomeOverlays()
+        GlassesHomeLook.lookHome()
     }
 
-    /** Open All Apps on glasses, or dismiss it if it is already showing. */
+    /** Open All Apps on glasses, or return to Home if that pane is already in view. */
     fun toggleAllAppsOnGlasses(context: Context): Boolean {
-        if (GlassesSessionState.allAppsOverlayVisible) {
+        if (GlassesHomeLook.lookingAtAllApps()) {
             closeAllAppsOnGlasses()
             return true
         }

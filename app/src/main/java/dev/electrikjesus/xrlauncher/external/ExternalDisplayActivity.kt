@@ -21,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AppLauncher
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.PanelEmbedRegistry
+import dev.electrikjesus.xrlauncher.core.launcher.PanelLaunchResult
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
@@ -147,12 +148,17 @@ class ExternalDisplayActivity : ComponentActivity() {
         if (now - lastLaunchAtMs < LAUNCH_DEBOUNCE_MS) return
         lastLaunchAtMs = now
         Log.d(TAG, "Launching ${app.label} on displayId=$displayId")
-        GlassesSessionState.markLauncherBackgrounded()
-        launchCoordinator.launchFromGlasses(
+        val result = launchCoordinator.launchFromGlasses(
             app = app,
             displayId = displayId,
-            moveLauncherToBack = { window.decorView.post { moveTaskToBack(true) } },
+            moveLauncherToBack = {
+                GlassesSessionState.markLauncherBackgrounded()
+                window.decorView.post { moveTaskToBack(true) }
+            },
         )
+        if (result is PanelLaunchResult.Embedded) {
+            GlassesSessionState.markLauncherForeground()
+        }
     }
 
     private fun syncSessionDisplayId() {

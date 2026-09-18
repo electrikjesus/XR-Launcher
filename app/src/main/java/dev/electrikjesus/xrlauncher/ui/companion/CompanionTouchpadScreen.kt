@@ -9,16 +9,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -41,7 +46,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
@@ -55,6 +63,7 @@ import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.settings.SettingsActivity
 import dev.electrikjesus.xrlauncher.ui.workspace.CompanionAllAppsPageControls
@@ -93,9 +102,14 @@ fun CompanionTouchpadScreen(
     val touchpadClickSuppressed = textEntryActive || precisionPointer
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
+    val lookingAtAllApps = panNorm <= GlassesHomeLook.PANE_LEFT + 0.55f
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
     var showControls by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val keyboardFocus = remember { FocusRequester() }
+    var keyboardBuffer by remember { mutableStateOf("") }
 
     val statusHint = when {
         !desktopPointerReady -> stringResource(R.string.control_mode_desktop_setup_hint)
@@ -121,8 +135,72 @@ fun CompanionTouchpadScreen(
                     contentDescription = stringResource(R.string.companion_show_controls),
                 )
             }
+            IconButton(
+                onClick = {
+                    GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+                    CompanionPointerBus.recenterCursor()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TouchApp,
+                    contentDescription = stringResource(R.string.companion_cursor_touchpad),
+                    tint = if (xrInputMode == GlassesXrInputMode.COMPANION) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+            IconButton(
+                onClick = {
+                    if (!rayNeoUsbAttached) return@IconButton
+                    GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+                    CompanionPointerBus.recenterCursor()
+                },
+                enabled = rayNeoUsbAttached,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = stringResource(R.string.companion_cursor_head),
+                    tint = if (xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+            IconButton(
+                onClick = {
+                    CompanionPointerBus.recenterCursor()
+                    GlassesHomeLook.lookHome()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FilterCenterFocus,
+                    contentDescription = stringResource(R.string.recenter),
+                )
+            }
+            IconButton(
+                onClick = {
+                    CompanionPointerBus.setTextEntryActive(true)
+                    keyboardFocus.requestFocus()
+                    keyboardController?.show()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Keyboard,
+                    contentDescription = stringResource(R.string.companion_show_keyboard),
+                )
+            }
+            BasicTextField(
+                value = keyboardBuffer,
+                onValueChange = { keyboardBuffer = it },
+                modifier = Modifier
+                    .size(1.dp)
+                    .focusRequester(keyboardFocus),
+            )
             Spacer(modifier = Modifier.weight(1f))
-            if (allAppsOverlayVisible) {
+            if (lookingAtAllApps || allAppsOverlayVisible) {
                 FilledTonalButton(
                     onClick = { DisplayLaunchHelper.closeAllAppsOnGlasses() },
                     shape = MaterialTheme.shapes.extraLarge,
@@ -178,7 +256,7 @@ fun CompanionTouchpadScreen(
                         modifier = Modifier.weight(1f),
                     )
                     AllAppsOnGlassesButton(
-                        overlayVisible = allAppsOverlayVisible,
+                        overlayVisible = lookingAtAllApps || allAppsOverlayVisible,
                         onClick = { DisplayLaunchHelper.toggleAllAppsOnGlasses(context) },
                         modifier = Modifier.weight(1f),
                     )

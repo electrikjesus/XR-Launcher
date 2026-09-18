@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,13 +26,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
-import androidx.compose.foundation.layout.BoxWithConstraints
-import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
+import androidx.compose.runtime.withFrameNanos
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.PanelBounds
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
 import dev.electrikjesus.xrlauncher.ui.workspace.DraggableWorkspacePanelShell
@@ -89,7 +93,11 @@ fun GlassesSpatialWorkspaceScreen(
         AppRepository.filterLaunchableApps(launchableApps, allAppsSearchQuery)
     }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
+    val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
+    val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
+    val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
+    var homePageIndex by remember { mutableStateOf(0) }
 
     LaunchedEffect(allAppsOverlayVisible) {
         if (allAppsOverlayVisible) {
@@ -138,8 +146,27 @@ fun GlassesSpatialWorkspaceScreen(
         lookYawDegrees = lookYaw,
         lookPitchDegrees = lookPitch,
     )
-    val openAllApps = { GlassesSessionState.showAllAppsOverlay() }
-    val allAppsHovered = cursor.hoveredLabel == AllAppsLauncher.HOVER_LABEL
+    val openAllApps = { GlassesHomeLook.lookAt(GlassesHomeLook.PANE_LEFT) }
+    val launchApp: (LaunchableApp) -> Unit = { app ->
+        GlassesRecentApps.record(app)
+        GlassesSessionState.hideHomeOverlays()
+        onLaunchApp?.invoke(app)
+    }
+    LaunchedEffect(hotseatApps) {
+        GlassesRecentApps.seedIfEmpty(hotseatApps)
+    }
+    LaunchedEffect(Unit) {
+        var lastFrame = 0L
+        while (true) {
+            withFrameNanos { now ->
+                if (lastFrame != 0L) {
+                    val dt = ((now - lastFrame).coerceAtMost(50_000_000L)) / 1_000_000_000f
+                    GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
+                }
+                lastFrame = now
+            }
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         WorkspaceWallpaper(
@@ -151,123 +178,71 @@ fun GlassesSpatialWorkspaceScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        WorkspaceScaledLayer(uiScale = uiScale) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        horizontal = if (useFreeform) 12.dp else 20.dp,
-                        vertical = if (useFreeform) 8.dp else 16.dp,
-                    ),
-            ) {
-                GlassesWorkspaceTitleBar(
-                    onOpenSettings = onOpenSettings,
+        val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
+        GlassesHomeCarousel(
+            panNorm = panNorm,
+            appPlanes = appPlanes,
+            left = {
+                GlassesXrAllAppsLayer(
+                    apps = filteredAllApps,
+                    hoveredLabel = cursor.hoveredLabel,
+                    pinnedComponentKeys = pinnedComponentKeys,
+                    pageIndex = allAppsPage,
+                    onPageChange = { AllAppsPaginationState.goToPage(it) },
                     onBoundsChanged = onBoundsChanged,
-                    layoutSelected = showLayoutPresets,
-                    onToggleLayout = { GlassesSessionState.toggleLayoutPresets() },
+                    onLaunchApp = launchApp,
+                    onDismiss = { GlassesHomeLook.lookHome() },
+                    onAppContextMenu = onAppContextMenu,
+                    modifier = Modifier.fillMaxSize(),
                 )
-                if (showLayoutPresets) {
-                    WorkspaceLayoutPresetBar(
-                        activePreset = activePreset,
-                        onPresetSelected = { preset ->
-                            activePreset = preset
-                            onPanelsChange(WorkspaceLayoutPresets.apply(panels, preset))
-                        },
-                        onBoundsChanged = onBoundsChanged,
-                    )
-                }
-                WorkspaceWraparoundLayer(
-                    appearance = tuned,
-                    cursorX = cursor.x,
-                    cursorY = cursor.y,
-                    panels = visiblePanels,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        if (useFreeform) {
-                            FreeformGlassesPanelLayout(
-                                panels = visiblePanels,
-                                launchableApps = launchableApps,
-                                focusedPanelId = focusedPanelId,
-                                hotseatApps = hotseatApps,
-                                pinnedComponentKeys = pinnedComponentKeys,
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { searchQuery = it },
-                                drawerApps = filteredApps,
-                                hoveredLabel = cursor.hoveredLabel,
-                                onBoundsChanged = onBoundsChanged,
-                                onPanelBoundsChanged = onPanelBoundsChanged,
-                                onPanelFrameChanged = ::updatePanelBounds,
-                                onLaunchApp = onLaunchApp,
-                                onOpenAllApps = openAllApps,
-                                onAppContextMenu = onAppContextMenu,
-                                onPanelMinimize = onPanelMinimize,
-                                onPanelClose = onPanelClose,
-                                onPanelRestore = onPanelRestore,
-                                onCloseEmbedded = onCloseEmbedded,
-                                onPopOutEmbedded = onPopOutEmbedded,
-                                allAppsHovered = allAppsHovered,
-                                panelGapDp = panelGapDp,
-                                wrapCurvature = wrapCurvature,
-                                workspaceWidth = workspaceWidth,
-                                workspaceHeight = workspaceHeight,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            GlassesPanelLayout(
-                                panels = visiblePanels,
-                                launchableApps = launchableApps,
-                                focusedPanelId = focusedPanelId,
-                                hotseatApps = hotseatApps,
-                                pinnedComponentKeys = pinnedComponentKeys,
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { searchQuery = it },
-                                drawerApps = filteredApps,
-                                hoveredLabel = cursor.hoveredLabel,
-                                onBoundsChanged = onBoundsChanged,
-                                onPanelBoundsChanged = onPanelBoundsChanged,
-                                onLaunchApp = onLaunchApp,
-                                onOpenAllApps = openAllApps,
-                                onAppContextMenu = onAppContextMenu,
-                                onPanelMinimize = onPanelMinimize,
-                                onPanelClose = onPanelClose,
-                                onPanelRestore = onPanelRestore,
-                                onCloseEmbedded = onCloseEmbedded,
-                                onPopOutEmbedded = onPopOutEmbedded,
-                                allAppsHovered = allAppsHovered,
-                                panelGapDp = panelGapDp,
-                                wrapCurvature = wrapCurvature,
-                                workspaceWidth = workspaceWidth,
-                                workspaceHeight = workspaceHeight,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
+            },
+            center = {
+                GlassesHomeSpace(
+                    launchableApps = launchableApps,
+                    hotseatApps = hotseatApps,
+                    pinnedComponentKeys = pinnedComponentKeys,
+                    hoveredLabel = cursor.hoveredLabel,
+                    pageIndex = homePageIndex,
+                    onPageChange = { homePageIndex = it },
+                    onBoundsChanged = onBoundsChanged,
+                    onLaunchApp = launchApp,
+                    onOpenAllApps = openAllApps,
+                    onOpenRecents = { GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS) },
+                    onOpenNotifications = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
+                    onOpenQuickSettings = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
+                    onOpenSettings = onOpenSettings,
+                    onAppContextMenu = onAppContextMenu,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            },
+            right = {
+                GlassesHomeTrayPane(
+                    hoveredLabel = cursor.hoveredLabel,
+                    onBoundsChanged = onBoundsChanged,
+                    onOpenSettings = onOpenSettings,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            },
+            appPane = { plane ->
+                GlassesAppPlaneLayer(
+                    plane = plane,
+                    hoveredLabel = cursor.hoveredLabel,
+                    onBoundsChanged = onBoundsChanged,
+                    onClose = { onCloseEmbedded(plane.panelId) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
 
-                        WorkspaceLauncherStatusHints(
-                            hoveredLabel = cursor.hoveredLabel,
-                            focusedPanelId = focusedPanelId,
-                            launcherForeground = launcherForeground,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 12.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        if (allAppsOverlayVisible && onLaunchApp != null) {
-            WorkspaceAllAppsOverlay(
-                appCount = launchableApps.size,
-                searchQuery = allAppsSearchQuery,
-                onSearchQueryChange = { allAppsSearchQuery = it },
-                apps = filteredAllApps,
+        if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
+            GlassesRecentsLayer(
+                recents = GlassesRecentApps.list(),
                 hoveredLabel = cursor.hoveredLabel,
-                pinnedComponentKeys = pinnedComponentKeys,
                 onBoundsChanged = onBoundsChanged,
-                onLaunchApp = onLaunchApp,
-                onDismiss = { GlassesSessionState.hideAllAppsOverlay() },
-                onAppContextMenu = onAppContextMenu,
+                onLaunchApp = launchApp,
+                onClear = { GlassesRecentApps.clear() },
+                onDismiss = { GlassesSessionState.hideHomeOverlays() },
                 modifier = Modifier.fillMaxSize(),
             )
         }

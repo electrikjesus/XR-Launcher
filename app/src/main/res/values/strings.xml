@@ -201,4 +201,21 @@
     <string name="desktop_shortcuts_title">Keyboard shortcuts</string>
     <string name="desktop_shortcuts_body">Tab / ← → — focus next panel\nEnter — launch app in focused panel\n1 / 2 / 3 — layout preset Single / Dual / Triptych\n? — show this help\nEsc — dismiss help</string>
     <string name="desktop_shortcuts_dismiss">Press Esc or ? to dismiss</string>
+    <string name="xr_home">Home</string>
+    <string name="xr_recents">Recents</string>
+    <string name="xr_recents_empty">No recent apps</string>
+    <string name="xr_notifications">Notifications</string>
+    <string name="xr_notifications_empty_title">Silent</string>
+    <string name="xr_notifications_empty_body">Notifications from apps on glasses will show here.</string>
+    <string name="xr_quick_settings">Quick settings</string>
+    <string name="xr_clear_all">Clear all</string>
+    <string name="xr_qs_internet">Internet</string>
+    <string name="xr_qs_bluetooth">Bluetooth</string>
+    <string name="xr_qs_dark_theme">Dark theme</string>
+    <string name="xr_qs_brightness">Brightness</string>
+    <string name="xr_qs_power">Power</string>
+    <string name="xr_spatial_window_body">%1$s is open in this space. Look left to return to Home.</string>
+    <string name="companion_show_keyboard">Keyboard</string>
+    <string name="companion_cursor_touchpad">Touchpad cursor</string>
+    <string name="companion_cursor_head">Head tracking cursor</string>
 </resources>

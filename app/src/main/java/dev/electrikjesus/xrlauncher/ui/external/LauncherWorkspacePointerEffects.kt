@@ -9,12 +9,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
@@ -102,8 +106,10 @@ fun LauncherWorkspacePointerEffects(
         allAppsOverlayVisible,
     ) {
         val point = Offset(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
+        val homeHover = homeHitKey(point, itemBounds)?.let { GlassesHomeHits.hoverLabel(it) }
         val hoverLabel = when {
             LauncherContextMenuState.isOpen -> null
+            homeHover != null -> homeHover
             allAppsOverlayVisible &&
                 itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true ->
                 AllAppsOverlayHits.CLOSE_HOVER_LABEL
@@ -214,6 +220,7 @@ private fun handleLeftClick(
         LauncherContextMenuState.dismiss()
         return
     }
+    if (handleHomeSpaceClick(point, itemBounds, onOpenSettings, onOpenAllApps)) return
     val overlayVisible = GlassesSessionState.allAppsOverlayVisible
     val hitClose = itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitAllAppsLauncher = itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true
@@ -260,11 +267,52 @@ private fun handleLeftClick(
     }
     findAppAt(point, itemBounds, apps)?.let { app ->
         Log.d(LOG_TAG, "left-click hit app=${app.label}")
-        GlassesSessionState.hideAllAppsOverlay()
+        GlassesSessionState.hideHomeOverlays()
         onLaunchApp(app)
         return
     }
     logClickMiss(point, itemBounds)
+}
+
+private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
+    val contains: (String) -> Boolean = { key ->
+        itemBounds[key]?.containsWithSlop(point) == true
+    }
+    GlassesHomeHits.actionKeyAt(contains)?.let { return it }
+    return itemBounds.keys.firstOrNull { key ->
+        GlassesHomeHits.appClosePanelId(key) != null && contains(key)
+    }
+}
+
+private fun handleHomeSpaceClick(
+    point: Offset,
+    itemBounds: Map<String, Rect>,
+    onOpenSettings: () -> Unit,
+    onOpenAllApps: () -> Unit,
+): Boolean {
+    val key = homeHitKey(point, itemBounds) ?: return false
+    Log.d(LOG_TAG, "left-click hit home chrome=$key")
+    GlassesHomeHits.appClosePanelId(key)?.let { panelId ->
+        GlassesHomeLook.closeAppPlane(panelId)
+        GlassesSessionState.panelEmbedRegistry?.closeEmbedded(panelId)
+        return true
+    }
+    when (key) {
+        GlassesHomeHits.HOME, GlassesHomeHits.OVERLAY_CLOSE -> {
+            GlassesSessionState.hideHomeOverlays()
+            GlassesHomeLook.lookHome()
+        }
+        GlassesHomeHits.ALL_APPS -> onOpenAllApps()
+        GlassesHomeHits.RECENTS ->
+            GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS)
+        GlassesHomeHits.NOTIFICATIONS, GlassesHomeHits.QUICK_SETTINGS ->
+            GlassesHomeLook.lookAt(GlassesHomeLook.trayPane())
+        GlassesHomeHits.SETTINGS -> onOpenSettings()
+        GlassesHomeHits.RECENTS_CLEAR -> GlassesRecentApps.clear()
+        GlassesHomeHits.NOTIFICATIONS_CLEAR -> { }
+        else -> return false
+    }
+    return true
 }
 
 private fun isPaginationHit(point: Offset, itemBounds: Map<String, Rect>): Boolean {

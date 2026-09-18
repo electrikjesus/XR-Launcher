@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -15,7 +16,10 @@ import java.util.Date
 import kotlinx.coroutines.delay
 
 @Composable
-fun ClockWidgetPanel(modifier: Modifier = Modifier) {
+fun ClockWidgetPanel(
+    modifier: Modifier = Modifier,
+    centered: Boolean = false,
+) {
     val now by produceState(initialValue = Date(), key1 = Unit) {
         while (true) {
             value = Date()
@@ -27,6 +31,7 @@ fun ClockWidgetPanel(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
     ) {
         Text(
             text = time,
