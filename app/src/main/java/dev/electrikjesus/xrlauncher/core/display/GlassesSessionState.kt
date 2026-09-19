@@ -194,6 +194,13 @@ object GlassesSessionState {
             _homeSpaceEditPage.value = value
         }
 
+    /**
+     * True while the primary activity is running Expanded/host GLES Home Space
+     * (no glasses display). Settings open as in-engine dialogs instead of SettingsActivity.
+     */
+    @Volatile
+    var hostImmersiveSession: Boolean = false
+
     private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
     val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
 

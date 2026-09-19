@@ -23,9 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.IntSize
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
@@ -45,8 +48,12 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
+import dev.electrikjesus.xrlauncher.ui.host.HostSettingsDialogLayer
+import dev.electrikjesus.xrlauncher.ui.workspace.LocalWorkspaceViewportPx
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import kotlinx.coroutines.delay
@@ -99,6 +106,7 @@ fun GlassesSpatialWorkspaceScreen(
     onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
     appearance: WorkspaceAppearance = WorkspaceAppearance.default(),
     workspaceRepository: WorkspaceRepository? = null,
+    showHostChrome: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val cursor by CompanionPointerBus.cursor.collectAsState()
@@ -110,6 +118,7 @@ fun GlassesSpatialWorkspaceScreen(
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
     val editingHomeSpace by GlassesSessionState.homeSpaceEditFlow.collectAsState()
+    val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
     val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
@@ -317,7 +326,13 @@ fun GlassesSpatialWorkspaceScreen(
     }
 
     val homeSlots = remember(appPlanes) { GlassesHomeLook.homeSpaceSlots(appPlanes) }
-    Box(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val overlayViewport = with(LocalDensity.current) {
+            IntSize(
+                maxWidth.toPx().toInt().coerceAtLeast(1),
+                maxHeight.toPx().toInt().coerceAtLeast(1),
+            )
+        }
         WorkspaceGlesBackdrop(
             camera = homeCamera,
             curvature = 1f,
@@ -402,14 +417,38 @@ fun GlassesSpatialWorkspaceScreen(
             )
         }
 
+        CompositionLocalProvider(
+            LocalWorkspaceViewportPx provides overlayViewport,
+        ) {
         GlassesHomeTuneOverlay(
             appearance = tuned,
             hoveredLabel = cursor.hoveredLabel,
             editing = editingHomeSpace,
+            immersiveDialog = true,
             onBoundsChanged = onBoundsChanged,
             onToggleEdit = { GlassesSessionState.toggleHomeSpaceEdit() },
             onNudge = onTuneAppearance,
         )
+
+        if (hostDialog == HomeSpaceDialog.SETTINGS && workspaceRepository != null) {
+            HostSettingsDialogLayer(
+                workspaceRepository = workspaceRepository,
+                hoveredLabel = cursor.hoveredLabel,
+                onBoundsChanged = onBoundsChanged,
+                onClose = { HomeSpaceDialogState.close() },
+            )
+        }
+
+        if (showHostChrome) {
+            HostXrChromeBar(
+                appearance = tuned,
+                hoveredLabel = cursor.hoveredLabel,
+                workspaceRepository = workspaceRepository,
+                onBoundsChanged = onBoundsChanged,
+                onOpenSettings = onOpenSettings,
+            )
+        }
+        }
 
         if (showInAppCursor) {
             ExternalCursorDot(modifier = Modifier.fillMaxSize().zIndex(5f))

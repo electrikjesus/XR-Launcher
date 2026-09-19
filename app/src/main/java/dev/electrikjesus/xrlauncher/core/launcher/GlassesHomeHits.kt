@@ -27,6 +27,12 @@ object GlassesHomeHits {
     const val EDIT_DESK_TILES = "__xr_edit_desk_tiles__"
     const val EDIT_DESK_WIDGETS = "__xr_edit_desk_widgets__"
     const val EDIT_LOOK_FPS = "__xr_edit_look_fps__"
+    const val HUD_INPUT_TOUCHPAD = "__xr_hud_input_touchpad__"
+    const val HUD_INPUT_HEAD = "__xr_hud_input_head__"
+    const val HUD_LOOK_MODE = "__xr_hud_look_mode__"
+    const val HUD_RECENTER = "__xr_hud_recenter__"
+    const val HUD_KEYBOARD = "__xr_hud_keyboard__"
+    const val HUD_SETTINGS = "__xr_hud_settings__"
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -51,6 +57,12 @@ object GlassesHomeHits {
     const val DESK_TILES_LABEL = "Tiles"
     const val DESK_WIDGETS_LABEL = "Widgets"
     const val LOOK_FPS_LABEL = "FPS look"
+    const val HUD_INPUT_TOUCHPAD_LABEL = "Touchpad cursor"
+    const val HUD_INPUT_HEAD_LABEL = "Head tracking"
+    const val HUD_LOOK_MODE_LABEL = "Mouse look"
+    const val HUD_RECENTER_LABEL = "Recenter"
+    const val HUD_KEYBOARD_LABEL = "Keyboard"
+    const val HUD_SETTINGS_LABEL = "Settings"
 
     fun appCloseKey(panelId: String): String = APP_CLOSE_PREFIX + panelId
 
@@ -87,6 +99,12 @@ object GlassesHomeHits {
             EDIT_DESK_TILES -> DESK_TILES_LABEL
             EDIT_DESK_WIDGETS -> DESK_WIDGETS_LABEL
             EDIT_LOOK_FPS -> LOOK_FPS_LABEL
+            HUD_INPUT_TOUCHPAD -> HUD_INPUT_TOUCHPAD_LABEL
+            HUD_INPUT_HEAD -> HUD_INPUT_HEAD_LABEL
+            HUD_LOOK_MODE -> HUD_LOOK_MODE_LABEL
+            HUD_RECENTER -> HUD_RECENTER_LABEL
+            HUD_KEYBOARD -> HUD_KEYBOARD_LABEL
+            HUD_SETTINGS -> HUD_SETTINGS_LABEL
             else -> null
         }
     }
@@ -107,6 +125,12 @@ object GlassesHomeHits {
         EDIT_ELEMENT_MINUS,
         EDIT_ELEMENT_PLUS,
         EDIT_TOGGLE,
+        HUD_SETTINGS,
+        HUD_KEYBOARD,
+        HUD_RECENTER,
+        HUD_LOOK_MODE,
+        HUD_INPUT_HEAD,
+        HUD_INPUT_TOUCHPAD,
         OVERLAY_CLOSE,
         RECENTS_CLEAR,
         NOTIFICATIONS_CLEAR,

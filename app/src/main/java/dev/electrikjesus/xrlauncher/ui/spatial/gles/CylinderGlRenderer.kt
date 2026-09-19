@@ -7,6 +7,7 @@ import android.opengl.GLUtils
 import android.opengl.Matrix
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelTextureSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
@@ -230,6 +231,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
             drawDesk()
+            drawViewLockedDialogs()
             drawSphereCursor()
         }
         if (WorkspaceGlesConfig.showGuideWireframe && curvature > 0.01f) {
@@ -443,6 +445,57 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glDisableVertexAttribArray(litPositionHandle)
         GLES20.glDisableVertexAttribArray(litNormalHandle)
         GLES20.glDisableVertexAttribArray(litTexCoordHandle)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
+    }
+
+    /** Camera-facing Edit/Settings dialogs — projection only so they stay readable while looking. */
+    private fun drawViewLockedDialogs() {
+        val dialogs = pendingTextures.filter { HomeSpaceDialogState.isDialogTexture(it.panelId) }
+        if (dialogs.isEmpty()) return
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
+        GLES20.glUseProgram(wallpaperProgram)
+        dialogs.forEach { snapshot ->
+            val textureId = uploadedTextures[snapshot.panelId]?.textureId ?: return@forEach
+            val aspect = if (snapshot.heightNorm > 1e-4f) {
+                snapshot.widthNorm / snapshot.heightNorm
+            } else {
+                1.2f
+            }
+            val height = 1.05f
+            val width = (height * aspect).coerceIn(0.9f, 1.8f)
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, 0f, 0.02f, -1.7f)
+            Matrix.scaleM(modelMatrix, 0, width, height, 1f)
+            Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, modelMatrix, 0)
+            GLES20.glUniformMatrix4fv(wallpaperMvpHandle, 1, false, mvpMatrix, 0)
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+            GLES20.glUniform1i(wallpaperSamplerHandle, 0)
+            quadBuffer.position(0)
+            GLES20.glEnableVertexAttribArray(wallpaperPositionHandle)
+            GLES20.glVertexAttribPointer(
+                wallpaperPositionHandle,
+                3,
+                GLES20.GL_FLOAT,
+                false,
+                20,
+                quadBuffer,
+            )
+            GLES20.glEnableVertexAttribArray(wallpaperTexCoordHandle)
+            quadBuffer.position(3)
+            GLES20.glVertexAttribPointer(
+                wallpaperTexCoordHandle,
+                2,
+                GLES20.GL_FLOAT,
+                false,
+                20,
+                quadBuffer,
+            )
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+            GLES20.glDisableVertexAttribArray(wallpaperPositionHandle)
+            GLES20.glDisableVertexAttribArray(wallpaperTexCoordHandle)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        }
         GLES20.glEnable(GLES20.GL_CULL_FACE)
     }
 

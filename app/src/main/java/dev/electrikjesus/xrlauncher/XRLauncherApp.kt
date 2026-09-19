@@ -24,7 +24,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.PhoneHomeLayout
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.settings.SettingsActivity
-import dev.electrikjesus.xrlauncher.ui.desktop.SpatialDesktopScreen
+import dev.electrikjesus.xrlauncher.ui.host.HostHomeSpaceScreen
 import dev.electrikjesus.xrlauncher.ui.phone.PhoneShellScreen
 
 @Composable
@@ -69,8 +69,8 @@ fun XRLauncherApp(
         RuntimeTier.SPATIAL_DESKTOP,
         RuntimeTier.FULL_SPATIAL,
         -> {
-            SpatialDesktopScreen(
-                apps = apps,
+            HostHomeSpaceScreen(
+                launcherPackageName = context.packageName,
                 workspaceRepository = workspaceRepository,
                 launchCoordinator = launchCoordinator,
                 modifier = Modifier.fillMaxSize(),

@@ -37,11 +37,13 @@ import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
+import dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
 import java.util.Locale
 
@@ -57,161 +59,192 @@ fun BoxScope.GlassesHomeTuneOverlay(
     onBoundsChanged: (String, Rect) -> Unit,
     onToggleEdit: () -> Unit,
     onNudge: (HomeSpaceTuneAxis, Float) -> Unit,
+    /** Capture Edit into a GLES view-locked dialog texture (hit-test still uses Compose bounds). */
+    immersiveDialog: Boolean = false,
 ) {
     val tuned = appearance.clamped()
     val editPage by GlassesSessionState.homeSpaceEditPageFlow.collectAsState()
     WorkspaceScaledLayer(uiScale = tuned.uiScale) {
         if (editing) {
-            Column(
-                modifier = with(this@GlassesHomeTuneOverlay) {
-                    Modifier
-                        .align(Alignment.Center)
-                        .zIndex(4f)
-                }
-                    .widthIn(min = 520.dp, max = 720.dp)
-                    .clip(RoundedCornerShape(36.dp))
-                    .background(CardBg)
-                    .padding(horizontal = 36.dp, vertical = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(
-                            if (editPage == HomeSpaceEditPage.DESKTOP) {
-                                R.string.xr_edit_space_desktop_title
-                            } else {
-                                R.string.xr_edit_space_title
-                            },
-                        ),
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    TuneStepButton(
-                        icon = Icons.Default.Close,
-                        boundsKey = GlassesHomeHits.EDIT_CLOSE,
-                        hovered = hoveredLabel == GlassesHomeHits.CLOSE_LABEL,
-                        contentDescription = stringResource(R.string.all_apps_close),
-                        onBoundsChanged = onBoundsChanged,
-                        onClick = onToggleEdit,
-                    )
-                }
-                EditPageTabs(
-                    page = editPage,
-                    hoveredLabel = hoveredLabel,
-                    onBoundsChanged = onBoundsChanged,
-                )
-                when (editPage) {
-                    HomeSpaceEditPage.PERSPECTIVE -> {
-                        TuneRow(
-                            label = stringResource(R.string.xr_edit_panel_scale),
-                            value = tuned.panelScale,
-                            minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
-                            plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
-                            onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
-                        )
-                        TuneRow(
-                            label = stringResource(R.string.xr_edit_sphere_scale),
-                            value = tuned.sphereScale,
-                            minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
-                            plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
-                            onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
-                        )
-                        TuneRow(
-                            label = stringResource(R.string.xr_edit_element_scale),
-                            value = tuned.uiScale,
-                            minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
-                            plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
-                            onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
-                        )
-                        DeskToggleRow(
-                            label = stringResource(R.string.xr_edit_look_fps),
-                            enabled = tuned.lookMode == GlassesLookMode.FPS,
-                            boundsKey = GlassesHomeHits.EDIT_LOOK_FPS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onToggle = { onNudge(HomeSpaceTuneAxis.LOOK_FPS, 0f) },
-                        )
-                    }
-                    HomeSpaceEditPage.DESKTOP -> {
-                        DeskToggleRow(
-                            label = stringResource(R.string.xr_edit_desk_icons),
-                            enabled = tuned.desktopIcons,
-                            boundsKey = GlassesHomeHits.EDIT_DESK_ICONS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_ICONS, 0f) },
-                        )
-                        DeskToggleRow(
-                            label = stringResource(R.string.xr_edit_desk_piles),
-                            enabled = tuned.desktopPiles,
-                            boundsKey = GlassesHomeHits.EDIT_DESK_PILES,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_PILES, 0f) },
-                        )
-                        DeskToggleRow(
-                            label = stringResource(R.string.xr_edit_desk_tiles),
-                            enabled = tuned.desktopTiles,
-                            boundsKey = GlassesHomeHits.EDIT_DESK_TILES,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_TILES, 0f) },
-                        )
-                        DeskToggleRow(
-                            label = stringResource(R.string.xr_edit_desk_widgets),
-                            enabled = tuned.desktopWidgets,
-                            boundsKey = GlassesHomeHits.EDIT_DESK_WIDGETS,
-                            hoveredLabel = hoveredLabel,
-                            onBoundsChanged = onBoundsChanged,
-                            onToggle = { onNudge(HomeSpaceTuneAxis.DESK_WIDGETS, 0f) },
-                        )
-                    }
-                }
-            }
-        }
-        Box(
-            modifier = with(this@GlassesHomeTuneOverlay) {
+            val cardModifier = with(this@GlassesHomeTuneOverlay) {
                 Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.Center)
                     .zIndex(4f)
             }
-                .padding(32.dp)
-                .clip(RoundedCornerShape(36.dp))
-                .background(
-                    if (hoveredLabel == GlassesHomeHits.EDIT_LABEL) {
-                        Accent.copy(alpha = 0.55f)
-                    } else {
-                        PillBg
-                    },
-                )
-                .clickable(onClick = onToggleEdit)
-                .onGloballyPositioned {
-                    onBoundsChanged(GlassesHomeHits.EDIT_TOGGLE, it.boundsInRoot())
+                .widthIn(min = 520.dp, max = 720.dp)
+            val cardContent: @Composable () -> Unit = {
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(36.dp))
+                        .background(CardBg)
+                        .padding(horizontal = 36.dp, vertical = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(22.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (editPage == HomeSpaceEditPage.DESKTOP) {
+                                    R.string.xr_edit_space_desktop_title
+                                } else {
+                                    R.string.xr_edit_space_title
+                                },
+                            ),
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        TuneStepButton(
+                            icon = Icons.Default.Close,
+                            boundsKey = GlassesHomeHits.EDIT_CLOSE,
+                            hovered = hoveredLabel == GlassesHomeHits.CLOSE_LABEL,
+                            contentDescription = stringResource(R.string.all_apps_close),
+                            onBoundsChanged = onBoundsChanged,
+                            onClick = onToggleEdit,
+                        )
+                    }
+                    EditPageTabs(
+                        page = editPage,
+                        hoveredLabel = hoveredLabel,
+                        onBoundsChanged = onBoundsChanged,
+                    )
+                    when (editPage) {
+                        HomeSpaceEditPage.PERSPECTIVE -> {
+                            TuneRow(
+                                label = stringResource(R.string.xr_edit_panel_scale),
+                                value = tuned.panelScale,
+                                minusKey = GlassesHomeHits.EDIT_PANEL_MINUS,
+                                plusKey = GlassesHomeHits.EDIT_PANEL_PLUS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onMinus = { onNudge(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP) },
+                                onPlus = { onNudge(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP) },
+                            )
+                            TuneRow(
+                                label = stringResource(R.string.xr_edit_sphere_scale),
+                                value = tuned.sphereScale,
+                                minusKey = GlassesHomeHits.EDIT_SPHERE_MINUS,
+                                plusKey = GlassesHomeHits.EDIT_SPHERE_PLUS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onMinus = { onNudge(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP) },
+                                onPlus = { onNudge(HomeSpaceTuneAxis.SPHERE, HomeSpaceTune.STEP) },
+                            )
+                            TuneRow(
+                                label = stringResource(R.string.xr_edit_element_scale),
+                                value = tuned.uiScale,
+                                minusKey = GlassesHomeHits.EDIT_ELEMENT_MINUS,
+                                plusKey = GlassesHomeHits.EDIT_ELEMENT_PLUS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onMinus = { onNudge(HomeSpaceTuneAxis.ELEMENT, -HomeSpaceTune.STEP) },
+                                onPlus = { onNudge(HomeSpaceTuneAxis.ELEMENT, HomeSpaceTune.STEP) },
+                            )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_look_fps),
+                                enabled = tuned.lookMode == GlassesLookMode.FPS,
+                                boundsKey = GlassesHomeHits.EDIT_LOOK_FPS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.LOOK_FPS, 0f) },
+                            )
+                        }
+                        HomeSpaceEditPage.DESKTOP -> {
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_icons),
+                                enabled = tuned.desktopIcons,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_ICONS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_ICONS, 0f) },
+                            )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_piles),
+                                enabled = tuned.desktopPiles,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_PILES,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_PILES, 0f) },
+                            )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_tiles),
+                                enabled = tuned.desktopTiles,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_TILES,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_TILES, 0f) },
+                            )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_widgets),
+                                enabled = tuned.desktopWidgets,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_WIDGETS,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_WIDGETS, 0f) },
+                            )
+                        }
+                    }
                 }
-                .padding(horizontal = 40.dp, vertical = 22.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(
-                    if (editing) R.string.xr_edit_space_done else R.string.xr_edit_space,
-                ),
-                color = Color.White,
-                style = MaterialTheme.typography.headlineSmall,
-            )
+            }
+            if (immersiveDialog) {
+                PanelTextureCapture(
+                    panelId = HomeSpaceDialogState.EDIT_TEXTURE_ID,
+                    centerXNorm = 0.5f,
+                    centerYNorm = 0.5f,
+                    enabled = true,
+                    drawToScreen = false,
+                    modifier = cardModifier,
+                    content = cardContent,
+                )
+            } else {
+                Box(modifier = cardModifier, content = { cardContent() })
+            }
         }
+        EditTogglePill(
+            editing = editing,
+            hoveredLabel = hoveredLabel,
+            onBoundsChanged = onBoundsChanged,
+            onToggleEdit = onToggleEdit,
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.EditTogglePill(
+    editing: Boolean,
+    hoveredLabel: String?,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onToggleEdit: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .zIndex(4f)
+            .padding(32.dp)
+            .clip(RoundedCornerShape(36.dp))
+            .background(
+                if (hoveredLabel == GlassesHomeHits.EDIT_LABEL) {
+                    Accent.copy(alpha = 0.55f)
+                } else {
+                    PillBg
+                },
+            )
+            .clickable(onClick = onToggleEdit)
+            .onGloballyPositioned {
+                onBoundsChanged(GlassesHomeHits.EDIT_TOGGLE, it.boundsInRoot())
+            }
+            .padding(horizontal = 40.dp, vertical = 22.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(
+                if (editing) R.string.xr_edit_space_done else R.string.xr_edit_space,
+            ),
+            color = Color.White,
+            style = MaterialTheme.typography.headlineSmall,
+        )
     }
 }
 

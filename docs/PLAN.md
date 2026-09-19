@@ -590,9 +590,9 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
 | 2.25c | **Mouse-look + motion drag.** While FPS mouse-look is on and a grab is active, phone **motion** should drive the same unlocked-cursor desk drag as the touchpad (or a clear look-follow grab). Today motion+FPS registers the press/click but the drag phase moves the cursor without a usable view/grab feel — touchpad path only is reliable. | ☐ Partial — touchpad OK; motion+FPS DnD broken/awkward |
-| 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☐ |
-| 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☐ |
-| 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☐ |
+| 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
+| 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
+| 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
 | 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
@@ -611,29 +611,24 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed **0.1.19:** desk persist, mouse-look Hold-Left DND, Home→Desktop copy-drag, GLES dirty sync, pager/return-to-All-Apps fixes, **lasso state foundation** (`DeskLassoState`).
+Landed **0.1.19+ host:** Expanded → GLES Home Space (`HostHomeSpaceScreen`), top HUD, Edit/Settings as view-locked GLES dialog textures; phone/companion keep `SettingsActivity`.
 
 **Do this next. One concern per change.**
 
-**Pointer / mouse-look (blocking):**
-0. **2.25a** — ☑ finalize before re-lock (partial).
-0b. **2.25b — Touchpad long-press = Hold-Left** — ☑ press starts on long-press (origin), not only click on finger-up.
-0c. **All Apps pager clicks (touchpad)** — ☑ finalize no longer re-presses after chrome; near-miss uses `pickNearestPager` / open-drawer zone so pagination does not dismiss the widget.
-0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad (README lists this as partial).
+**Pointer / mouse-look:**
+0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
 
 **BumpDesk desktop (sphere):**
-1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
-2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile (port BumpDesk `createPileFromCaptured`); single-icon lasso just selects.
-3. **Radial menu** — right-click / long-press on desk icon or selection: BumpDesk radial (Open / Freeform / Pinned / Fullscreen / Remove from Desktop). Sphere-anchored, not HUD-stuck.
+1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons.
+2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile.
+3. **Radial menu** — right-click / long-press on desk icon or selection.
 
-**Large-screen host (Tier 0 → XR):**
-4. **2.26** — Expanded window → default into GLES Home Space (retire `SpatialDesktopScreen` as the Expanded default).
-5. **2.27** — Top HUD: companion touchpad icons (touchpad / head / mouse-look / recenter [/ keyboard]) screen-locked like Edit (bottom-end).
-6. **2.28** — Top HUD Settings → `SettingsActivity`.
+**Large-screen host:**
+4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
+5. **Polish host pointer** — mouse capture for FPS look, keyboard focus for HUD keyboard, DeX quirks.
+6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
-7. **2.29 — Repair Home sprocket SettingsActivity** — fix broken settings sections after Home Space changes.
-8. **Edit dialog in space** — dismissible 3D layer after radial feels right.
-9. **Stop** — Do not start 6.9 onboarding in this pass.
+7. **Stop** — Do not start 6.9 onboarding in this pass.
 
 **BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
@@ -817,7 +812,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **All Apps pager clicks:** finalize must not re-press after chrome; near-miss → `pickNearestPager` + open-drawer zone (no lasso / no scrim dismiss) | 2.25a finalize re-press + empty-click dismiss closed the widget on pagination |
 | 2026-09-18 | **Return to All Apps** — drop a Desktop icon on the All Apps tile (or open backing) removes it | Drop only pushed away from the tile / rejected on backing |
 | 2026-09-18 | **0.1.19 release** — pager click fix, return-to-drawer remove, Hold-Left / mouse-look desk polish | Post-0.1.18 desk interaction fixes |
+| 2026-09-19 | **2.26–2.28 host:** Expanded → `HostHomeSpaceScreen` GLES Home Space; top HUD; Edit/Settings as view-locked GLES dialog textures; phone keeps SettingsActivity | Large screen opened legacy SpatialDesktopScreen; overlays left immersion |
 
 ---
 
-*Last updated: 2026-09-18 (0.1.19 release)*
+*Last updated: 2026-09-19 (large-screen immersive Home Space)*

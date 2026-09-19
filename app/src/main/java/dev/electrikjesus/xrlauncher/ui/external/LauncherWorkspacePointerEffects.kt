@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
@@ -26,6 +27,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
@@ -476,9 +478,27 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.NOTIFICATIONS, GlassesHomeHits.QUICK_SETTINGS ->
             GlassesHomeLook.lookAt(GlassesHomeLook.trayPane())
         GlassesHomeHits.SETTINGS -> onOpenSettings()
+        GlassesHomeHits.HUD_SETTINGS -> onOpenSettings()
+        GlassesHomeHits.HUD_RECENTER -> {
+            CompanionPointerBus.recenterCursor()
+            GlassesHomeLook.lookHome()
+        }
+        GlassesHomeHits.HUD_LOOK_MODE -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
+        GlassesHomeHits.HUD_INPUT_TOUCHPAD ->
+            GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
+        GlassesHomeHits.HUD_INPUT_HEAD -> {
+            if (GlassesSessionState.rayNeoUsbAttached) {
+                GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
+                CompanionPointerBus.recenterCursor()
+            }
+        }
+        GlassesHomeHits.HUD_KEYBOARD -> CompanionPointerBus.setTextEntryActive(true)
         GlassesHomeHits.RECENTS_CLEAR -> GlassesRecentApps.clear()
         GlassesHomeHits.NOTIFICATIONS_CLEAR -> { }
-        GlassesHomeHits.EDIT_TOGGLE, GlassesHomeHits.EDIT_CLOSE -> GlassesSessionState.toggleHomeSpaceEdit()
+        GlassesHomeHits.EDIT_TOGGLE, GlassesHomeHits.EDIT_CLOSE -> {
+            HomeSpaceDialogState.close()
+            GlassesSessionState.toggleHomeSpaceEdit()
+        }
         GlassesHomeHits.EDIT_PANEL_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, -HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_PANEL_PLUS -> onTuneAppearance(HomeSpaceTuneAxis.PANEL, HomeSpaceTune.STEP)
         GlassesHomeHits.EDIT_SPHERE_MINUS -> onTuneAppearance(HomeSpaceTuneAxis.SPHERE, -HomeSpaceTune.STEP)
