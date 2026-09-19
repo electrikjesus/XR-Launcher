@@ -6,7 +6,7 @@ Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** 
 
 Active development — Home Space desk (BumpDesk-style icons on the sphere), companion mouse-look, and panel launch in progress. See **[docs/PLAN.md](docs/PLAN.md)** for the roadmap.
 
-**Latest:** `v0.1.18` — Desktop icon persistence, All Apps drawer on the sphere, companion mouse-look toggle.
+**Latest:** `v0.1.19` — All Apps pager/return-to-drawer fixes, Hold-Left desk drag, Home→Desktop copy-drag, mouse-look polish.
 
 ### Partial / known gaps
 
@@ -40,7 +40,7 @@ Active development — Home Space desk (BumpDesk-style icons on the sphere), com
 
 ## Releases
 
-Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.18`). Debug APKs are built on every push to `main`.
+Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.19`). Debug APKs are built on every push to `main`.
 
 1. Download **`app-release.apk`** from [Releases](https://github.com/electrikjesus/XR-Launcher/releases).
 2. Install with `adb install -r app-release.apk`. Optionally set **XR Launcher** as Home.
@@ -84,7 +84,7 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 - One plan task per branch (`dev/phase1-1.3-…`) and per commit
 - Validate with `./gradlew build` and unit tests before committing
-- Tag stable milestones on `main` (e.g. `v0.1.18`)
+- Tag stable milestones on `main` (e.g. `v0.1.19`)
 
 ## Modes
 

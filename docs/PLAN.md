@@ -611,7 +611,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dirty sync, **lasso state foundation** (`DeskLassoState`).
+Landed **0.1.19:** desk persist, mouse-look Hold-Left DND, Home→Desktop copy-drag, GLES dirty sync, pager/return-to-All-Apps fixes, **lasso state foundation** (`DeskLassoState`).
 
 **Do this next. One concern per change.**
 
@@ -816,7 +816,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.25c planned + README partial:** FPS mouse-look desk DnD works on touchpad; motion+FPS drag still awkward | Grab click registers; drag phase moves cursor without usable view/motion grab |
 | 2026-09-18 | **All Apps pager clicks:** finalize must not re-press after chrome; near-miss → `pickNearestPager` + open-drawer zone (no lasso / no scrim dismiss) | 2.25a finalize re-press + empty-click dismiss closed the widget on pagination |
 | 2026-09-18 | **Return to All Apps** — drop a Desktop icon on the All Apps tile (or open backing) removes it | Drop only pushed away from the tile / rejected on backing |
+| 2026-09-18 | **0.1.19 release** — pager click fix, return-to-drawer remove, Hold-Left / mouse-look desk polish | Post-0.1.18 desk interaction fixes |
 
 ---
 
-*Last updated: 2026-09-18 (return Desktop icons to All Apps)*
+*Last updated: 2026-09-18 (0.1.19 release)*
