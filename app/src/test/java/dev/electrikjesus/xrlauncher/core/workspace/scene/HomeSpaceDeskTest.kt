@@ -249,7 +249,7 @@ class HomeSpaceDeskTest {
     fun layout_keepsDeskTilesSmallerThanHomeChromeAtUiScaleOne() {
         assertTrue(HomeSpaceDesk.ICON_HALF_WIDTH < 0.07f)
         val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1f).first()
-        assertTrue(drawer.halfWidth * 2f < 0.12f)
+        assertTrue(drawer.halfWidth * 2f < 0.16f)
     }
 
     @Test

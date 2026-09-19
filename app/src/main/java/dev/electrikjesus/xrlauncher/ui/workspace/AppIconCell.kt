@@ -86,7 +86,8 @@ fun AppIconCell(
         AndroidView(
             factory = { ctx ->
                 ImageView(ctx).apply {
-                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    // Normalized square bitmaps from AppIconCache — fill the cell uniformly.
+                    scaleType = ImageView.ScaleType.FIT_XY
                     setImageDrawable(icon)
                 }
             },

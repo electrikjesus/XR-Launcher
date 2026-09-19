@@ -16,9 +16,12 @@ object HomeSpaceDesk {
     const val DRAWER_LABEL = "All apps"
     const val HOVER_LIFT = 0.04f
     const val DRAWER_SCALE = 1.15f
-    /** Face size on the sphere — matches Home chrome at uiScale 1. */
-    const val ICON_HALF_WIDTH = 0.048f
-    const val ICON_HALF_HEIGHT = 0.058f
+    /**
+     * Face size on the sphere at uiScale 1 — large enough that Desktop apps stay
+     * readable under FPS look, while remaining clearly smaller than Home pane cells.
+     */
+    const val ICON_HALF_WIDTH = 0.064f
+    const val ICON_HALF_HEIGHT = 0.077f
     const val ICON_HALF_THICK = 0.008f
     const val DRAWER_COLS = 4
     const val DRAWER_ROWS = 4
@@ -26,8 +29,8 @@ object HomeSpaceDesk {
     const val BACKING_KEY = "__desk_all_apps_widget__"
     const val PAGE_PREV_KEY = "__desk_page_prev__"
     const val PAGE_NEXT_KEY = "__desk_page_next__"
-    /** Open-drawer tiles — keep modest so the full grid + pager stay in cursor FOV. */
-    const val DRAWER_OPEN_ICON_SCALE = 1.05f
+    /** Open-drawer tiles — same face size as Desktop apps (uniform app class). */
+    const val DRAWER_OPEN_ICON_SCALE = 1.0f
     /** Horizontal arc spacing between open-drawer icon centers, in icon widths. */
     const val DRAWER_OPEN_COL_SPACING = 2.45f
     /** Vertical arc spacing between open-drawer icon centers, in icon heights. */
