@@ -630,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — ☑ partial: BumpDesk absolute path default; scroll/pinch zoom + right-click + middle-drag look; still open: OS mouse capture, HUD keyboard focus, DeX quirks, Settings toggle.
+5. **Polish host pointer** — ☑ partial: free-circle yaw + ±89° pitch; FPS look pauses over top HUD so look-mode toggle works; still open: OS mouse capture, HUD keyboard focus, DeX quirks, Settings toggle.
 6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -825,7 +825,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **2.28a host BumpDesk input:** `HostBumpDeskInput` + `BumpDeskHostGesture`; skip FPS center-lock when `hostImmersiveSession`; `HostInputMethod` switch (default BUMPDESK) | Companion FPS press/release re-lock fought absolute mouse on Expanded host |
 | 2026-09-19 | **Round icon faces restored:** stop expanding adaptive bounds past canvas (that squared the OEM mask); clipPath circle + mild fill zoom; Home `CircleShape`; desk atlas circle clip; app meshes front-face only | Extra-inset expand filled square boxes; rectangular pancake sides read as plates |
 | 2026-09-19 | **Host absolute pick alignment:** `applyCursorOffset=false` for BumpDesk host; desk/camera/physics use live viewport; disable `pickNearestPager` magnet on host | Gesture path was BumpDesk but GRADIENT camera+ray double-offset + 1920×1080 layout vs real aspect caused inches-off launches |
+| 2026-09-19 | **Free-circle look + HUD under FPS:** unclamp `panNorm`; pitch ±89°; pause mouse-look over screen chrome; no host cursor snap on FPS enable | Look locked past All Apps / mid-tray; FPS ate top HUD look-mode clicks |
 
 ---
 
-*Last updated: 2026-09-19 (host absolute pick alignment)*
+*Last updated: 2026-09-19 (free-circle look + HUD under FPS)*

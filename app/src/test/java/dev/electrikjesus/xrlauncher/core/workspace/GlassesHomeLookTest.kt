@@ -50,11 +50,11 @@ class GlassesHomeLookTest {
     }
 
     @Test
-    fun pan_clampsToPanes() {
-        GlassesHomeLook.lookAt(-4f)
-        assertEquals(GlassesHomeLook.minPan(), GlassesHomeLook.panNorm, 0.001f)
-        GlassesHomeLook.lookAt(4f)
-        assertEquals(GlassesHomeLook.maxPan(), GlassesHomeLook.panNorm, 0.001f)
+    fun pan_allowsFullCirclePastPaneBounds() {
+        GlassesHomeLook.lookAt(-40f)
+        assertEquals(-40f, GlassesHomeLook.panNorm, 0.001f)
+        GlassesHomeLook.lookAt(40f)
+        assertEquals(40f, GlassesHomeLook.panNorm, 0.001f)
     }
 
     @Test

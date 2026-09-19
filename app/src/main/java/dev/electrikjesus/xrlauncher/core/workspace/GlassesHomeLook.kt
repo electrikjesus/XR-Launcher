@@ -27,8 +27,8 @@ object GlassesHomeLook {
     const val PANE_RIGHT = 1f
 
     /**
-     * Extra pan past Desktop / Tray so mouse-look (FPS, cursor centered) can face
-     * empty sphere space and the outer halves of those panes.
+     * Extra pan past Desktop / Tray for companion edge-look hints / docs.
+     * Free look no longer clamps to this — yaw can spin full-circle like an FPS game.
      */
     const val SIDE_LOOK_EXTRA = 1.15f
 
@@ -45,6 +45,9 @@ object GlassesHomeLook {
     const val CONTENT_WIDTH_FRACTION = 0.66f
     const val CONTENT_HEIGHT_FRACTION = 0.84f
     const val CAMERA_DISTANCE_FACTOR = 0.88f
+
+    /** Pitch stop for free look (± almost straight up/down). */
+    const val FREE_LOOK_MAX_PITCH_DEGREES = 89f
 
     fun paneDelta(worldX: Float, look: Float = panNorm): Float = worldX - look
 
@@ -72,8 +75,8 @@ object GlassesHomeLook {
         get() = _lookPitch.value
         set(value) {
             _lookPitch.value = value.coerceIn(
-                -HomeSpaceScene.MAX_PITCH_DEGREES,
-                HomeSpaceScene.MAX_PITCH_DEGREES,
+                -FREE_LOOK_MAX_PITCH_DEGREES,
+                FREE_LOOK_MAX_PITCH_DEGREES,
             )
         }
 
@@ -86,9 +89,10 @@ object GlassesHomeLook {
     val appPlanes: List<GlassesAppPlane>
         get() = _appPlanes.value
 
+    /** Soft left bound used by UI hints — look itself is not clamped here. */
     fun minPan(): Float = PANE_LEFT - SIDE_LOOK_EXTRA
 
-    /** Rightmost look — past the tray into empty space (same budget as Desktop left). */
+    /** Soft right bound used by UI hints — look itself is not clamped here. */
     fun maxPan(): Float = trayPane() + SIDE_LOOK_EXTRA
 
     fun trayPane(): Float = PANE_RIGHT + appPlanes.size
@@ -109,7 +113,8 @@ object GlassesHomeLook {
     var panNorm: Float
         get() = _panNorm.value
         set(value) {
-            _panNorm.value = value.coerceIn(minPan(), maxPan())
+            // Full-circle yaw like an FPS game — do not clamp to Desktop…Tray.
+            _panNorm.value = value
         }
 
     fun lookAt(pane: Float) {

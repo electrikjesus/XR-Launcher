@@ -86,7 +86,13 @@ fun HostPointerBridge(
                                     if (delta != 0f) zoomLatest(delta)
                                     pinchDistance = dist
                                     pressed.forEach { it.consume() }
-                                } else if (fpsLook && !leftDown && !dialogOpen && !pinching) {
+                                } else if (
+                                    fpsLook &&
+                                    !leftDown &&
+                                    !dialogOpen &&
+                                    !pinching &&
+                                    !isHostScreenChromeAt(nx, ny)
+                                ) {
                                     val delta = change.positionChange()
                                     if (delta.x != 0f || delta.y != 0f) {
                                         GlassesHomeLook.panNorm += HomeSpaceScene.fpsPanNormDelta(

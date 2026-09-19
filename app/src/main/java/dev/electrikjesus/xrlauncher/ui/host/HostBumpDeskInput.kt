@@ -93,7 +93,8 @@ fun HostBumpDeskInput(
                                             x = x,
                                             y = y,
                                             allowDeskGrab = allowDesk,
-                                            fpsLook = fpsLook,
+                                            // Pause mouse-look over top HUD / Edit so those clicks work.
+                                            fpsLook = fpsLook && !chrome,
                                             dialogOpen = dialogOpen,
                                         ),
                                     )

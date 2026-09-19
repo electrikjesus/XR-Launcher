@@ -21,6 +21,7 @@ object HomeSpaceScene {
     const val PANE_HEIGHT_FRACTION = 0.88f
     const val CURSOR_YAW_DEGREES = 24f
     const val CURSOR_PITCH_DEGREES = 20f
+    /** Soft pitch used by companion gradient cursor-look (not free-look FPS). */
     const val MAX_PITCH_DEGREES = 24f
 
     data class Camera(
@@ -161,9 +162,10 @@ object HomeSpaceScene {
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         if (lookMode == GlassesLookMode.FPS || !applyCursorOffset) {
+            // Pitch already limited by GlassesHomeLook.FREE_LOOK_MAX_PITCH_DEGREES.
             return Camera(
                 yawDeg = look * arc,
-                pitchDeg = lookPitchDeg.coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES),
+                pitchDeg = lookPitchDeg,
             )
         }
         val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES

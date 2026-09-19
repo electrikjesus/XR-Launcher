@@ -37,6 +37,7 @@ import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
@@ -114,7 +115,8 @@ fun BoxScope.HostXrChromeBar(
                         GlassesLookMode.FPS
                     }
                     GlassesLookMode.preference = next
-                    if (next == GlassesLookMode.FPS) {
+                    // Absolute host keeps the on-screen cursor; only companion FPS re-locks center.
+                    if (next == GlassesLookMode.FPS && !HostInputMethod.usesAbsoluteHostCursor()) {
                         CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
                     }
                     val repo = workspaceRepository ?: return@HudIcon
