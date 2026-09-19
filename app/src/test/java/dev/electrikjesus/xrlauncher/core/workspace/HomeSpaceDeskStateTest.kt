@@ -126,6 +126,25 @@ class HomeSpaceDeskStateTest {
     }
 
     @Test
+    fun notePointerUp_allAppsChromeClearsDrag() {
+        val drawer = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(
+                HomeSpaceDesk.DRAWER_KEY,
+                HomeSpaceDesk.DRAWER_LABEL,
+                "",
+                HomeSpaceDesk.Kind.APP_DRAWER,
+            ),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+        )
+        HomeSpaceDeskState.press(drawer, 0.5f, 0.5f)
+        assertTrue(HomeSpaceDeskState.drag != null)
+        assertTrue(HomeSpaceDeskState.notePointerUp(cursorMoved = false))
+        assertTrue(HomeSpaceDeskState.drag == null)
+    }
+
+    @Test
     fun pullAllAppsTile_reposesDrawer() {
         val drawer = HomeSpaceDesk.iconOf(
             HomeSpaceDesk.AppRef(

@@ -105,6 +105,8 @@ object HomeSpaceDeskState {
         val chrome = pendingChrome
         pendingChrome = null
         if (chrome != null && _drag.value?.pulling != true) {
+            // Drop the unused grab so All Apps/pager open isn't stuck in a live drag pose.
+            _drag.value = null
             fireChrome(chrome)
             return true
         }

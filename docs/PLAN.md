@@ -606,7 +606,7 @@ Landed **0.1.18:** README screenshots; desk persist; pager speed/click fixes; mo
 
 **Do this next. One concern per change.**
 
-1. **Device-verify FPS click-drag** — look when idle; Hold-Left tap/drag from crosshair.
+1. **Device-verify** All Apps expand + FPS/gradient Hold-Left after GLES bus sync.
 2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
 3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
 4. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -776,7 +776,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.18 release:** README screenshots (phone companion + glasses Home Space / All Apps) | Docs lagged the desk UI |
 | 2026-09-18 | **Tray look range** — `maxPan` = tray + SIDE_LOOK_EXTRA (mirror of Desktop left) | Mouse-look locked at tray center; right half unreachable |
 | 2026-09-18 | **FPS click-drag** — touchpad looks only when unpressed; Hold-Left unlocks cursor from center, then re-locks | Look ate every move so taps became no-op drags and grabs never traveled |
+| 2026-09-18 | **Desk GLES dirty render** — bus callback syncs icons/textures onto the renderer before `requestRender` | All Apps expand waited for the next cursor move to recompose AndroidView |
 
 ---
 
-*Last updated: 2026-09-18 (FPS click-drag unlock)*
+*Last updated: 2026-09-18 (desk GLES bus sync on dirty render)*

@@ -95,7 +95,16 @@ fun WorkspaceGlesBackdrop(
     val surfaceViewRef = remember { AtomicReference<GLSurfaceView?>(null) }
     val renderCallback = remember {
         {
-            surfaceViewRef.get()?.requestRender()
+            val view = surfaceViewRef.get()
+            if (view != null) {
+                // Bus updates can land without a Compose recompose (e.g. All Apps open).
+                // Sync renderer state here or WHEN_DIRTY redraws the previous desk frame.
+                renderer.deskIcons = DeskIconTextureBus.icons()
+                renderer.deskHoveredKey = DeskIconTextureBus.hoveredKey()
+                renderer.setDeskTextures(DeskIconTextureBus.snapshots())
+                renderer.setPanelTextures(WorkspacePanelTextureBus.snapshot())
+                view.requestRender()
+            }
             Unit
         }
     }
