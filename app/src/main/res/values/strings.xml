@@ -102,7 +102,8 @@
     <string name="companion_hint">Drag to move pointer · Tap to click</string>
     <string name="companion_mouselook_hint">Drag cursor to screen edge to look around · Tap to click</string>
     <string name="companion_head_tracking_hint">Turn head to look · Drag touchpad to aim pointer · Tap to click</string>
-    <string name="companion_desktop_hint">Drag to move · Double-tap to click · Hold Left and drag to select</string>
+    <string name="companion_desktop_hint">Drag to move · Long-press to grab · Hold Left and drag · Double-tap-hold to click-drag</string>
+
     <string name="companion_text_entry_hint">Keyboard open — drag to move, use Left button to tap keys and menus</string>
     <string name="precision_pointer">Precision pointer</string>
     <string name="precision_pointer_on_hint">Touchpad moves only — Left button clicks (for keyboard and dropdowns)</string>
@@ -240,7 +241,7 @@
     <string name="companion_cursor_touchpad">Touchpad cursor</string>
     <string name="companion_cursor_head">Head tracking cursor</string>
     <string name="companion_mouselook">Mouse look</string>
-    <string name="companion_mouselook_on">Mouse look on — drag touchpad to turn the view</string>
+    <string name="companion_mouselook_on">Mouse look on — drag to look · long-press then drag to grab</string>
     <string name="companion_mouselook_off">Mouse look off — free cursor on the glasses</string>
     <string name="launch_target_title">Launch %1$s</string>
     <string name="launch_target_hint">Choose where this app opens.</string>

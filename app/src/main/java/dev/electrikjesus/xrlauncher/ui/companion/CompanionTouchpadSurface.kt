@@ -44,6 +44,7 @@ import dev.electrikjesus.xrlauncher.core.input.PointerAction
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.input.PointerEvent
 import kotlin.math.roundToInt
+import kotlinx.coroutines.withTimeoutOrNull
 
 private val PointerButtonMinHeight = 56.dp
 private val PointerButtonContentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)
@@ -99,8 +100,11 @@ fun CompanionTouchpadSurface(
                         val touchSlop = viewConfiguration.touchSlop
                         var dragging = false
                         var clickDragActive = false
+                        var longPressActive = false
+                        var finished = false
                         val pointerId = down.id
                         val tapToClick = !useDesktopGestures
+                        val longPressTimeoutMs = viewConfiguration.longPressTimeoutMillis.toLong()
 
                         if (useDesktopGestures && !touchpadClickSuppressed) {
                             val now = System.currentTimeMillis()
@@ -114,11 +118,67 @@ fun CompanionTouchpadSurface(
                             }
                         }
 
-                        while (true) {
+                        if (!clickDragActive && !touchpadClickSuppressed) {
+                            val early = withTimeoutOrNull(longPressTimeoutMs) {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Main)
+                                    val change = event.changes.firstOrNull { it.id == pointerId }
+                                        ?: return@withTimeoutOrNull "cancel"
+                                    if (!change.pressed) return@withTimeoutOrNull "up"
+                                    val delta = change.positionChange()
+                                    if (!dragging) {
+                                        accumulated += delta
+                                        if (accumulated.getDistance() > touchSlop) {
+                                            dragging = true
+                                            lastTapTime = 0L
+                                            if (!motionEnabled) {
+                                                change.consume()
+                                                CompanionPointerBus.emit(
+                                                    PointerEvent(
+                                                        action = PointerAction.MOVE,
+                                                        deltaX = delta.x,
+                                                        deltaY = delta.y,
+                                                    ),
+                                                )
+                                            }
+                                            return@withTimeoutOrNull "move"
+                                        }
+                                    }
+                                }
+                                @Suppress("UNREACHABLE_CODE")
+                                "cancel"
+                            }
+                            when (early) {
+                                null -> {
+                                    CompanionPointerBus.beginLeftButton()
+                                    longPressActive = true
+                                    CompanionPointerHaptics.pressDown(haptic)
+                                }
+                                "up" -> {
+                                    finished = true
+                                    when {
+                                        useDesktopGestures && !touchpadClickSuppressed -> {
+                                            lastTapTime = System.currentTimeMillis()
+                                            lastTapPos = down.position
+                                        }
+                                        tapToClick -> {
+                                            CompanionPointerBus.click(PointerButton.LEFT)
+                                            CompanionPointerHaptics.leftClick(haptic)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        while (!finished) {
                             val event = awaitPointerEvent(PointerEventPass.Main)
                             val change = event.changes.firstOrNull { it.id == pointerId } ?: break
                             if (!change.pressed) {
                                 when {
+                                    longPressActive -> {
+                                        CompanionPointerBus.endLeftButton()
+                                        CompanionPointerHaptics.leftClick(haptic)
+                                    }
                                     useDesktopGestures -> {
                                         if (clickDragActive) {
                                             CompanionPointerBus.endTouchpadDragGesture()
@@ -237,7 +297,7 @@ fun CompanionPointerButtonsRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        val useHoldLeft = desktopPointerReady && !headTrackingActive
+        val useHoldLeft = !headTrackingActive
         if (useHoldLeft) {
             HoldablePointerButton(
                 label = stringResource(R.string.left_click),
