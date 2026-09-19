@@ -21,17 +21,18 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.settings.SettingsScreen
-import dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture
 
 private val CardBg = Color(0xF21C1C1E)
 private val ScrimBg = Color(0x99000000)
 
 /**
- * Host Settings as a screen-space modal (Minecraft inventory style): Compose draws and
- * receives clicks; GLES billboard is skipped while [dev.electrikjesus.xrlauncher.core.display.GlassesSessionState.hostImmersiveSession].
+ * Host Settings as a screen-space modal. The scrim is a sibling behind the card, not a
+ * clickable parent: a parent clickable plus [androidx.compose.material3.Slider] leaves the
+ * press gesture stuck, so only sliders keep receiving events. No offscreen capture either —
+ * [dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture] records into a graphics
+ * layer and breaks hit testing after the first drag.
  */
 @Composable
 fun BoxScope.HostSettingsDialogLayer(
@@ -54,39 +55,25 @@ fun BoxScope.HostSettingsDialogLayer(
                 indication = null,
                 onClick = onClose,
             ),
+    )
+    Box(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .zIndex(5f)
+            .widthIn(min = 360.dp, max = 520.dp)
+            .heightIn(max = 640.dp)
+            .fillMaxWidth(0.46f)
+            .fillMaxHeight(0.72f)
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardBg)
+            .padding(8.dp),
     ) {
-        PanelTextureCapture(
-            panelId = HomeSpaceDialogState.SETTINGS_TEXTURE_ID,
-            centerXNorm = 0.5f,
-            centerYNorm = 0.5f,
-            enabled = true,
-            drawToScreen = true,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .widthIn(min = 560.dp, max = 820.dp)
-                .heightIn(max = 900.dp)
-                .fillMaxWidth(0.55f)
-                .fillMaxHeight(0.82f)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                ),
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(CardBg)
-                    .padding(8.dp),
-            ) {
-                SettingsScreen(
-                    workspaceRepository = workspaceRepository,
-                    onNavigateBack = onClose,
-                    onShowOnboarding = onClose,
-                    homeSpaceOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
+        SettingsScreen(
+            workspaceRepository = workspaceRepository,
+            onNavigateBack = onClose,
+            onShowOnboarding = onClose,
+            homeSpaceOnly = true,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }

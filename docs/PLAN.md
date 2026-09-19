@@ -834,7 +834,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Lasso stroke + radial menu:** GLES line strip and selection highlight from `DeskLassoState`; context actions are a screen-space ring above the host catcher | Stroke existed only as yaw/pitch state; right-click was a list under the catcher |
 | 2026-09-19 | **2.29 host Settings/Edit:** drop pointer catcher while modals open; Home Space-only settings; wallpaper upload keys include choice ordinal | Catcher ate back/scroll/Edit clicks; Settings listed 2D cylinder options; wallpaper choice never re-uploaded |
 | 2026-09-19 | **Host Edit modal hoist:** compact unscaled `HostEditDialogLayer` above catcher; skip in-scene Edit card on host; drop empty InteractionLayer Box | Edit stayed under InteractionLayer + 1.2× uiScale; X/+/- never received Compose clicks |
+| 2026-09-19 | **Settings slider stuck press:** host Settings is direct Compose; scrim is a sibling, not a clickable parent, and no graphics-layer capture | Slider drag left the parent clickable pressed, so only sliders still received events |
 
 ---
 
-*Last updated: 2026-09-19 (host Edit dialog hoist + scale)*
+*Last updated: 2026-09-19 (settings slider pointer)*
