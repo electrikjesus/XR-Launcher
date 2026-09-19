@@ -835,7 +835,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **2.29 host Settings/Edit:** drop pointer catcher while modals open; Home Space-only settings; wallpaper upload keys include choice ordinal | Catcher ate back/scroll/Edit clicks; Settings listed 2D cylinder options; wallpaper choice never re-uploaded |
 | 2026-09-19 | **Host Edit modal hoist:** compact unscaled `HostEditDialogLayer` above catcher; skip in-scene Edit card on host; drop empty InteractionLayer Box | Edit stayed under InteractionLayer + 1.2× uiScale; X/+/- never received Compose clicks |
 | 2026-09-19 | **Settings slider stuck press:** host Settings is direct Compose; scrim is a sibling, not a clickable parent, and no graphics-layer capture | Slider drag left the parent clickable pressed, so only sliders still received events |
+| 2026-09-19 | **Look deadzone sliders:** horizontal and vertical center band (0–50% of center-to-edge) zeros `cursorEdgeWeight` before the sine curve | Normal look moved as soon as the cursor left the exact center |
 
 ---
 
-*Last updated: 2026-09-19 (settings slider pointer)*
+*Last updated: 2026-09-19 (look deadzone sliders)*

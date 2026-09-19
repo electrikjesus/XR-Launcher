@@ -87,6 +87,16 @@ class HomeSpaceSceneTest {
     }
 
     @Test
+    fun cursorEdgeWeight_deadzone_staysZeroUntilOutsideTheBand() {
+        assertEquals(0f, HomeSpaceScene.cursorEdgeWeight(0.6f, deadzone = 0.25f), 0.001f)
+        assertEquals(0f, HomeSpaceScene.cursorEdgeWeight(0.4f, deadzone = 0.25f), 0.001f)
+        assertEquals(1f, HomeSpaceScene.cursorEdgeWeight(1f, deadzone = 0.2f), 0.02f)
+        val justOutside = HomeSpaceScene.cursorEdgeWeight(0.65f, deadzone = 0.2f)
+        assertTrue(justOutside > 0f)
+        assertTrue(justOutside < 0.2f)
+    }
+
+    @Test
     fun fpsLook_ignoresCursorOffsetAndUsesLookPitch() {
         val fps = HomeSpaceScene.camera(
             look = 0f,

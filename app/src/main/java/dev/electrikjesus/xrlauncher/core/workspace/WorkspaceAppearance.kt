@@ -29,6 +29,13 @@ data class WorkspaceAppearance(
     val desktopWidgets: Boolean = true,
     /** Persisted Home Space look: gradient mouse-look vs FPS capture. */
     val lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
+    /**
+     * Fraction of center-to-edge (0–0.5) where cursor X does not pan look.
+     * 0 keeps the sine curve from the center.
+     */
+    val lookDeadzoneX: Float = 0f,
+    /** Same as [lookDeadzoneX] for cursor Y / pitch. */
+    val lookDeadzoneY: Float = 0f,
 ) {
     fun clamped(): WorkspaceAppearance = copy(
         uiScale = uiScale.coerceIn(MIN_UI_SCALE, MAX_UI_SCALE),
@@ -46,6 +53,8 @@ data class WorkspaceAppearance(
         desktopTiles = desktopTiles,
         desktopWidgets = desktopWidgets,
         lookMode = lookMode,
+        lookDeadzoneX = lookDeadzoneX.coerceIn(MIN_LOOK_DEADZONE, MAX_LOOK_DEADZONE),
+        lookDeadzoneY = lookDeadzoneY.coerceIn(MIN_LOOK_DEADZONE, MAX_LOOK_DEADZONE),
     )
 
     companion object {
@@ -76,6 +85,9 @@ data class WorkspaceAppearance(
          * farther from the camera (smaller on screen, more room around them).
          */
         const val DEFAULT_SPHERE_SCALE = 1.0f
+        const val MIN_LOOK_DEADZONE = 0f
+        /** Half of the center-to-edge span. 0.5 means look starts only at mid-screen. */
+        const val MAX_LOOK_DEADZONE = 0.5f
 
         fun default(): WorkspaceAppearance = WorkspaceAppearance()
     }

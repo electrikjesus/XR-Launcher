@@ -201,7 +201,7 @@ object GlassesHomeLook {
         if (GlassesLookMode.effective() == GlassesLookMode.FPS) return
         val dt = deltaSeconds.coerceIn(0f, 0.05f)
         if (dt <= 0f) return
-        val weight = HomeSpaceScene.cursorEdgeWeight(cursorX)
+        val weight = HomeSpaceScene.cursorEdgeWeight(cursorX, HomeSpaceScene.cursorDeadzoneX)
         if (weight != 0f) {
             panNorm += PAN_SPEED * dt * weight
         }

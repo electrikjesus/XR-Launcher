@@ -39,6 +39,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlinx.coroutines.launch
 
 /**
@@ -131,11 +132,25 @@ fun SettingsScreen(
                     SettingsSectionTitle(stringResource(R.string.settings_look_section))
                     HomeSpaceLookSettingsSection(
                         lookMode = appearance.lookMode,
+                        deadzoneX = appearance.lookDeadzoneX,
+                        deadzoneY = appearance.lookDeadzoneY,
                         onLookModeChange = { mode ->
                             scope.launch {
                                 workspaceRepository.updateAppearance(appearance.copy(lookMode = mode))
                             }
                             GlassesLookMode.preference = mode
+                        },
+                        onDeadzoneXChange = { value ->
+                            HomeSpaceScene.cursorDeadzoneX = value
+                            scope.launch {
+                                workspaceRepository.updateAppearance(appearance.copy(lookDeadzoneX = value))
+                            }
+                        },
+                        onDeadzoneYChange = { value ->
+                            HomeSpaceScene.cursorDeadzoneY = value
+                            scope.launch {
+                                workspaceRepository.updateAppearance(appearance.copy(lookDeadzoneY = value))
+                            }
                         },
                         onRecenterLook = {
                             GlassesHomeLook.lookYawDegrees = 0f
@@ -251,7 +266,11 @@ fun SettingsScreen(
 @Composable
 private fun HomeSpaceLookSettingsSection(
     lookMode: GlassesLookMode,
+    deadzoneX: Float,
+    deadzoneY: Float,
     onLookModeChange: (GlassesLookMode) -> Unit,
+    onDeadzoneXChange: (Float) -> Unit,
+    onDeadzoneYChange: (Float) -> Unit,
     onRecenterLook: () -> Unit,
     onResetAppearance: () -> Unit,
 ) {
@@ -277,6 +296,35 @@ private fun HomeSpaceLookSettingsSection(
         ) {
             Text(stringResource(R.string.workspace_look_mode_fps))
         }
+        Text(
+            text = stringResource(R.string.settings_look_deadzone_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(
+                R.string.settings_look_deadzone_horizontal,
+                (deadzoneX * 100).toInt(),
+            ),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = deadzoneX,
+            onValueChange = onDeadzoneXChange,
+            valueRange = WorkspaceAppearance.MIN_LOOK_DEADZONE..WorkspaceAppearance.MAX_LOOK_DEADZONE,
+        )
+        Text(
+            text = stringResource(
+                R.string.settings_look_deadzone_vertical,
+                (deadzoneY * 100).toInt(),
+            ),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = deadzoneY,
+            onValueChange = onDeadzoneYChange,
+            valueRange = WorkspaceAppearance.MIN_LOOK_DEADZONE..WorkspaceAppearance.MAX_LOOK_DEADZONE,
+        )
         OutlinedButton(
             onClick = onRecenterLook,
             modifier = Modifier.fillMaxWidth(),

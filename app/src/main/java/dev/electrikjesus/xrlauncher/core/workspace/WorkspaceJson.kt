@@ -66,6 +66,8 @@ object WorkspaceJson {
             if (clamped.desktopTiles) "1" else "0",
             if (clamped.desktopWidgets) "1" else "0",
             clamped.lookMode.name.lowercase(),
+            clamped.lookDeadzoneX.toCompactString(),
+            clamped.lookDeadzoneY.toCompactString(),
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -92,6 +94,8 @@ object WorkspaceJson {
             desktopTiles = fields.getOrNull(12) != "0",
             desktopWidgets = fields.getOrNull(13) != "0",
             lookMode = GlassesLookMode.fromPersisted(fields.getOrNull(14)),
+            lookDeadzoneX = fields.getOrNull(15)?.toFloatOrNull() ?: 0f,
+            lookDeadzoneY = fields.getOrNull(16)?.toFloatOrNull() ?: 0f,
         ).clamped()
     }
 

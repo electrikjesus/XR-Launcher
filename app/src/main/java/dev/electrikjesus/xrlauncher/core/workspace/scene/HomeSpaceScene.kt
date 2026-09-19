@@ -26,14 +26,27 @@ object HomeSpaceScene {
     const val MAX_PITCH_DEGREES = 24f
 
     /**
+     * Fraction of the center-to-edge distance that does not move look.
+     * 0 keeps the sine curve from the center. Written from [WorkspaceAppearance].
+     */
+    var cursorDeadzoneX: Float = 0f
+    var cursorDeadzoneY: Float = 0f
+
+    /**
      * Gradient cursor → look weight in [-1, 1].
      *
      * `1 - cos` of the distance from center: value and slope are ~0 in the middle,
-     * and the slope grows until the peak at the screen edge. Same shape for X and Y.
+     * and the slope grows until the peak at the screen edge. [deadzone] is the
+     * center-to-edge fraction that stays at 0; the curve is remapped onto the rest.
      */
-    fun cursorEdgeWeight(norm: Float): Float {
+    fun cursorEdgeWeight(norm: Float, deadzone: Float = 0f): Float {
         val u = ((norm.coerceIn(0f, 1f) - 0.5f) * 2f).coerceIn(-1f, 1f)
-        val mag = (1.0 - cos(abs(u.toDouble()) * Math.PI / 2.0)).toFloat()
+        val zone = deadzone.coerceIn(0f, 0.9f)
+        val absU = abs(u)
+        if (absU <= zone) return 0f
+        val span = (1f - zone).coerceAtLeast(0.01f)
+        val t = ((absU - zone) / span).coerceIn(0f, 1f)
+        val mag = (1.0 - cos(t.toDouble() * Math.PI / 2.0)).toFloat()
         return if (u < 0f) -mag else mag
     }
 
@@ -177,14 +190,14 @@ object HomeSpaceScene {
         if (lookMode == GlassesLookMode.FPS) {
             return Camera(yawDeg = baseYaw, pitchDeg = lookPitchDeg)
         }
-        val cursorPitch = (cursorEdgeWeight(cursorY) * CURSOR_PITCH_DEGREES)
+        val cursorPitch = (cursorEdgeWeight(cursorY, cursorDeadzoneY) * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
         if (!applyCursorOffset) {
             // Absolute host GRADIENT: yaw stays on free-look / sine edge-pan (no extra
             // cursor-X yaw — that double-offset mis-aimed picks). Pitch follows cursor Y.
             return Camera(yawDeg = baseYaw, pitchDeg = cursorPitch)
         }
-        val yaw = look * arc + cursorEdgeWeight(cursorX) * CURSOR_YAW_DEGREES
+        val yaw = look * arc + cursorEdgeWeight(cursorX, cursorDeadzoneX) * CURSOR_YAW_DEGREES
         return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
     }
 

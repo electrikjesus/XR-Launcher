@@ -213,6 +213,8 @@ fun GlassesSpatialWorkspaceScreen(
         tuned.sphereScale,
     )
     GlassesHomeLook.lastPaneArcDegrees = paneArc
+    HomeSpaceScene.cursorDeadzoneX = tuned.lookDeadzoneX
+    HomeSpaceScene.cursorDeadzoneY = tuned.lookDeadzoneY
     val sceneCamera = HomeSpaceScene.camera(
         look = panNorm,
         cursorX = cursor.x,
@@ -334,8 +336,10 @@ fun GlassesSpatialWorkspaceScreen(
             withFrameNanos { now ->
                 if (lastFrame != 0L && !PerspectiveCursorProbe.playing.value) {
                     val dt = ((now - lastFrame).coerceAtMost(50_000_000L)) / 1_000_000_000f
-                    GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
                     val appearance = currentTuned.value
+                    HomeSpaceScene.cursorDeadzoneX = appearance.lookDeadzoneX
+                    HomeSpaceScene.cursorDeadzoneY = appearance.lookDeadzoneY
+                    GlassesHomeLook.tickEdgePan(CompanionPointerBus.cursor.value.x, dt)
                     val icons = DeskIconTextureBus.icons()
                     val draggingKey = HomeSpaceDeskState.drag?.app?.componentKey
                     val pinned = icons.filter {

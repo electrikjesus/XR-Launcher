@@ -52,6 +52,9 @@
     <string name="settings_wallpaper_hint">Surround backdrop for the Home Space room.</string>
     <string name="settings_look_section">Look</string>
     <string name="settings_look_home_space_hint">Eye = edge look. Mouse = free look. Panel and icon size stay in Edit.</string>
+    <string name="settings_look_deadzone_hint">Center band where the cursor does not move look. The sine curve starts at the edge of that band.</string>
+    <string name="settings_look_deadzone_horizontal">Horizontal deadzone · %1$d%%</string>
+    <string name="settings_look_deadzone_vertical">Vertical deadzone · %1$d%%</string>
     <string name="settings_wallpaper_system">Phone wallpaper</string>
     <string name="settings_wallpaper_twilight">Twilight gradient</string>
     <string name="settings_wallpaper_aurora">Aurora gradient</string>
