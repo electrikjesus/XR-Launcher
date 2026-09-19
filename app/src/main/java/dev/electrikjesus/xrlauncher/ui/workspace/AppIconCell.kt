@@ -1,13 +1,14 @@
 package dev.electrikjesus.xrlauncher.ui.workspace
 
 import android.graphics.drawable.Drawable
+import android.widget.ImageView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,17 +19,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import android.widget.ImageView
 import dev.electrikjesus.xrlauncher.core.launcher.AppIconCache
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 
@@ -86,13 +87,16 @@ fun AppIconCell(
         AndroidView(
             factory = { ctx ->
                 ImageView(ctx).apply {
-                    // Normalized square bitmaps from AppIconCache — fill the cell uniformly.
-                    scaleType = ImageView.ScaleType.FIT_XY
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    adjustViewBounds = false
                     setImageDrawable(icon)
                 }
             },
             update = { it.setImageDrawable(icon) },
-            modifier = Modifier.size(iconSize),
+            // Hard round clip so Home pane matches desk circular faces even if bake drifts.
+            modifier = Modifier
+                .size(iconSize)
+                .clip(CircleShape),
         )
         Text(
             text = app.label,

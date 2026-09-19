@@ -14,8 +14,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 object DeskIconBitmaps {
     private const val ICON_SIZE = 160
     private const val LABEL_HEIGHT = 40
-    private const val APP_PAD = 10
-    private const val PLATE_CORNER = 28f
+    private const val APP_PAD = 8
 
     fun create(context: Context, icon: HomeSpaceDesk.Icon): Bitmap {
         val width = ICON_SIZE
@@ -25,7 +24,7 @@ object DeskIconBitmaps {
         canvas.drawColor(Color.TRANSPARENT)
 
         when {
-            icon.isBacking -> drawBacking(canvas, width, ICON_SIZE)
+            icon.isBacking -> Unit // pick/physics only — no GLES panel
             icon.kind == HomeSpaceDesk.Kind.PAGE_PREV -> drawChevron(canvas, width, ICON_SIZE, left = true)
             icon.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> drawChevron(canvas, width, ICON_SIZE, left = false)
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
@@ -58,15 +57,14 @@ object DeskIconBitmaps {
         width: Int,
         iconSize: Int,
     ) {
-        // Shared plate so every Desktop app reads as the same tile silhouette.
-        val plate = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(170, 36, 42, 58)
-        }
-        canvas.drawRoundRect(
-            RectF(6f, 6f, width - 6f, iconSize - 6f),
-            PLATE_CORNER,
-            PLATE_CORNER,
-            plate,
+        val cx = width * 0.5f
+        val cy = iconSize * 0.5f
+        val radius = (minOf(width, iconSize) * 0.5f) - APP_PAD
+        canvas.save()
+        canvas.clipPath(
+            android.graphics.Path().apply {
+                addCircle(cx, cy, radius, android.graphics.Path.Direction.CW)
+            },
         )
         val drawable = runCatching { AppIconCache.getIcon(context, packageName) }.getOrNull()
         if (drawable != null) {
@@ -74,21 +72,12 @@ object DeskIconBitmaps {
             drawable.draw(canvas)
         } else {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(180, 80, 90, 110) }
-            canvas.drawRoundRect(
-                RectF(12f, 12f, width - 12f, iconSize - 12f),
-                24f,
-                24f,
-                paint,
-            )
+            canvas.drawCircle(cx, cy, radius, paint)
         }
-    }
-
-    private fun drawBacking(canvas: Canvas, width: Int, iconSize: Int) {
-        // Intentionally blank — open-drawer backing is pick/physics only (no GLES panel).
+        canvas.restore()
     }
 
     private fun drawChevron(canvas: Canvas, width: Int, iconSize: Int, left: Boolean) {
-        drawControlPlate(canvas, width, iconSize)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(220, 230, 236, 248) }
         val cx = width / 2f
         val cy = iconSize / 2f
@@ -111,7 +100,6 @@ object DeskIconBitmaps {
     }
 
     private fun drawPageDot(canvas: Canvas, width: Int, iconSize: Int, label: String) {
-        drawControlPlate(canvas, width, iconSize)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(200, 138, 180, 248) }
         val cx = width / 2f
         val cy = iconSize / 2f
@@ -121,18 +109,6 @@ object DeskIconBitmaps {
         paint.textSize = 36f
         paint.typeface = Typeface.DEFAULT_BOLD
         canvas.drawText(label, cx, cy + 13f, paint)
-    }
-
-    private fun drawControlPlate(canvas: Canvas, width: Int, iconSize: Int) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(150, 36, 42, 58)
-        }
-        canvas.drawRoundRect(
-            RectF(6f, 6f, width - 6f, iconSize - 6f),
-            PLATE_CORNER,
-            PLATE_CORNER,
-            paint,
-        )
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

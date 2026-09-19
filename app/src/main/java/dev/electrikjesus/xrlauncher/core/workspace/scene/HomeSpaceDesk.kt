@@ -721,6 +721,11 @@ object HomeSpaceDesk {
             }
         }
         quad(face.bl, face.br, face.tr, face.tl, inward, textured = true)
+        // App / All-Apps stickers are round via texture alpha — skip box sides so a
+        // rectangular pancake silhouette does not read as a square plate around the icon.
+        if (icon.isDesktopApp || icon.isAppDrawer) {
+            return HomeSpacePaneMesh(verts.toFloatArray(), 6)
+        }
         quad(face.outBr, face.outBl, face.outTl, face.outTr, out, textured = false)
         quad(face.bl, face.tl, face.outTl, face.outBl, up * -1f, textured = false)
         quad(face.tr, face.br, face.outBr, face.outTr, up, textured = false)

@@ -620,13 +620,13 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
-0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; wire BumpDesk-style empty-space lasso start through the same absolute path; optional Settings toggle for `HostInputMethod`.
+0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; wire BumpDesk-style empty-space lasso start through the same absolute path; optional Settings toggle for `HostInputMethod`. ☑ partial: absolute host no longer double-applies cursor into camera; desk layout uses real viewport (not hardcoded 1920×1080); pager magnet disabled on host.
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons.
 2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile.
 3. **Radial menu** — right-click / long-press on desk icon or selection.
-4. **Desk icon size polish** — ☑ adaptive-icon normalize + shared GLES plate; open-drawer app scale = Desktop (1.0).
+4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
@@ -821,8 +821,11 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host chrome = Minecraft layers:** viewport HUD + modal Edit/Settings (Compose `drawToScreen`); desk bus only off-chrome; FPS look paused in modals | FPS center-lock + GLES-only Edit skewed hits; HUD/desk fought for clicks |
 | 2026-09-19 | **4.1 partial:** host scroll-wheel + 2-finger pinch → sphere zoom; mouse right-click → existing context menus | Host had left-only pointer; no zoom gestures |
 | 2026-09-19 | **Desk/Home icon uniformity:** `AppIconCache` normalizes adaptive insets to a square bitmap; Desktop GLES tiles share a plate; `DRAWER_OPEN_ICON_SCALE = 1.0`; base `ICON_HALF_*` raised to 0.064×0.077 | Transparent adaptive icons looked tiny vs filled ones; open-drawer was 1.05× Desktop; desk tiles were hard to read |
+| 2026-09-19 | **Icon plates removed:** circular-mask adaptive bake (no white square bg); drop Desktop GLES plate; Home cells use masked bitmaps at one `iconSize` | Inset expand without mask showed adaptive white backgrounds; Home logos still uneven fill |
 | 2026-09-19 | **2.28a host BumpDesk input:** `HostBumpDeskInput` + `BumpDeskHostGesture`; skip FPS center-lock when `hostImmersiveSession`; `HostInputMethod` switch (default BUMPDESK) | Companion FPS press/release re-lock fought absolute mouse on Expanded host |
+| 2026-09-19 | **Round icon faces restored:** stop expanding adaptive bounds past canvas (that squared the OEM mask); clipPath circle + mild fill zoom; Home `CircleShape`; desk atlas circle clip; app meshes front-face only | Extra-inset expand filled square boxes; rectangular pancake sides read as plates |
+| 2026-09-19 | **Host absolute pick alignment:** `applyCursorOffset=false` for BumpDesk host; desk/camera/physics use live viewport; disable `pickNearestPager` magnet on host | Gesture path was BumpDesk but GRADIENT camera+ray double-offset + 1920×1080 layout vs real aspect caused inches-off launches |
 
 ---
 
-*Last updated: 2026-09-19 (host BumpDesk absolute input slice)*
+*Last updated: 2026-09-19 (host absolute pick alignment)*
