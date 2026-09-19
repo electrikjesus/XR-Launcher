@@ -42,6 +42,13 @@ object OnboardingPermissions {
     fun accessibilitySettingsIntent(): Intent =
         Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
+    /** App Info — user enables Restricted settings here before the accessibility toggle appears. */
+    fun appInfoIntent(context: Context): Intent =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = android.net.Uri.fromParts("package", context.packageName, null)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
     fun requestHomeIntent(context: Context): Intent {
         val roleManager = context.getSystemService(RoleManager::class.java)
         if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {

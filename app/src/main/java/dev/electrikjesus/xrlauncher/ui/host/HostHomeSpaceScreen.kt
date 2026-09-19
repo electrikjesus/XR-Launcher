@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -20,14 +21,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingLogic
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingPermissions
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
@@ -66,6 +74,37 @@ fun HostHomeSpaceScreen(
             GlassesSessionState.hostImmersiveSession = false
             GlassesSessionState.clearLauncherSession()
             HomeSpaceDialogState.close()
+        }
+    }
+
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var resumeTick by remember { mutableStateOf(0) }
+    var includeOnboardingIntro by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) resumeTick++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(resumeTick) {
+        OnboardingStore.init(context)
+        val replay = OnboardingStore.consumeReplay(context)
+        val grants = OnboardingPermissions.snapshot(context)
+        includeOnboardingIntro = OnboardingLogic.includeIntroPages(
+            completed = OnboardingStore.isCompleted(),
+            replayRequested = replay,
+        )
+        if (
+            OnboardingLogic.shouldShow(
+                completed = OnboardingStore.isCompleted(),
+                replayRequested = replay,
+                hasSecondaryDisplay = false,
+                grants = grants,
+            )
+        ) {
+            HomeSpaceDialogState.openOnboarding()
         }
     }
 
@@ -258,6 +297,22 @@ fun HostHomeSpaceScreen(
                     hoveredLabel = cursor.hoveredLabel,
                     onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                     onClose = { HomeSpaceDialogState.close() },
+                    onShowOnboarding = {
+                        includeOnboardingIntro = true
+                        HomeSpaceDialogState.close()
+                        HomeSpaceDialogState.openOnboarding()
+                    },
+                )
+            }
+        }
+        if (settingsOpen == HomeSpaceDialog.ONBOARDING) {
+            Box(Modifier.fillMaxSize().zIndex(11f)) {
+                HostOnboardingDialogLayer(
+                    includeIntro = includeOnboardingIntro,
+                    onFinished = {
+                        OnboardingStore.markCompleted(context)
+                        HomeSpaceDialogState.close()
+                    },
                 )
             }
         }

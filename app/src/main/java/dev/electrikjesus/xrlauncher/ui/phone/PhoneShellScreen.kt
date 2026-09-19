@@ -59,6 +59,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.PhoneHomeLayout
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingLogic
+import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingPermissions
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
@@ -122,6 +123,7 @@ private fun PhoneShellContent(
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeTick by remember { mutableIntStateOf(0) }
     var showOnboarding by remember { mutableStateOf(false) }
+    var includeOnboardingIntro by remember { mutableStateOf(true) }
     var query by remember { mutableStateOf("") }
     var launchTargetApp by remember { mutableStateOf<LaunchableApp?>(null) }
     val requestLaunch: (LaunchableApp) -> Unit = { launchTargetApp = it }
@@ -137,10 +139,16 @@ private fun PhoneShellContent(
     LaunchedEffect(resumeTick, capabilities.hasSecondaryDisplay) {
         OnboardingStore.init(context)
         val replay = OnboardingStore.consumeReplay(context)
+        val grants = OnboardingPermissions.snapshot(context)
         showOnboarding = OnboardingLogic.shouldShow(
             completed = OnboardingStore.isCompleted(),
             replayRequested = replay,
             hasSecondaryDisplay = capabilities.hasSecondaryDisplay,
+            grants = grants,
+        )
+        includeOnboardingIntro = OnboardingLogic.includeIntroPages(
+            completed = OnboardingStore.isCompleted(),
+            replayRequested = replay,
         )
     }
 
@@ -173,6 +181,7 @@ private fun PhoneShellContent(
                     OnboardingStore.markCompleted(context)
                     showOnboarding = false
                 },
+                includeIntro = includeOnboardingIntro,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
@@ -183,7 +192,10 @@ private fun PhoneShellContent(
             ) {
                 PhoneHomeTopBar(
                     onOpenSettings = onOpenSettings,
-                    onShowOnboarding = { showOnboarding = true },
+                    onShowOnboarding = {
+                        includeOnboardingIntro = true
+                        showOnboarding = true
+                    },
                 )
                 PhoneHomeClock(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
                 OutlinedTextField(
@@ -235,7 +247,10 @@ private fun PhoneShellContent(
                     onLaunchApp = requestLaunch,
                     onOpenGlassesWorkspace = onOpenGlassesWorkspace,
                     onOpenCompanion = onOpenCompanion,
-                    onShowOnboarding = { showOnboarding = true },
+                    onShowOnboarding = {
+                        includeOnboardingIntro = true
+                        showOnboarding = true
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars),

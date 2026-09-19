@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,11 +61,12 @@ import kotlinx.coroutines.launch
 fun OnboardingScreen(
     onFinished: () -> Unit,
     modifier: Modifier = Modifier,
+    includeIntro: Boolean = true,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var grants by remember { mutableStateOf(OnboardingPermissions.snapshot(context)) }
-    val pages = remember(grants) { OnboardingLogic.pages(grants) }
+    val pages = remember(grants, includeIntro) { OnboardingLogic.pages(grants, includeIntro) }
     val pagerState = rememberPagerState(pageCount = { pages.size.coerceAtLeast(1) })
     val scope = rememberCoroutineScope()
     val homeRoleLauncher = rememberLauncherForActivityResult(
@@ -96,6 +98,7 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -139,6 +142,17 @@ fun OnboardingScreen(
             }
         }
         if (OnboardingLogic.isPermissionStep(currentStep) && !permissionGranted) {
+            if (currentStep == OnboardingStep.ACCESSIBILITY) {
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(OnboardingPermissions.appInfoIntent(context))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.onboarding_open_app_info))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Button(
                 onClick = {
                     when (currentStep) {

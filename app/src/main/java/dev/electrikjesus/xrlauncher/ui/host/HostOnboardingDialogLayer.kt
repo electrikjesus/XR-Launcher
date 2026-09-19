@@ -17,35 +17,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
-import dev.electrikjesus.xrlauncher.ui.settings.SettingsScreen
+import dev.electrikjesus.xrlauncher.ui.phone.OnboardingScreen
 
 private val CardBg = Color(0xF21C1C1E)
 private val ScrimBg = Color(0x99000000)
 
-/**
- * Host Settings as a screen-space modal. The scrim is a sibling behind the card, not a
- * clickable parent: a parent clickable plus [androidx.compose.material3.Slider] leaves the
- * press gesture stuck, so only sliders keep receiving events. No offscreen capture either —
- * [dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture] records into a graphics
- * layer and breaks hit testing after the first drag.
- */
+/** Host onboarding / missing-permissions guide above the pointer catcher. */
 @Composable
-fun BoxScope.HostSettingsDialogLayer(
-    workspaceRepository: WorkspaceRepository,
-    hoveredLabel: String?,
-    onBoundsChanged: (String, Rect) -> Unit,
-    onClose: () -> Unit,
-    onShowOnboarding: () -> Unit = onClose,
+fun BoxScope.HostOnboardingDialogLayer(
+    includeIntro: Boolean,
+    onFinished: () -> Unit,
 ) {
-    @Suppress("UNUSED_PARAMETER")
-    val unusedHover = hoveredLabel
-    @Suppress("UNUSED_PARAMETER")
-    val unusedBounds = onBoundsChanged
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +39,7 @@ fun BoxScope.HostSettingsDialogLayer(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onClose,
+                onClick = onFinished,
             ),
     )
     Box(
@@ -62,18 +47,16 @@ fun BoxScope.HostSettingsDialogLayer(
             .align(Alignment.Center)
             .zIndex(5f)
             .widthIn(min = 360.dp, max = 520.dp)
-            .heightIn(max = 640.dp)
+            .heightIn(max = 720.dp)
             .fillMaxWidth(0.46f)
-            .fillMaxHeight(0.72f)
+            .fillMaxHeight(0.82f)
             .clip(RoundedCornerShape(20.dp))
             .background(CardBg)
-            .padding(8.dp),
+            .padding(4.dp),
     ) {
-        SettingsScreen(
-            workspaceRepository = workspaceRepository,
-            onNavigateBack = onClose,
-            onShowOnboarding = onShowOnboarding,
-            homeSpaceOnly = true,
+        OnboardingScreen(
+            onFinished = onFinished,
+            includeIntro = includeIntro,
             modifier = Modifier.fillMaxSize(),
         )
     }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class HomeSpaceDialog {
     NONE,
     SETTINGS,
+    ONBOARDING,
 }
 
 object HomeSpaceDialogState {
@@ -20,6 +21,10 @@ object HomeSpaceDialogState {
 
     fun openSettings() {
         _dialog.value = HomeSpaceDialog.SETTINGS
+    }
+
+    fun openOnboarding() {
+        _dialog.value = HomeSpaceDialog.ONBOARDING
     }
 
     fun close() {

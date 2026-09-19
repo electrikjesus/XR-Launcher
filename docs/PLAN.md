@@ -632,8 +632,9 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
 5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / hand=GESTURE / mouse=FPS (force, not toggle); still open: OS mouse capture.
 6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
+7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility re-shows the guide on each launch (host + phone); App Info Restricted-settings path; permission-only pages after first complete. System wallpaper is not a Play-grantable permission on API 14+.
 
-7. **Stop** — Do not start 6.9 onboarding in this pass.
+8. **Stop** — Do not start unrelated Phase 6 work in this pass.
 
 **BumpDesk references (port, don’t reinvent):** `LauncherActivity` gestures (host input), `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
@@ -716,7 +717,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 | 6.6 | Privacy policy (minimal collection; no analytics or explicit opt-in only). | ☐ |
 | 6.7 | Play listing: screenshots, supported devices, honest “embedding limitations” note. | ☐ |
 | 6.8 | Beta via internal / closed testing; file bugs against `device-matrix.md` gaps. | ☐ |
-| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. | ☐ |
+| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. | ☑ Partial — host + phone re-show when Home / Accessibility missing; App Info CTA; system wallpaper is not a Play-grantable permission on API 14+ (gradient fallback) |
 
 ---
 
@@ -838,7 +839,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Look deadzone sliders:** horizontal and vertical center band (0–50% of center-to-edge) zeros `cursorEdgeWeight` before the sine curve | Normal look moved as soon as the cursor left the exact center |
 | 2026-09-19 | **Stale Edit hits:** ignore Edit +/- unless Edit is open, and clear those bounds when the card hides | A Home pager miss landed on a leftover Icons & elements minus rect and shrank uiScale |
 | 2026-09-19 | **Gesture look:** third HUD icon; camera ignores cursor/touch position; drag, two-finger, and middle pan look; empty drag is look, not lasso | Edge look and mouse-look both aim where the pointer rests |
+| 2026-09-19 | **Onboarding 6.9 partial:** re-show each launch when Home or Accessibility missing (host + phone); App Info Restricted-settings CTA; permission-only pages after first complete | Completed flag hid the wizard forever; host Expanded never showed it |
 
 ---
 
-*Last updated: 2026-09-19 (gesture look)*
+*Last updated: 2026-09-19 (onboarding permission recheck)*
