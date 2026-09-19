@@ -124,6 +124,7 @@ fun GlassesSpatialWorkspaceScreen(
     val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
     val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
+    val lookYawDegrees by GlassesHomeLook.lookYawDegFlow.collectAsState()
     val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
     val deskDrag by HomeSpaceDeskState.dragFlow.collectAsState()
     val deskDrawerPose by HomeSpaceDeskState.drawerPoseFlow.collectAsState()
@@ -193,7 +194,9 @@ fun GlassesSpatialWorkspaceScreen(
     val wrapCurvature = tuned.wrapCurvature
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
-    val lookMode = if (launcherForeground) tuned.lookMode else GlassesLookMode.GRADIENT
+    // Live HUD preference wins immediately; appearance catches up via DataStore.
+    val lookModePref by GlassesLookMode.preferenceFlow.collectAsState(initial = GlassesLookMode.preference)
+    val lookMode = if (launcherForeground) lookModePref else GlassesLookMode.GRADIENT
     val absoluteHostCursor = HostInputMethod.usesAbsoluteHostCursor()
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -221,7 +224,7 @@ fun GlassesSpatialWorkspaceScreen(
         lookMode = lookMode,
         lookPitchDeg = lookPitch,
         applyCursorOffset = !absoluteHostCursor,
-        lookYawDegrees = GlassesHomeLook.lookYawDegrees,
+        lookYawDegrees = lookYawDegrees,
     )
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
         yawDegrees = sceneCamera.yawDeg,
@@ -236,10 +239,19 @@ fun GlassesSpatialWorkspaceScreen(
         onLaunchApp?.invoke(app)
     }
     val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
+    // Sync DataStore → preference when appearance changes, but never clobber a newer HUD tap
+    // (preference already diverged from the last synced appearance value).
+    var lastSyncedLookMode by remember { mutableStateOf<GlassesLookMode?>(null) }
     LaunchedEffect(tuned.lookMode, launcherForeground, absoluteHostCursor) {
-        GlassesLookMode.preference = tuned.lookMode
+        if (launcherForeground) {
+            val previous = lastSyncedLookMode
+            if (previous == null || GlassesLookMode.preference == previous) {
+                GlassesLookMode.preference = tuned.lookMode
+            }
+            lastSyncedLookMode = tuned.lookMode
+        }
         // Companion FPS re-locks to center; absolute host mouse must keep screen coords.
-        if (launcherForeground && tuned.lookMode == GlassesLookMode.FPS && !absoluteHostCursor) {
+        if (launcherForeground && lookMode == GlassesLookMode.FPS && !absoluteHostCursor) {
             CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
         }
     }

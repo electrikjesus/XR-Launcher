@@ -23,8 +23,19 @@ class GlassesLookModeTest {
     fun effective_usesGradientWhenAnAppIsInFront() {
         GlassesLookMode.preference = GlassesLookMode.FPS
         GlassesSessionState.markLauncherForeground()
+        GlassesSessionState.hostImmersiveSession = false
         assertEquals(GlassesLookMode.FPS, GlassesLookMode.effective())
         GlassesSessionState.launcherForeground = false
+        assertEquals(GlassesLookMode.GRADIENT, GlassesLookMode.effective())
+    }
+
+    @Test
+    fun effective_keepsFpsDuringHostImmersiveEvenIfForegroundCleared() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.launcherForeground = false
+        GlassesSessionState.hostImmersiveSession = true
+        assertEquals(GlassesLookMode.FPS, GlassesLookMode.effective())
+        GlassesSessionState.hostImmersiveSession = false
         assertEquals(GlassesLookMode.GRADIENT, GlassesLookMode.effective())
     }
 }

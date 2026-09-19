@@ -484,10 +484,17 @@ private fun handleHomeSpaceClick(
             CompanionPointerBus.recenterCursor()
             GlassesHomeLook.lookHome()
         }
-        GlassesHomeHits.HUD_LOOK_MODE -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
+        // Force modes — never toggle. A delayed LeftClick after Compose already switched
+        // would otherwise flip mouse-look back on when the user tapped the eye.
+        GlassesHomeHits.HUD_LOOK_MODE -> {
+            GlassesLookMode.preference = GlassesLookMode.FPS
+            onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 1f)
+        }
         GlassesHomeHits.HUD_INPUT_TOUCHPAD ->
             GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
         GlassesHomeHits.HUD_INPUT_HEAD -> {
+            GlassesLookMode.preference = GlassesLookMode.GRADIENT
+            onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, -1f)
             if (GlassesSessionState.rayNeoUsbAttached) {
                 GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
                 CompanionPointerBus.recenterCursor()
@@ -636,10 +643,23 @@ private fun handlePaginationClick(
 fun isHostScreenChromeAt(normX: Float, normY: Float): Boolean {
     if (lastDeskRootWidthPx <= 1f || lastDeskRootHeightPx <= 1f) return false
     val point = Offset(normX * lastDeskRootWidthPx, normY * lastDeskRootHeightPx)
-    return lastDeskItemBounds.entries.any { (key, rect) ->
-        GlassesHomeHits.isScreenLockedChromeKey(key) &&
-            rect.containsWithSlop(point, HOST_CONTROL_HIT_SLOP_PX)
+    if (
+        lastDeskItemBounds.entries.any { (key, rect) ->
+            GlassesHomeHits.isScreenLockedChromeKey(key) &&
+                rect.containsWithSlop(point, HOST_CONTROL_HIT_SLOP_PX)
+        }
+    ) {
+        return true
     }
+    // Bounds can lag a frame after rotation / first layout. Top-center strip is always HUD.
+    if (
+        GlassesSessionState.hostImmersiveSession &&
+        normY < 0.14f &&
+        normX in 0.28f..0.72f
+    ) {
+        return true
+    }
+    return false
 }
 
 private fun Rect.containsWithSlop(point: Offset, slopPx: Float = CONTROL_HIT_SLOP_PX): Boolean =

@@ -32,11 +32,16 @@ object HomeSpaceTune {
         HomeSpaceTuneAxis.DESK_PILES -> appearance.copy(desktopPiles = !appearance.desktopPiles)
         HomeSpaceTuneAxis.DESK_TILES -> appearance.copy(desktopTiles = !appearance.desktopTiles)
         HomeSpaceTuneAxis.DESK_WIDGETS -> appearance.copy(desktopWidgets = !appearance.desktopWidgets)
+        // delta > 0 → force FPS; delta < 0 → force GRADIENT; 0 → toggle (Edit Look button).
         HomeSpaceTuneAxis.LOOK_FPS -> appearance.copy(
-            lookMode = if (appearance.lookMode == GlassesLookMode.FPS) {
-                GlassesLookMode.GRADIENT
-            } else {
-                GlassesLookMode.FPS
+            lookMode = when {
+                delta > 0f -> GlassesLookMode.FPS
+                delta < 0f -> GlassesLookMode.GRADIENT
+                else -> if (appearance.lookMode == GlassesLookMode.FPS) {
+                    GlassesLookMode.GRADIENT
+                } else {
+                    GlassesLookMode.FPS
+                }
             },
         )
     }.clamped()

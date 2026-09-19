@@ -50,10 +50,12 @@ class BumpDeskHostGesture(
         lastY = 0f
     }
 
-    fun onPrimaryDown(x: Float, y: Float, allowDeskGrab: Boolean): List<BumpDeskHostAction> {
+    fun onPrimaryDown(x: Float, y: Float, allowDeskGrab: Boolean, fpsLook: Boolean = false): List<BumpDeskHostAction> {
         primaryDown = true
         deskGrabAllowed = allowDeskGrab
-        deskDragArmed = allowDeskGrab
+        // FPS mouse-look: do not arm desk hold on down — finger/mouse drag must rotate the view.
+        // Desk clicks still fire on up if we didn't look-drag past slop.
+        deskDragArmed = allowDeskGrab && !fpsLook
         middleDragging = false
         pinching = false
         downX = x
@@ -61,9 +63,7 @@ class BumpDeskHostGesture(
         lastX = x
         lastY = y
         val out = mutableListOf<BumpDeskHostAction>(BumpDeskHostAction.CursorAt(x, y))
-        // Hold-Left starts on down (XR desk grab); absolute cursor — no FPS re-lock.
-        // Touch-slop still gates LookPan while pressed and micro-jitter before move callbacks.
-        if (allowDeskGrab) {
+        if (deskDragArmed) {
             out += BumpDeskHostAction.BeginDeskHold
         }
         return out
@@ -127,10 +127,13 @@ class BumpDeskHostGesture(
                     out += BumpDeskHostAction.DeskMoveWhilePressed
                 }
             }
-            primaryDown && !deskDragArmed -> {
+            primaryDown && !deskGrabAllowed -> {
                 // Pressed on chrome / modal: Compose owns the hit; no look-steal.
             }
-            !primaryDown && !middleDragging && !pinching && fpsLook && !dialogOpen -> {
+            // FPS: look while the primary button/finger is dragging on the desk.
+            // Hover-only deltas are companion center-lock territory — absolute host must
+            // not yaw from the first Move after (0,0) last-sample.
+            fpsLook && !dialogOpen && primaryDown && deskGrabAllowed -> {
                 if (dx != 0f || dy != 0f) {
                     out += BumpDeskHostAction.LookPan(dx, dy)
                 }
@@ -162,10 +165,13 @@ class BumpDeskHostGesture(
         lastX = x
         lastY = y
         val out = mutableListOf<BumpDeskHostAction>(BumpDeskHostAction.CursorAt(x, y))
-        if (primaryDown && deskDragArmed) {
-            out += BumpDeskHostAction.EndDeskHold
+        val moved = hypot(x - downX, y - downY) > touchSlopPx
+        when {
+            primaryDown && deskDragArmed -> out += BumpDeskHostAction.EndDeskHold
+            // FPS look-drag: no desk hold was armed — tap without travel still clicks the desk.
+            primaryDown && deskGrabAllowed && !moved -> out += BumpDeskHostAction.LeftClick(x, y)
+            // Chrome / modal: Compose clickables.
         }
-        // Chrome / modal presses: leave for Compose clickables (no bus click).
         primaryDown = false
         deskGrabAllowed = false
         deskDragArmed = false

@@ -37,5 +37,14 @@ class HomeSpaceTuneTest {
         assertEquals(GlassesLookMode.FPS, fps.lookMode)
         val gradient = HomeSpaceTune.apply(fps, HomeSpaceTuneAxis.LOOK_FPS, 0f)
         assertEquals(GlassesLookMode.GRADIENT, gradient.lookMode)
+        val forceFps = HomeSpaceTune.apply(gradient, HomeSpaceTuneAxis.LOOK_FPS, 1f)
+        assertEquals(GlassesLookMode.FPS, forceFps.lookMode)
+        val forceGradient = HomeSpaceTune.apply(forceFps, HomeSpaceTuneAxis.LOOK_FPS, -1f)
+        assertEquals(GlassesLookMode.GRADIENT, forceGradient.lookMode)
+        // Force must not toggle when already in the requested mode.
+        assertEquals(
+            GlassesLookMode.FPS,
+            HomeSpaceTune.apply(forceFps, HomeSpaceTuneAxis.LOOK_FPS, 1f).lookMode,
+        )
     }
 }

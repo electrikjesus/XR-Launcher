@@ -595,7 +595,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
-| 2.28a | **Host BumpDesk input path.** Port BumpDesk `LauncherActivity` gesture model (absolute coords, touch-slop, middle-drag look, scroll/pinch zoom) as second host input method; skip companion FPS press/release re-lock while `hostImmersiveSession`. | ☑ Partial — `HostBumpDeskInput` + `BumpDeskHostGesture` + `HostInputMethod` switch; InteractionManager ray-pick still via existing desk bus |
+| 2.28a | **Host BumpDesk input path.** Port BumpDesk `LauncherActivity` gesture model (absolute coords, touch-slop, middle-drag look, scroll/pinch zoom) as second host input method; skip companion FPS press/release re-lock while `hostImmersiveSession`. | ☑ Partial — `HostBumpDeskMotionBridge` + Compose `pointerInteropFilter` catcher (AndroidView ate swipes); HUD wrap-content above catcher; eye/mouse force look mode |
 | 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
@@ -630,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — ☑ partial: free-circle yaw + ±89° pitch; FPS look pauses over top HUD so look-mode toggle works; still open: OS mouse capture, HUD keyboard focus, DeX quirks, Settings toggle.
+5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / mouse=FPS (force, not toggle); still open: OS mouse capture, Edit-above-catcher polish, Settings toggle.
 6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -827,7 +827,9 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host absolute pick alignment:** `applyCursorOffset=false` for BumpDesk host; desk/camera/physics use live viewport; disable `pickNearestPager` magnet on host | Gesture path was BumpDesk but GRADIENT camera+ray double-offset + 1920×1080 layout vs real aspect caused inches-off launches |
 | 2026-09-19 | **Free-circle look + HUD under FPS:** unclamp `panNorm`; pitch ±89°; pause mouse-look over screen chrome; no host cursor snap on FPS enable | Look locked past All Apps / mid-tray; FPS ate top HUD look-mode clicks |
 | 2026-09-19 | **Free-look yaw degrees + 2-finger pan + flat icon light:** camera uses `lookYawDegrees`; pinch mid-drag pans; desk icons low diffuse | Mouse-look still felt FOV-clamped via panNorm*arc; pinch zoom only; lit shader crushed icon colors |
+| 2026-09-19 | **Mouse-look drag + HUD eye=normal:** FPS look pans while pressed; eye sets GRADIENT, mouse sets FPS; collect `lookYawDegFlow` | Screenrecord: mouse stayed selected; eye was head-track no-op; FPS ignored finger-drag look |
+| 2026-09-19 | **Host look unstuck:** `pointerInteropFilter` catcher + transparent hit target; HUD wrap-content above catcher; `effective()` honors `hostImmersiveSession`; HUD bus force GRADIENT/FPS (no toggle race) | GLES AndroidView ate swipes; fillMaxSize HUD overlay blocked catcher; delayed LeftClick toggled look back to FPS |
 
 ---
 
-*Last updated: 2026-09-19 (free-look yaw + pinch pan + icon light)*
+*Last updated: 2026-09-19 (host FPS look catcher + eye/normal HUD)*

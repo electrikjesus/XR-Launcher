@@ -26,6 +26,8 @@ import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceCylinderGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceGlesConfig
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspacePanelTextureBus
+import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.ui.host.HostBumpDeskMotionBridge
 import dev.electrikjesus.xrlauncher.ui.spatial.gles.CylinderGlRenderer
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
@@ -142,6 +144,12 @@ fun WorkspaceGlesBackdrop(
                 )
                 setEGLContextClientVersion(2)
                 setZOrderOnTop(false)
+                // Host BumpDesk look/desk: SurfaceView MotionEvents never reach Compose
+                // pointerInput. Forward them while leaving top-HUD chrome to Compose.
+                setOnTouchListener { v, event ->
+                    if (!GlassesSessionState.hostImmersiveSession) return@setOnTouchListener false
+                    HostBumpDeskMotionBridge.onTouch(event, v.width, v.height)
+                }
                 setRenderer(renderer)
                 renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
                 surfaceViewRef.set(this)
@@ -149,6 +157,10 @@ fun WorkspaceGlesBackdrop(
         },
         update = { view ->
             surfaceViewRef.set(view)
+            view.setOnTouchListener { v, event ->
+                if (!GlassesSessionState.hostImmersiveSession) return@setOnTouchListener false
+                HostBumpDeskMotionBridge.onTouch(event, v.width, v.height)
+            }
             renderer.camera = camera
             renderer.curvature = curvature
             renderer.workspaceWidth = workspaceWidth

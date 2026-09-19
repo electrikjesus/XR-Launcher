@@ -4,6 +4,8 @@ import android.view.Display
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -14,11 +16,13 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
@@ -36,6 +40,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.ui.external.LauncherWorkspaceInteractionLayer
 import dev.electrikjesus.xrlauncher.ui.external.rememberDebouncedPanelSaver
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
+import dev.electrikjesus.xrlauncher.ui.glasses.HostXrChromeBar
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
 import dev.electrikjesus.xrlauncher.ui.workspace.openAppContextMenuFromBounds
 import kotlinx.coroutines.launch
@@ -78,6 +83,7 @@ fun HostHomeSpaceScreen(
     val panelSaver = rememberDebouncedPanelSaver(workspaceRepository)
     val scope = rememberCoroutineScope()
     val appearance = workspace?.appearance ?: WorkspaceAppearance.default()
+    val cursor by CompanionPointerBus.cursor.collectAsState()
 
     val onLaunchApp: (LaunchableApp) -> Unit = { app ->
         launchCoordinator.launchFromSpatialDesktop(
@@ -160,7 +166,7 @@ fun HostHomeSpaceScreen(
                             workspaceRepository.updateAppearance(HomeSpaceTune.apply(appearance, axis, delta))
                         }
                     },
-                    showHostChrome = true,
+                    showHostChrome = false,
                     modifier = Modifier.fillMaxSize(),
                 )
 
@@ -199,16 +205,34 @@ fun HostHomeSpaceScreen(
         }
     }
 
-    when (HostInputMethod.preference) {
-        HostInputMethod.BUMPDESK -> HostBumpDeskInput(
-            modifier = modifier.fillMaxSize(),
-            onZoomSphere = onZoomSphere,
-            content = hostContent,
-        )
-        HostInputMethod.COMPANION_BUS -> HostPointerBridge(
-            modifier = modifier.fillMaxSize(),
-            onZoomSphere = onZoomSphere,
-            content = hostContent,
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        when (HostInputMethod.preference) {
+            HostInputMethod.BUMPDESK -> HostBumpDeskInput(
+                modifier = Modifier.fillMaxSize(),
+                onZoomSphere = onZoomSphere,
+                content = hostContent,
+            )
+            HostInputMethod.COMPANION_BUS -> HostPointerBridge(
+                modifier = Modifier.fillMaxSize(),
+                onZoomSphere = onZoomSphere,
+                content = hostContent,
+            )
+        }
+        // Wrap-content top HUD only — a fillMaxSize overlay blocked the desk catcher.
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .zIndex(8f),
+        ) {
+            HostXrChromeBar(
+                appearance = appearance,
+                hoveredLabel = cursor.hoveredLabel,
+                workspaceRepository = workspaceRepository,
+                onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+                onOpenSettings = onOpenSettings,
+            )
+        }
     }
 }

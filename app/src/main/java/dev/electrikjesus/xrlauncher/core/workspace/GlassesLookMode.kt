@@ -25,11 +25,17 @@ enum class GlassesLookMode {
             }
 
         /**
-         * FPS only while the launcher is in front. Launching an app unlocks the cursor
-         * (gradient pointing); coming back to Home Space restores [preference].
+         * FPS only while the launcher (or host immersive Home Space) is in front.
+         * Launching an app unlocks the cursor (gradient pointing); coming back restores
+         * [preference]. Host Expanded keeps [GlassesSessionState.hostImmersiveSession]
+         * even if [GlassesSessionState.launcherForeground] was cleared by a transient pause.
          */
-        fun effective(): GlassesLookMode =
-            if (GlassesSessionState.launcherForeground) preference else GRADIENT
+        fun effective(): GlassesLookMode {
+            val live =
+                GlassesSessionState.launcherForeground ||
+                    GlassesSessionState.hostImmersiveSession
+            return if (live) preference else GRADIENT
+        }
 
         fun fromPersisted(raw: String?): GlassesLookMode =
             if (raw.equals("fps", ignoreCase = true)) FPS else GRADIENT

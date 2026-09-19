@@ -16,22 +16,29 @@ class BumpDeskHostGestureTest {
 
     @Test
     fun primaryDown_onDesk_beginsHoldAtAbsolutePosition() {
-        val actions = gesture.onPrimaryDown(100f, 200f, allowDeskGrab = true)
+        val actions = gesture.onPrimaryDown(100f, 200f, allowDeskGrab = true, fpsLook = false)
         assertTrue(actions.any { it is BumpDeskHostAction.CursorAt && it.x == 100f && it.y == 200f })
         assertTrue(actions.any { it === BumpDeskHostAction.BeginDeskHold })
         assertTrue(gesture.deskDragArmed)
     }
 
     @Test
+    fun primaryDown_fpsLook_doesNotBeginDeskHold() {
+        val actions = gesture.onPrimaryDown(100f, 200f, allowDeskGrab = true, fpsLook = true)
+        assertFalse(actions.any { it === BumpDeskHostAction.BeginDeskHold })
+        assertFalse(gesture.deskDragArmed)
+    }
+
+    @Test
     fun primaryDown_onChrome_doesNotBeginHold() {
-        val actions = gesture.onPrimaryDown(10f, 10f, allowDeskGrab = false)
+        val actions = gesture.onPrimaryDown(10f, 10f, allowDeskGrab = false, fpsLook = false)
         assertFalse(actions.any { it === BumpDeskHostAction.BeginDeskHold })
         assertFalse(gesture.deskDragArmed)
     }
 
     @Test
     fun move_withinSlop_doesNotEmitDeskMove() {
-        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true)
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
         val actions = gesture.onMove(
             x = 110f,
             y = 105f,
@@ -44,7 +51,20 @@ class BumpDeskHostGestureTest {
 
     @Test
     fun move_pastSlop_emitsDeskMoveWhilePressed() {
-        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true)
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
+        val actions = gesture.onMove(
+            x = 140f,
+            y = 100f,
+            allowDeskGrab = true,
+            fpsLook = false,
+            dialogOpen = false,
+        )
+        assertTrue(actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed })
+    }
+
+    @Test
+    fun fpsLook_primaryDrag_emitsLookPan() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = true)
         val actions = gesture.onMove(
             x = 140f,
             y = 100f,
@@ -52,11 +72,12 @@ class BumpDeskHostGestureTest {
             fpsLook = true,
             dialogOpen = false,
         )
-        assertTrue(actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed })
+        assertTrue(actions.any { it is BumpDeskHostAction.LookPan })
+        assertFalse(actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed })
     }
 
     @Test
-    fun unpressedMove_fpsLook_emitsLookPan() {
+    fun unpressedMove_fpsLook_doesNotEmitLookPan() {
         val actions = gesture.onMove(
             x = 50f,
             y = 50f,
@@ -64,8 +85,8 @@ class BumpDeskHostGestureTest {
             fpsLook = true,
             dialogOpen = false,
         )
-        // First move from 0,0 → look pan
-        assertTrue(actions.any { it is BumpDeskHostAction.LookPan })
+        // Absolute host: look only while primary is held (see fpsLook_primaryDrag).
+        assertFalse(actions.any { it is BumpDeskHostAction.LookPan })
     }
 
     @Test
@@ -93,7 +114,7 @@ class BumpDeskHostGestureTest {
 
     @Test
     fun primaryUp_afterDeskHold_endsHold() {
-        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true)
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
         val actions = gesture.onPrimaryUp(100f, 100f)
         assertTrue(actions.any { it === BumpDeskHostAction.EndDeskHold })
         assertFalse(gesture.primaryDown)
@@ -101,10 +122,17 @@ class BumpDeskHostGestureTest {
 
     @Test
     fun primaryUp_onChrome_doesNotClickBus() {
-        gesture.onPrimaryDown(10f, 10f, allowDeskGrab = false)
+        gesture.onPrimaryDown(10f, 10f, allowDeskGrab = false, fpsLook = false)
         val actions = gesture.onPrimaryUp(10f, 10f)
         assertFalse(actions.any { it === BumpDeskHostAction.EndDeskHold })
         assertFalse(actions.any { it is BumpDeskHostAction.LeftClick })
+    }
+
+    @Test
+    fun fpsLook_tapWithoutDrag_emitsLeftClick() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = true)
+        val actions = gesture.onPrimaryUp(102f, 101f)
+        assertTrue(actions.any { it is BumpDeskHostAction.LeftClick })
     }
 
     @Test

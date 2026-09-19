@@ -90,11 +90,20 @@ fun BoxScope.HostXrChromeBar(
             HudIcon(
                 icon = Icons.Default.Visibility,
                 boundsKey = GlassesHomeHits.HUD_INPUT_HEAD,
-                hovered = hoveredLabel == GlassesHomeHits.HUD_INPUT_HEAD_LABEL,
-                selected = xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING,
+                hovered = hoveredLabel == GlassesHomeHits.HUD_INPUT_HEAD_LABEL ||
+                    hoveredLabel == GlassesHomeHits.HUD_LOOK_MODE_LABEL && lookMode != GlassesLookMode.FPS,
+                selected = lookMode != GlassesLookMode.FPS,
                 contentDescription = stringResource(R.string.companion_cursor_head),
                 onBoundsChanged = onBoundsChanged,
                 onClick = {
+                    // Host: eye = normal (gradient) look. Glasses: also enable head tracking when USB is up.
+                    GlassesLookMode.preference = GlassesLookMode.GRADIENT
+                    val repo = workspaceRepository
+                    if (repo != null) {
+                        scope.launch {
+                            repo.updateAppearance(tuned.copy(lookMode = GlassesLookMode.GRADIENT))
+                        }
+                    }
                     if (GlassesSessionState.rayNeoUsbAttached) {
                         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
                         CompanionPointerBus.recenterCursor()
@@ -109,19 +118,14 @@ fun BoxScope.HostXrChromeBar(
                 contentDescription = stringResource(R.string.companion_mouselook),
                 onBoundsChanged = onBoundsChanged,
                 onClick = {
-                    val next = if (lookMode == GlassesLookMode.FPS) {
-                        GlassesLookMode.GRADIENT
-                    } else {
-                        GlassesLookMode.FPS
-                    }
-                    GlassesLookMode.preference = next
-                    // Absolute host keeps the on-screen cursor; only companion FPS re-locks center.
-                    if (next == GlassesLookMode.FPS && !HostInputMethod.usesAbsoluteHostCursor()) {
+                    // Explicitly enter mouse-look (do not toggle — eye exits mouse-look).
+                    GlassesLookMode.preference = GlassesLookMode.FPS
+                    if (!HostInputMethod.usesAbsoluteHostCursor()) {
                         CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
                     }
                     val repo = workspaceRepository ?: return@HudIcon
                     scope.launch {
-                        repo.updateAppearance(tuned.copy(lookMode = next))
+                        repo.updateAppearance(tuned.copy(lookMode = GlassesLookMode.FPS))
                     }
                 },
             )
