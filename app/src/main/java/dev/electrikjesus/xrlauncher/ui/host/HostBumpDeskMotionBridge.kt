@@ -7,8 +7,10 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.input.bumpdesk.BumpDeskHostAction
 import dev.electrikjesus.xrlauncher.core.input.bumpdesk.BumpDeskHostGesture
+import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HostSpaceZoom
@@ -49,6 +51,7 @@ object HostBumpDeskMotionBridge {
         if (chrome) return false
 
         val fpsLook = GlassesLookMode.effective() == GlassesLookMode.FPS
+        val gestureLook = GlassesLookMode.effective() == GlassesLookMode.GESTURE
         val dialogOpen = GlassesSessionState.homeSpaceEdit ||
             HomeSpaceDialogState.dialog != HomeSpaceDialog.NONE
         // Modal Settings/Edit: let Compose own the event (catcher is also removed while open).
@@ -102,6 +105,7 @@ object HostBumpDeskMotionBridge {
                                 allowDeskGrab = allowDesk,
                                 fpsLook = fpsLook,
                                 dialogOpen = dialogOpen,
+                                gestureLook = gestureLook,
                             ),
                         )
                     else ->
@@ -112,6 +116,7 @@ object HostBumpDeskMotionBridge {
                                 allowDeskGrab = allowDesk,
                                 fpsLook = fpsLook,
                                 dialogOpen = dialogOpen,
+                                gestureLook = gestureLook,
                             ),
                         )
                 }
@@ -199,14 +204,19 @@ object HostBumpDeskMotionBridge {
                 CompanionPointerBus.click(PointerButton.RIGHT)
             }
             is BumpDeskHostAction.LookPan -> {
-                GlassesHomeLook.addLookDegrees(
-                    yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
-                        deltaXNorm = action.dxPx / viewportW,
-                        viewportWidthPx = viewportW,
-                        viewportHeightPx = viewportH,
-                    ),
-                    pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH),
-                )
+                val grabbing = HomeSpaceDeskState.hasActiveGesture() || DeskLassoState.active
+                if (GlassesLookMode.effective() == GlassesLookMode.GESTURE && grabbing) {
+                    Unit
+                } else {
+                    GlassesHomeLook.addLookDegrees(
+                        yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
+                            deltaXNorm = action.dxPx / viewportW,
+                            viewportWidthPx = viewportW,
+                            viewportHeightPx = viewportH,
+                        ),
+                        pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH),
+                    )
+                }
             }
             is BumpDeskHostAction.PinchZoom -> {
                 val delta = HostSpaceZoom.sphereDeltaFromPinch(
@@ -238,6 +248,7 @@ object HostBumpDeskMotionBridge {
         if (isHostScreenChromeAt(nx, ny)) return false
 
         val fpsLook = GlassesLookMode.effective() == GlassesLookMode.FPS
+        val gestureLook = GlassesLookMode.effective() == GlassesLookMode.GESTURE
         val dialogOpen = GlassesSessionState.homeSpaceEdit ||
             HomeSpaceDialogState.dialog != HomeSpaceDialog.NONE
         // Modal Settings/Edit: let Compose own the event (catcher is also removed while open).
@@ -279,7 +290,7 @@ object HostBumpDeskMotionBridge {
                         ),
                     )
                 } else {
-                    apply(gesture.onMove(x, y, allowDesk, fpsLook, dialogOpen))
+                    apply(gesture.onMove(x, y, allowDesk, fpsLook, dialogOpen, gestureLook))
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {

@@ -496,6 +496,10 @@ private fun handleHomeSpaceClick(
             GlassesLookMode.preference = GlassesLookMode.FPS
             onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 1f)
         }
+        GlassesHomeHits.HUD_LOOK_GESTURE -> {
+            GlassesLookMode.preference = GlassesLookMode.GESTURE
+            onTuneAppearance(HomeSpaceTuneAxis.LOOK_GESTURE, 0f)
+        }
         GlassesHomeHits.HUD_INPUT_TOUCHPAD ->
             GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
         GlassesHomeHits.HUD_INPUT_HEAD -> {
@@ -884,7 +888,8 @@ private fun trackDeskDrag(
                 homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null &&
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
-                    ) ->
+                    ) &&
+                    GlassesLookMode.effective() != GlassesLookMode.GESTURE ->
                     DeskLassoState.begin(hit.yawDeg, hit.pitchDeg)
             }
         }

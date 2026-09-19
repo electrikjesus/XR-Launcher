@@ -588,7 +588,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
-| 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); revert to A when an app launches. Persist. | ☑ Partial — 0.1.16 Settings + Edit Look toggle; FPS only while launcher is in front |
+| 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); C = gesture (view static until drag/two-finger/middle pan). Revert to A when an app launches. Persist. | ☑ Partial — HUD eye / hand / mouse; gesture drag-only look; FPS only while launcher is in front |
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
 | 2.25c | **Mouse-look + motion drag.** While FPS mouse-look is on and a grab is active, phone **motion** should drive the same unlocked-cursor desk drag as the touchpad (or a clear look-follow grab). Today motion+FPS registers the press/click but the drag phase moves the cursor without a usable view/grab feel — touchpad path only is reliable. | ☐ Partial — touchpad OK; motion+FPS DnD broken/awkward |
@@ -630,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / mouse=FPS (force, not toggle); still open: OS mouse capture, Edit-above-catcher polish, Settings toggle.
+5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / hand=GESTURE / mouse=FPS (force, not toggle); still open: OS mouse capture.
 6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
@@ -837,7 +837,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Settings slider stuck press:** host Settings is direct Compose; scrim is a sibling, not a clickable parent, and no graphics-layer capture | Slider drag left the parent clickable pressed, so only sliders still received events |
 | 2026-09-19 | **Look deadzone sliders:** horizontal and vertical center band (0–50% of center-to-edge) zeros `cursorEdgeWeight` before the sine curve | Normal look moved as soon as the cursor left the exact center |
 | 2026-09-19 | **Stale Edit hits:** ignore Edit +/- unless Edit is open, and clear those bounds when the card hides | A Home pager miss landed on a leftover Icons & elements minus rect and shrank uiScale |
+| 2026-09-19 | **Gesture look:** third HUD icon; camera ignores cursor/touch position; drag, two-finger, and middle pan look; empty drag is look, not lasso | Edge look and mouse-look both aim where the pointer rests |
 
 ---
 
-*Last updated: 2026-09-19 (stale edit hit on home pane)*
+*Last updated: 2026-09-19 (gesture look)*

@@ -9,6 +9,7 @@ enum class HomeSpaceTuneAxis {
     DESK_TILES,
     DESK_WIDGETS,
     LOOK_FPS,
+    LOOK_GESTURE,
 }
 
 enum class HomeSpaceEditPage {
@@ -44,6 +45,7 @@ object HomeSpaceTune {
                 }
             },
         )
+        HomeSpaceTuneAxis.LOOK_GESTURE -> appearance.copy(lookMode = GlassesLookMode.GESTURE)
     }.clamped()
 
     fun enabled(appearance: WorkspaceAppearance, axis: HomeSpaceTuneAxis): Boolean = when (axis) {

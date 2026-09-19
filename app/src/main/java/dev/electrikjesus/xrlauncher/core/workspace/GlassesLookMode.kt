@@ -12,6 +12,12 @@ enum class GlassesLookMode {
 
     /** Cursor locked to view center; pointer deltas rotate the camera 1:1 (FPS). */
     FPS,
+
+    /**
+     * View stays put. Cursor and touch position do not aim the camera.
+     * A drag (or two-finger pan) is the only look gesture.
+     */
+    GESTURE,
     ;
 
     companion object {
@@ -37,7 +43,10 @@ enum class GlassesLookMode {
             return if (live) preference else GRADIENT
         }
 
-        fun fromPersisted(raw: String?): GlassesLookMode =
-            if (raw.equals("fps", ignoreCase = true)) FPS else GRADIENT
+        fun fromPersisted(raw: String?): GlassesLookMode = when (raw?.lowercase()) {
+            "fps" -> FPS
+            "gesture" -> GESTURE
+            else -> GRADIENT
+        }
     }
 }

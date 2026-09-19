@@ -204,6 +204,13 @@ class GlassesHomeLookTest {
     }
 
     @Test
+    fun gestureLook_skipsEdgePan() {
+        GlassesLookMode.preference = GlassesLookMode.GESTURE
+        GlassesHomeLook.tickEdgePan(cursorX = 0.02f, deltaSeconds = 1f)
+        assertEquals(0f, GlassesHomeLook.panNorm, 0.001f)
+    }
+
+    @Test
     fun addFpsLook_turnsYawAndPitch() {
         GlassesHomeLook.addFpsLook(deltaX = 0.2f, deltaY = 0.1f)
         assertTrue(GlassesHomeLook.panNorm > 0f)

@@ -198,7 +198,7 @@ object GlassesHomeLook {
      * [HomeSpaceScene.cursorEdgeWeight] is ~0 (and flat) at the middle, steepest at the edges.
      */
     fun tickEdgePan(cursorX: Float, deltaSeconds: Float) {
-        if (GlassesLookMode.effective() == GlassesLookMode.FPS) return
+        if (GlassesLookMode.effective() != GlassesLookMode.GRADIENT) return
         val dt = deltaSeconds.coerceIn(0f, 0.05f)
         if (dt <= 0f) return
         val weight = HomeSpaceScene.cursorEdgeWeight(cursorX, HomeSpaceScene.cursorDeadzoneX)

@@ -15,6 +15,7 @@ class GlassesLookModeTest {
     @Test
     fun fromPersisted_readsFps() {
         assertEquals(GlassesLookMode.FPS, GlassesLookMode.fromPersisted("fps"))
+        assertEquals(GlassesLookMode.GESTURE, GlassesLookMode.fromPersisted("gesture"))
         assertEquals(GlassesLookMode.GRADIENT, GlassesLookMode.fromPersisted("gradient"))
         assertEquals(GlassesLookMode.GRADIENT, GlassesLookMode.fromPersisted(null))
     }

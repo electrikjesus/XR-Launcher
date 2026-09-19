@@ -289,6 +289,14 @@ private fun HomeSpaceLookSettingsSection(
             Text(stringResource(R.string.workspace_look_mode_gradient))
         }
         OutlinedButton(
+            onClick = { onLookModeChange(GlassesLookMode.GESTURE) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            enabled = lookMode != GlassesLookMode.GESTURE,
+        ) {
+            Text(stringResource(R.string.workspace_look_mode_gesture))
+        }
+        OutlinedButton(
             onClick = { onLookModeChange(GlassesLookMode.FPS) },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,

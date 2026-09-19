@@ -29,6 +29,7 @@ object GlassesHomeHits {
     const val EDIT_LOOK_FPS = "__xr_edit_look_fps__"
     const val HUD_INPUT_TOUCHPAD = "__xr_hud_input_touchpad__"
     const val HUD_INPUT_HEAD = "__xr_hud_input_head__"
+    const val HUD_LOOK_GESTURE = "__xr_hud_look_gesture__"
     const val HUD_LOOK_MODE = "__xr_hud_look_mode__"
     const val HUD_RECENTER = "__xr_hud_recenter__"
     const val HUD_KEYBOARD = "__xr_hud_keyboard__"
@@ -59,6 +60,7 @@ object GlassesHomeHits {
     const val LOOK_FPS_LABEL = "FPS look"
     const val HUD_INPUT_TOUCHPAD_LABEL = "Touchpad cursor"
     const val HUD_INPUT_HEAD_LABEL = "Head tracking"
+    const val HUD_LOOK_GESTURE_LABEL = "Gesture look"
     const val HUD_LOOK_MODE_LABEL = "Mouse look"
     const val HUD_RECENTER_LABEL = "Recenter"
     const val HUD_KEYBOARD_LABEL = "Keyboard"
@@ -101,6 +103,7 @@ object GlassesHomeHits {
             EDIT_LOOK_FPS -> LOOK_FPS_LABEL
             HUD_INPUT_TOUCHPAD -> HUD_INPUT_TOUCHPAD_LABEL
             HUD_INPUT_HEAD -> HUD_INPUT_HEAD_LABEL
+            HUD_LOOK_GESTURE -> HUD_LOOK_GESTURE_LABEL
             HUD_LOOK_MODE -> HUD_LOOK_MODE_LABEL
             HUD_RECENTER -> HUD_RECENTER_LABEL
             HUD_KEYBOARD -> HUD_KEYBOARD_LABEL
@@ -129,6 +132,7 @@ object GlassesHomeHits {
         HUD_KEYBOARD,
         HUD_RECENTER,
         HUD_LOOK_MODE,
+        HUD_LOOK_GESTURE,
         HUD_INPUT_HEAD,
         HUD_INPUT_TOUCHPAD,
         OVERLAY_CLOSE,
@@ -156,6 +160,7 @@ object GlassesHomeHits {
         EDIT_TOGGLE,
         HUD_INPUT_TOUCHPAD,
         HUD_INPUT_HEAD,
+        HUD_LOOK_GESTURE,
         HUD_LOOK_MODE,
         HUD_RECENTER,
         HUD_KEYBOARD,

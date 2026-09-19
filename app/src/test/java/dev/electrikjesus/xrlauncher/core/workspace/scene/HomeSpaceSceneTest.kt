@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -109,6 +110,22 @@ class HomeSpaceSceneTest {
         )
         assertEquals(0f, fps.yawDeg, 0.2f)
         assertEquals(8f, fps.pitchDeg, 0.2f)
+    }
+
+    @Test
+    fun gestureLook_ignoresCursorAndKeepsLookPitch() {
+        val cam = HomeSpaceScene.camera(
+            look = 0f,
+            cursorX = 0f,
+            cursorY = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            lookMode = GlassesLookMode.GESTURE,
+            lookPitchDeg = 4f,
+            lookYawDegrees = 9f,
+        )
+        assertEquals(9f, cam.yawDeg, 0.2f)
+        assertEquals(4f, cam.pitchDeg, 0.2f)
     }
 
     @Test

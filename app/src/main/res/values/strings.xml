@@ -51,7 +51,7 @@
     <string name="settings_wallpaper_section">Wallpaper</string>
     <string name="settings_wallpaper_hint">Surround backdrop for the Home Space room.</string>
     <string name="settings_look_section">Look</string>
-    <string name="settings_look_home_space_hint">Eye = edge look. Mouse = free look. Panel and icon size stay in Edit.</string>
+    <string name="settings_look_home_space_hint">Eye = edge look. Hand = drag to look. Mouse = free look. Panel and icon size stay in Edit.</string>
     <string name="settings_look_deadzone_hint">Center band where the cursor does not move look. The sine curve starts at the edge of that band.</string>
     <string name="settings_look_deadzone_horizontal">Horizontal deadzone · %1$d%%</string>
     <string name="settings_look_deadzone_vertical">Vertical deadzone · %1$d%%</string>
@@ -97,8 +97,9 @@
     <string name="workspace_look_yaw">Look left / right</string>
     <string name="workspace_look_pitch">Look up / down</string>
     <string name="workspace_look_hint">Manual look offset for companion mode only</string>
-    <string name="workspace_look_mode_hint">Gradient keeps a free cursor. FPS locks the cursor to view center and turns the camera 1:1. Launching an app always uses Gradient pointing.</string>
+    <string name="workspace_look_mode_hint">Gradient follows the cursor. Gesture keeps the view still until you drag. FPS locks the cursor to view center and turns the camera 1:1. Launching an app always uses Gradient pointing.</string>
     <string name="workspace_look_mode_gradient">Look mode A — Gradient</string>
+    <string name="workspace_look_mode_gesture">Look mode C — Gesture</string>
     <string name="workspace_look_mode_fps">Look mode B — FPS capture</string>
     <string name="workspace_look_head_tracking_hint">Head tracking steers the view. Touchpad moves the pointer. Use Recenter on the Input tab to face forward.</string>
     <string name="workspace_look_recenter">Recenter look</string>
@@ -247,6 +248,7 @@
     <string name="companion_show_keyboard">Keyboard</string>
     <string name="companion_cursor_touchpad">Touchpad cursor</string>
     <string name="companion_cursor_head">Head tracking cursor</string>
+    <string name="companion_gesture_look">Gesture look</string>
     <string name="companion_mouselook">Mouse look</string>
     <string name="companion_mouselook_on">Mouse look on — drag to look · long-press then drag to grab</string>
     <string name="companion_mouselook_off">Mouse look off — free cursor on the glasses</string>

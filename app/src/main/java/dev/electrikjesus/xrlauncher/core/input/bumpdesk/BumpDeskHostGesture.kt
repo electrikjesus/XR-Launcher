@@ -114,6 +114,7 @@ class BumpDeskHostGesture(
         allowDeskGrab: Boolean,
         fpsLook: Boolean,
         dialogOpen: Boolean,
+        gestureLook: Boolean = false,
     ): List<BumpDeskHostAction> {
         if (!positionSeeded) {
             positionSeeded = true
@@ -137,6 +138,11 @@ class BumpDeskHostGesture(
                 val dist = hypot(x - downX, y - downY)
                 if (dist > touchSlopPx) {
                     out += BumpDeskHostAction.DeskMoveWhilePressed
+                    // Touch look: drag pans. Icon grabs still win; the bridge drops this pan
+                    // when a desk drag or lasso is actually holding the pointer.
+                    if (gestureLook && (dx != 0f || dy != 0f)) {
+                        out += BumpDeskHostAction.LookPan(dx, dy)
+                    }
                 }
             }
             primaryDown && !deskGrabAllowed -> {

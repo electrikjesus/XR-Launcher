@@ -63,6 +63,37 @@ class BumpDeskHostGestureTest {
     }
 
     @Test
+    fun gestureLook_dragPastSlop_emitsLookPanAndDeskMove() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
+        val actions = gesture.onMove(
+            x = 140f,
+            y = 120f,
+            allowDeskGrab = true,
+            fpsLook = false,
+            dialogOpen = false,
+            gestureLook = true,
+        )
+        val pan = actions.filterIsInstance<BumpDeskHostAction.LookPan>().single()
+        assertEquals(40f, pan.dxPx, 0.01f)
+        assertEquals(20f, pan.dyPx, 0.01f)
+        assertTrue(actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed })
+    }
+
+    @Test
+    fun gestureLook_unpressedMove_doesNotLook() {
+        gesture.onMove(100f, 100f, allowDeskGrab = true, fpsLook = false, dialogOpen = false, gestureLook = true)
+        val actions = gesture.onMove(
+            x = 160f,
+            y = 140f,
+            allowDeskGrab = true,
+            fpsLook = false,
+            dialogOpen = false,
+            gestureLook = true,
+        )
+        assertFalse(actions.any { it is BumpDeskHostAction.LookPan })
+    }
+
+    @Test
     fun fpsLook_primaryDrag_emitsLookPan() {
         gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = true)
         val actions = gesture.onMove(

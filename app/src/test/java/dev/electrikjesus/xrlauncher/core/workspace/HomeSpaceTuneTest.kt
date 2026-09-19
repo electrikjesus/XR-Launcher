@@ -46,5 +46,9 @@ class HomeSpaceTuneTest {
             GlassesLookMode.FPS,
             HomeSpaceTune.apply(forceFps, HomeSpaceTuneAxis.LOOK_FPS, 1f).lookMode,
         )
+        assertEquals(
+            GlassesLookMode.GESTURE,
+            HomeSpaceTune.apply(forceFps, HomeSpaceTuneAxis.LOOK_GESTURE, 0f).lookMode,
+        )
     }
 }

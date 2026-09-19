@@ -182,12 +182,12 @@ object HomeSpaceScene {
         sphereScale: Float = 1f,
         lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
         lookPitchDeg: Float = 0f,
-        applyCursorOffset: Boolean = lookMode != GlassesLookMode.FPS,
+        applyCursorOffset: Boolean = lookMode == GlassesLookMode.GRADIENT,
         lookYawDegrees: Float = Float.NaN,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         val baseYaw = if (lookYawDegrees.isNaN()) look * arc else lookYawDegrees
-        if (lookMode == GlassesLookMode.FPS) {
+        if (lookMode == GlassesLookMode.FPS || lookMode == GlassesLookMode.GESTURE) {
             return Camera(yawDeg = baseYaw, pitchDeg = lookPitchDeg)
         }
         val cursorPitch = (cursorEdgeWeight(cursorY, cursorDeadzoneY) * CURSOR_PITCH_DEGREES)

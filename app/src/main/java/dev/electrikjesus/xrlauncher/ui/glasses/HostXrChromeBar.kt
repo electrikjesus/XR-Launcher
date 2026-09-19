@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
@@ -90,9 +91,8 @@ fun BoxScope.HostXrChromeBar(
             HudIcon(
                 icon = Icons.Default.Visibility,
                 boundsKey = GlassesHomeHits.HUD_INPUT_HEAD,
-                hovered = hoveredLabel == GlassesHomeHits.HUD_INPUT_HEAD_LABEL ||
-                    hoveredLabel == GlassesHomeHits.HUD_LOOK_MODE_LABEL && lookMode != GlassesLookMode.FPS,
-                selected = lookMode != GlassesLookMode.FPS,
+                hovered = hoveredLabel == GlassesHomeHits.HUD_INPUT_HEAD_LABEL,
+                selected = lookMode == GlassesLookMode.GRADIENT,
                 contentDescription = stringResource(R.string.companion_cursor_head),
                 onBoundsChanged = onBoundsChanged,
                 onClick = {
@@ -107,6 +107,21 @@ fun BoxScope.HostXrChromeBar(
                     if (GlassesSessionState.rayNeoUsbAttached) {
                         GlassesSessionState.xrInputMode = GlassesXrInputMode.GLASSES_HEAD_TRACKING
                         CompanionPointerBus.recenterCursor()
+                    }
+                },
+            )
+            HudIcon(
+                icon = Icons.Default.PanTool,
+                boundsKey = GlassesHomeHits.HUD_LOOK_GESTURE,
+                hovered = hoveredLabel == GlassesHomeHits.HUD_LOOK_GESTURE_LABEL,
+                selected = lookMode == GlassesLookMode.GESTURE,
+                contentDescription = stringResource(R.string.companion_gesture_look),
+                onBoundsChanged = onBoundsChanged,
+                onClick = {
+                    GlassesLookMode.preference = GlassesLookMode.GESTURE
+                    val repo = workspaceRepository ?: return@HudIcon
+                    scope.launch {
+                        repo.updateAppearance(tuned.copy(lookMode = GlassesLookMode.GESTURE))
                     }
                 },
             )
