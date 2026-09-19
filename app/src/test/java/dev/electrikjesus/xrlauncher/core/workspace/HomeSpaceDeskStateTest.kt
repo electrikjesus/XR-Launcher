@@ -208,4 +208,66 @@ class HomeSpaceDeskStateTest {
         assertEquals(app.componentKey, HomeSpaceDeskState.placed.first().app.componentKey)
         assertTrue(HomeSpaceDeskState.drag == null)
     }
+
+    @Test
+    fun dragDesktopIconOntoAllAppsTile_removesIt() {
+        val drawer = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(
+                HomeSpaceDesk.DRAWER_KEY,
+                HomeSpaceDesk.DRAWER_LABEL,
+                "",
+                HomeSpaceDesk.Kind.APP_DRAWER,
+            ),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+            halfWidth = HomeSpaceDesk.ICON_HALF_WIDTH * HomeSpaceDesk.DRAWER_SCALE,
+            halfHeight = HomeSpaceDesk.ICON_HALF_HEIGHT * HomeSpaceDesk.DRAWER_SCALE,
+        )
+        val fromDrawer = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(fromDrawer, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+
+        val deskIcon = HomeSpaceDesk.iconOf(app, yawDeg = -12f, pitchDeg = 6f, sphereScale = 1f)
+        HomeSpaceDeskState.press(deskIcon, 0.5f, 0.5f, hitYawDeg = -12f, hitPitchDeg = 6f)
+        HomeSpaceDeskState.move(0.55f, 0.5f, yawDeg = -40f, pitchDeg = 0f)
+        assertTrue(
+            HomeSpaceDeskState.release(
+                onDesktop = true,
+                obstacles = listOf(drawer),
+            ),
+        )
+        assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
+
+    @Test
+    fun dragDesktopIconOntoOpenBacking_removesIt() {
+        val backing = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(HomeSpaceDesk.BACKING_KEY, "All apps", "", HomeSpaceDesk.Kind.DRAWER_BACKING),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+            halfWidth = 0.3f,
+            halfHeight = 0.35f,
+            lift = 0.11f,
+        )
+        val fromDrawer = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
+        HomeSpaceDeskState.press(fromDrawer, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -12f, pitchDeg = 6f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+
+        val deskIcon = HomeSpaceDesk.iconOf(app, yawDeg = -12f, pitchDeg = 6f, sphereScale = 1f)
+        HomeSpaceDeskState.press(deskIcon, 0.5f, 0.5f, hitYawDeg = -12f, hitPitchDeg = 6f)
+        HomeSpaceDeskState.move(0.55f, 0.5f, yawDeg = -40f, pitchDeg = 0f)
+        assertTrue(
+            HomeSpaceDeskState.release(
+                onDesktop = true,
+                obstacles = listOf(backing),
+            ),
+        )
+        assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
 }

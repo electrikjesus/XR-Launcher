@@ -168,6 +168,44 @@ object HomeSpaceDeskState {
         val current = _drag.value ?: return false
         _drag.value = null
         if (!current.pulling) return false
+        if (current.app.componentKey == HomeSpaceDesk.DRAWER_KEY ||
+            current.app.kind == HomeSpaceDesk.Kind.APP_DRAWER
+        ) {
+            if (!onDesktop) return true
+            val resolved = HomeSpaceDesk.resolveDesktopDrop(
+                yawDeg = current.yawDeg,
+                pitchDeg = current.pitchDeg,
+                halfWidth = halfWidth,
+                halfHeight = halfHeight,
+                sphereScale = sphereScale,
+                obstacles = obstacles,
+                paneBlocks = panes,
+                excludeKey = current.app.componentKey,
+            ) ?: return true
+            _drawerPose.value = resolved.first to resolved.second
+            return true
+        }
+        val wasOnDesktop = _placed.value.any { it.app.componentKey == current.app.componentKey }
+        // BumpDesk: drag a Desktop icon onto the All Apps tile (or open backing) to remove it.
+        if (
+            onDesktop &&
+            HomeSpaceDesk.hitsAllAppsReturn(
+                yawDeg = current.yawDeg,
+                pitchDeg = current.pitchDeg,
+                halfWidth = halfWidth,
+                halfHeight = halfHeight,
+                sphereScale = sphereScale,
+                obstacles = obstacles,
+            )
+        ) {
+            if (wasOnDesktop) {
+                Log.d(LOG_TAG, "return to All Apps — remove ${current.app.label}")
+                _placed.value = _placed.value.filter { it.app.componentKey != current.app.componentKey }
+            } else {
+                Log.d(LOG_TAG, "drop on All Apps — cancel place ${current.app.label}")
+            }
+            return true
+        }
         if (!onDesktop) return true
         val resolved = HomeSpaceDesk.resolveDesktopDrop(
             yawDeg = current.yawDeg,
@@ -179,12 +217,6 @@ object HomeSpaceDeskState {
             paneBlocks = panes,
             excludeKey = current.app.componentKey,
         ) ?: return true
-        if (current.app.componentKey == HomeSpaceDesk.DRAWER_KEY ||
-            current.app.kind == HomeSpaceDesk.Kind.APP_DRAWER
-        ) {
-            _drawerPose.value = resolved.first to resolved.second
-            return true
-        }
         // Place at rest — release impulse caused icons to jump after a grab.
         val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
             HomeSpaceDesk.Placed(

@@ -582,7 +582,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + Home→Desktop copy-drag + `DeskLassoState`; still missing lasso draw, piles, radial menu |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + return-to-All-Apps remove + physics + persist + Home→Desktop copy-drag + `DeskLassoState`; still missing lasso draw, piles, radial menu |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -815,7 +815,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.25b:** touchpad long-press begins Hold-Left; Left always holdable (not a11y-gated) | Finger-up-only clicks; no grab origin while mouse-looking |
 | 2026-09-18 | **2.25c planned + README partial:** FPS mouse-look desk DnD works on touchpad; motion+FPS drag still awkward | Grab click registers; drag phase moves cursor without usable view/motion grab |
 | 2026-09-18 | **All Apps pager clicks:** finalize must not re-press after chrome; near-miss → `pickNearestPager` + open-drawer zone (no lasso / no scrim dismiss) | 2.25a finalize re-press + empty-click dismiss closed the widget on pagination |
+| 2026-09-18 | **Return to All Apps** — drop a Desktop icon on the All Apps tile (or open backing) removes it | Drop only pushed away from the tile / rejected on backing |
 
 ---
 
-*Last updated: 2026-09-18 (All Apps pager click fix)*
+*Last updated: 2026-09-18 (return Desktop icons to All Apps)*

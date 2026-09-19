@@ -454,6 +454,37 @@ object HomeSpaceDesk {
         return yaw to pitch
     }
 
+    /**
+     * True when a drop lands on the closed All Apps tile or the open drawer backing —
+     * BumpDesk “return to drawer” removes the Desktop icon.
+     */
+    fun hitsAllAppsReturn(
+        yawDeg: Float,
+        pitchDeg: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+        sphereScale: Float,
+        obstacles: List<Icon>,
+    ): Boolean {
+        val halfYaw = angularHalfYaw(halfWidth, sphereScale) * 1.2f
+        val halfPitch = angularHalfPitch(halfHeight, sphereScale) * 1.2f
+        return obstacles.any { other ->
+            if (!other.isAppDrawer && !other.isBacking) return@any false
+            val oHalfYaw = angularHalfYaw(other.halfWidth, sphereScale) * 1.2f
+            val oHalfPitch = angularHalfPitch(other.halfHeight, sphereScale) * 1.2f
+            overlapsAngular(
+                yawDeg,
+                pitchDeg,
+                halfYaw,
+                halfPitch,
+                other.yawDeg,
+                other.pitchDeg,
+                oHalfYaw,
+                oHalfPitch,
+            )
+        }
+    }
+
     fun moved(icon: Icon, yawDeg: Float, pitchDeg: Float, sphereScale: Float): Icon =
         iconOf(
             app = icon.app,
