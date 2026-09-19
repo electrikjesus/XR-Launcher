@@ -55,8 +55,11 @@ There is one scene graph. Do not keep a “panel renderer” and a “desktop re
 3. **2.20** — Recreate Home/Tray *contents* as child BumpDesk items on those pinned widgets.
 4. **2.24** — Edit stays two pages: Perspective (panel/sphere/icon scale) vs Desktop (BumpDesk types). Do not dump both onto one card.
 5. **2.23** — Keep-awake (partial).
+6. **2.26–2.28** — Expanded host defaults into this same Home Space + top HUD (companion chrome + Settings); do not keep a second large-screen shell forever.
 
 **Do not implement 6.9 onboarding in this pass.**
+
+**Large-screen host (planned 2.26–2.28):** On `WindowSizeClass.Expanded` with no glasses, the default HOME surface is this **same GLES Home Space**, not the legacy Compose `SpatialDesktopScreen` Subspace shell. Screen-locked HUD: companion-style icons along the **top** (input / mouse-look / recenter [/ keyboard] + Settings); Edit stays **bottom-end**. Compact phone remains Tier 0c (`PhoneShellScreen` / companion).
 
 ---
 
@@ -69,7 +72,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 1. **Play Store first.** Do not depend on signature, system, or root-only APIs. If a feature requires `CREATE_VIRTUAL_DEVICE`, Shell, or `MANAGE_ACTIVITY_TASKS`, it is out of scope for the main product path.
 2. **Launch by default, embed when possible.** Start apps with standard `Intent` + display targeting. Use `ActivityPanelEntity` / activity embedding only when the platform grants `EMBED_ACTIVITY` and the target app opts in.
 3. **Zero dangerous permissions in v1.** No `QUERY_ALL_PACKAGES`. Discover apps via `ACTION_MAIN` + `CATEGORY_LAUNCHER`. Defer `PACKAGE_USAGE_STATS` to a later phase and disclose it clearly if added.
-4. **Graceful degradation.** Every spatial feature must have a fallback. Never assume glasses or Full Space APIs exist. **No glasses on large screen → Tier 0 3D spatial desktop.** **No glasses on phone → Tier 0c compact shell**, with optional companion mode.
+4. **Graceful degradation.** Every spatial feature must have a fallback. Never assume glasses or Full Space APIs exist. **No glasses on large screen → Tier 0 GLES Home Space (2.26).** **No glasses on phone → Tier 0c compact shell**, with optional companion mode.
 
 ### Architecture
 
@@ -89,7 +92,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 
 ### Tier 0 (large-screen spatial launcher)
 
-15. **3D, not 2D, on large screens.** On `WindowSizeClass.Expanded` (tablet, unfolded foldable, DeX, Chromebook), Tier 0 is a **3D spatial workspace** — same panel model as XR tiers — rendered on the host display. Navigation uses **mouse**, **touch** (drag to orbit/pan panels, pinch where applicable), and **keyboard shortcuts** (focus next panel, move, resize, launch app).
+15. **Same Home Space as glasses, on the host display.** On `WindowSizeClass.Expanded` (tablet, unfolded foldable, DeX, Chromebook), Tier 0 is the **BumpDesk GLES Home Space** (task **2.26**), not a separate Compose `Subspace` / `SpatialDesktopScreen` shell. Navigation uses **mouse**, **touch**, and **keyboard**; companion actions also appear as a **top screen-locked HUD** (**2.27–2.28**). Edit stays bottom-end.
 16. **Compact phone is the launcher shell + companion.** On phones without an external display, show a flat app drawer / search UI for everyday HOME duty. When glasses connect or the user opens “Control workspace,” the phone becomes a **companion controller** (touchpad + motion pointer) — not a scaled-down 3D desktop.
 17. **Activity embedding on large screens.** Tier 0 may embed activities in spatial panels via [activity embedding](https://developer.android.com/develop/ui/views/layout/activity-embedding) or `ActivityPanelEntity` when APIs allow — same opt-in constraints as other tiers.
 
@@ -97,7 +100,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 
 18. **Touchpad mode.** Phone screen acts as a relative touchpad: drag moves the workspace cursor; tap = click; two-finger tap = right-click or context (if needed).
 19. **Motion pointer mode.** Phone gyro/accelerometer drives cursor movement (air-mouse style), like RayNeo mouse control on Linux. Toggle between touchpad and motion; provide recenter and sensitivity settings.
-20. **Companion pairs with remote workspace.** Companion input targets the focused panel on the **glasses display** or **large-screen 3D workspace**, sent over local connection (same app, two activities / display routing — no network permission required for same-device control).
+20. **Companion pairs with remote workspace.** Companion input targets the focused panel on the **glasses display** or **large-screen Home Space**, sent over local connection (same app, two activities / display routing — no network permission required for same-device control). On the host (Tier 0), the same companion actions are also available as **top HUD** icons (**2.27–2.28**).
 
 ### Code & process
 
@@ -211,7 +214,7 @@ Rules:
 
 | Tier | When | App window strategy | UI |
 |------|------|---------------------|-----|
-| **0 — Spatial desktop** | No glasses; large screen (`Expanded`) | Standard `startActivity` + spatial panels; optional embed | **3D spatial workspace** on host display — mouse, touch, keyboard |
+| **0 — Spatial desktop** | No glasses; large screen (`Expanded`) | Standard `startActivity` + optional embed | **GLES Home Space** on host (same as glasses; **2.26**) — mouse, touch, keyboard + top HUD (**2.27–2.28**) |
 | **0c — Phone shell** | No glasses; compact phone only | Standard launch from flat app drawer | Compact 2D HOME + **companion controller** when paired to workspace |
 | **1 — External display** | Glasses appear as USB-C monitor; no XR APIs | `ActivityOptions.setLaunchDisplayId()` + OEM multi-window if available | Custom Compose shell on glasses display |
 | **2 — Projected glasses** | `ProjectedContext`, `XR_PROJECTED` display category | Projected activity + launch to glasses display | Jetpack Compose **Glimmer** |
@@ -225,8 +228,7 @@ Tier is chosen at runtime whenever HOME is shown or glasses topology changes:
 if (glassesConnected && hasProjectedDisplay)     → Tier 2 (or 3 if spatial APIs present)
 else if (glassesConnected && externalDisplayOnly) → Tier 1
 else if (spatialHeadset && no separate glasses)   → Tier 3
-else if (spatialHeadset && no separate glasses)   → Tier 3
-else if (windowSizeClass == Expanded)            → Tier 0 (3D spatial desktop)
+else if (windowSizeClass == Expanded)            → Tier 0 (GLES Home Space on host — 2.26)
 else                                              → Tier 0c (compact phone shell)
 ```
 
@@ -234,7 +236,7 @@ Within Tier 0 / 0c:
 
 | Form factor | Workspace UI | Primary input |
 |-------------|--------------|---------------|
-| **Expanded** (tablet, unfolded foldable, DeX, Chromebook) | **3D spatial panels** in `Subspace` / SceneCore (or equivalent on host display) | Mouse, touch gestures, keyboard shortcuts |
+| **Expanded** (tablet, unfolded foldable, DeX, Chromebook) | **GLES Home Space** (shared with glasses; retire `SpatialDesktopScreen` as default) + top HUD chrome | Mouse, touch, keyboard; optional phone companion |
 | **Compact** (phone portrait, no external display) | Flat app drawer + search (HOME shell) | Direct touch on phone |
 | **Phone as companion** (workspace on glasses or large screen) | Companion UI on phone; workspace on remote display | **Touchpad + motion pointer** on phone |
 
@@ -242,9 +244,9 @@ Within Tier 0 / 0c:
 
 | Tier | Pointer sources | Navigation / shortcuts |
 |------|-----------------|------------------------|
-| **0 — Spatial desktop** | Mouse, trackpad, touch (panel drag/orbit), keyboard | `Tab` / arrow keys focus panels; shortcuts for launch, close, snap layout; scroll/pinch zoom workspace |
+| **0 — Spatial desktop** | Mouse, trackpad, touch, keyboard; top HUD for look/input/settings (**2.27–2.28**) | Orbit / mouse-look / panel focus; shortcuts for launch, close, snap |
 | **0c — Phone shell** | Touch on phone | Standard launcher; button to open companion mode |
-| **1–2 — Glasses** | Phone **touchpad + motion** (primary), optional glasses head-mouse | Companion buttons: recenter, back, keyboard toggle |
+| **1–2 — Glasses** | Phone **touchpad + motion** (primary), optional glasses head-mouse | Companion buttons: recenter, back, keyboard toggle (same actions mirrored on host HUD when Tier 0) |
 | **3 — Full spatial** | Hands/controllers (platform), phone companion (fallback) | Platform XR gestures + companion |
 
 Detect tier at startup; re-evaluate on `DisplayManager` display changes, `ProjectedContext.isProjectedDeviceConnected` updates, and window size class changes.
@@ -262,11 +264,13 @@ xrlauncher/
 │   ├── launcher/           # App resolution, launch intents, embed attempts
 │   └── input/              # Pointer routing, keyboard shortcuts, companion touchpad + motion
 ├── ui/
-│   ├── desktop/            # Tier 0: 3D spatial workspace (large screen)
+│   ├── desktop/            # Tier 0 host routing (2.26: default into shared GLES Home Space; legacy SpatialDesktopScreen until retired)
 │   ├── phone/              # Tier 0c compact HOME shell
-│   ├── companion/          # Phone touchpad + motion controller UI
+│   ├── companion/          # Touchpad + motion controller (actions mirrored on host top HUD)
+│   ├── glasses/            # GLES Home Space + Edit (bottom-end) + planned top HUD on host
 │   ├── glimmer/            # Tier 2 glasses UI
-│   └── spatial/            # Tier 3 Subspace, SpatialPanel, orbiters
+│   ├── spatial/            # GLES backdrop / shared XR scene helpers; Tier 3 Subspace where needed
+│   └── settings/           # SettingsActivity (companion + host HUD 2.28)
 └── docs/
     ├── PLAN.md             # This file
     └── device-matrix.md    # Per-device test results
@@ -310,7 +314,7 @@ Each task follows the [Git workflow](#git-workflow): one branch, tests included,
 |---|------|------|
 | 1.1 | Create `MainActivity` with `HOME` + `LAUNCHER` intent filters (single HOME entry). | ☑ |
 | 1.2 | Implement `CapabilityDetector`: tier enum, glasses-connected flow, `WindowSizeClass`. | ☑ |
-| 1.3 | **Tier 0:** 3D spatial shell on Expanded — `Subspace` / spatial panels, empty workspace scene. | ☑ |
+| 1.3 | **Tier 0:** 3D spatial shell on Expanded — `Subspace` / spatial panels, empty workspace scene. | ☑ Superseded by **2.26** (GLES Home Space as Expanded default) |
 | 1.4 | **Tier 0:** Mouse + touch navigation — orbit/pan workspace, click to focus panel (stub panels OK). | ☑ |
 | 1.5 | **Tier 0c:** Compact phone layout — app drawer, search/filter, tap to launch on phone display. | ☑ |
 | 1.6 | Implement app list via launcher intent query (no `QUERY_ALL_PACKAGES`). | ☑ |
@@ -654,7 +658,7 @@ Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dir
 
 | # | Task | Done |
 |---|------|------|
-| 4.1 | **Tier 0:** Mouse hover focus, scroll-to-zoom workspace, drag-to-orbit (configurable). | ☐ |
+| 4.1 | **Tier 0:** Mouse hover focus, scroll-to-zoom / orbit on host Home Space (after **2.26**). | ☐ Depends on 2.26 |
 | 4.2 | **Tier 0:** Keyboard shortcut polish + rebinding settings. | ☐ |
 | 4.3 | **Companion:** Refine touchpad (inertial scroll, tap zones, haptic on click). | ☐ |
 | 4.4 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☐ |
@@ -793,7 +797,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Home→Desktop copy-drag** — Hold-Left on Home pane app places a Desktop icon; Home list unchanged | Only All Apps drawer could seed the desk |
 | 2026-09-18 | **Lasso foundation** — `DeskLassoState` sphere yaw/pitch polygon + empty-Desktop Hold-Left stroke | Next: GLES stroke, selection chrome, pile-from-lasso, radial menu |
 | 2026-09-18 | **2.26–2.28 planned:** Expanded → GLES Home Space default; top HUD mirrors companion touchpad + Settings; Edit stays bottom-end | Large screen still opens legacy `SpatialDesktopScreen`; no host chrome for look/input/settings |
+| 2026-09-18 | **Plan sync for 2.26–2.28** — Current direction, Tier 0 rules, runtime tiers, mode selection, module layout, Phase 4.1 note | Earlier plan still described Expanded as Subspace `SpatialDesktopScreen` |
 
 ---
 
-*Last updated: 2026-09-18 (plan 2.26–2.28 large-screen XR + host HUD)*
+*Last updated: 2026-09-18 (synced plan for large-screen XR Home Space + host HUD)*
