@@ -104,4 +104,19 @@ class HomeSpaceSceneTest {
         assertEquals(0f, cam.yawDeg, 0.2f)
         assertEquals(5f, cam.pitchDeg, 0.2f)
     }
+
+    @Test
+    fun freeLook_usesLookYawDegreesDirectly() {
+        val cam = HomeSpaceScene.camera(
+            look = 0f,
+            cursorX = 0.5f,
+            cursorY = 0.5f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            lookMode = dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode.FPS,
+            lookPitchDeg = 0f,
+            lookYawDegrees = 270f,
+        )
+        assertEquals(270f, cam.yawDeg, 0.2f)
+    }
 }

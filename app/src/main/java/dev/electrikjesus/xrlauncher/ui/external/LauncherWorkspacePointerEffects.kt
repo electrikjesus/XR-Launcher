@@ -527,19 +527,24 @@ private fun homeSpaceCamera(
     rootHeightPx: Float,
     panelScale: Float,
     sphereScale: Float,
-) = HomeSpaceScene.camera(
-    look = GlassesHomeLook.panNorm,
-    cursorX = cursorX,
-    cursorY = cursorY,
-    viewportWidthPx = rootWidthPx,
-    viewportHeightPx = rootHeightPx,
-    panelScale = panelScale,
-    sphereScale = sphereScale,
-    lookMode = GlassesLookMode.effective(),
-    lookPitchDeg = GlassesHomeLook.lookPitch,
-    // BumpDesk absolute host: ray through the screen cursor; do not also yaw the camera.
-    applyCursorOffset = !HostInputMethod.usesAbsoluteHostCursor(),
-)
+): HomeSpaceScene.Camera {
+    val arc = HomeSpaceScene.paneArcDegrees(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    GlassesHomeLook.lastPaneArcDegrees = arc
+    return HomeSpaceScene.camera(
+        look = GlassesHomeLook.panNorm,
+        cursorX = cursorX,
+        cursorY = cursorY,
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        panelScale = panelScale,
+        sphereScale = sphereScale,
+        lookMode = GlassesLookMode.effective(),
+        lookPitchDeg = GlassesHomeLook.lookPitch,
+        // BumpDesk absolute host: ray through the screen cursor; do not also yaw the camera.
+        applyCursorOffset = !HostInputMethod.usesAbsoluteHostCursor(),
+        lookYawDegrees = GlassesHomeLook.lookYawDegrees,
+    )
+}
 
 private fun homeSpacePick(
     cursorX: Float,

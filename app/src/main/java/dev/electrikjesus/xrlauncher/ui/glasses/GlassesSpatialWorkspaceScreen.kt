@@ -203,6 +203,13 @@ fun GlassesSpatialWorkspaceScreen(
     var viewportHeightPx by remember {
         mutableFloatStateOf(with(density) { configuration.screenHeightDp.dp.toPx() }.coerceAtLeast(1f))
     }
+    val paneArc = HomeSpaceScene.paneArcDegrees(
+        viewportWidthPx,
+        viewportHeightPx,
+        tuned.panelScale,
+        tuned.sphereScale,
+    )
+    GlassesHomeLook.lastPaneArcDegrees = paneArc
     val sceneCamera = HomeSpaceScene.camera(
         look = panNorm,
         cursorX = cursor.x,
@@ -214,6 +221,7 @@ fun GlassesSpatialWorkspaceScreen(
         lookMode = lookMode,
         lookPitchDeg = lookPitch,
         applyCursorOffset = !absoluteHostCursor,
+        lookYawDegrees = GlassesHomeLook.lookYawDegrees,
     )
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
         yawDegrees = sceneCamera.yawDeg,

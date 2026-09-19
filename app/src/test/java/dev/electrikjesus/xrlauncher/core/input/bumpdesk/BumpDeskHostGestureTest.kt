@@ -106,4 +106,15 @@ class BumpDeskHostGestureTest {
         assertFalse(actions.any { it === BumpDeskHostAction.EndDeskHold })
         assertFalse(actions.any { it is BumpDeskHostAction.LeftClick })
     }
+
+    @Test
+    fun pinchMove_emitsLookPanAndZoom() {
+        gesture.onPinchBegin(100f, 200f, 300f)
+        val actions = gesture.onPinchMove(120f, 230f, 310f)
+        assertTrue(actions.any { it is BumpDeskHostAction.LookPan })
+        assertTrue(actions.any { it is BumpDeskHostAction.PinchZoom })
+        val pan = actions.filterIsInstance<BumpDeskHostAction.LookPan>().single()
+        assertEquals(30f, pan.dxPx, 0.01f)
+        assertEquals(10f, pan.dyPx, 0.01f)
+    }
 }

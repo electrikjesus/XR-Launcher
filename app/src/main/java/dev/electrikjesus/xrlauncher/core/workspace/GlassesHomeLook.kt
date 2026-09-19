@@ -17,9 +17,8 @@ data class GlassesAppPlane(
 /**
  * Horizontal look across Home Space: Desktop · Home · app planes · Notifications/QS.
  *
- * World X: Desktop = -1, Home = 0, first app = +1, tray = 1 + appCount.
- * Opening an app focuses a new plane at the current look and shifts the previous
- * plane to the left.
+ * Free-look yaw is stored in **degrees** ([lookYawDegrees]) so mouse-look can spin a full
+ * circle. [panNorm] stays as pane-space units for lookingAt* helpers (yaw / pane arc).
  */
 object GlassesHomeLook {
     const val PANE_LEFT = -1f
@@ -27,8 +26,7 @@ object GlassesHomeLook {
     const val PANE_RIGHT = 1f
 
     /**
-     * Extra pan past Desktop / Tray for companion edge-look hints / docs.
-     * Free look no longer clamps to this — yaw can spin full-circle like an FPS game.
+     * Soft UI hint past Desktop / Tray. Free look is not clamped to this.
      */
     const val SIDE_LOOK_EXTRA = 1.15f
 
@@ -80,6 +78,26 @@ object GlassesHomeLook {
             )
         }
 
+    private val _lookYawDeg = MutableStateFlow(0f)
+    val lookYawDegFlow: StateFlow<Float> = _lookYawDeg.asStateFlow()
+
+    /** Absolute yaw in degrees — free to spin indefinitely (FPS / host mouse-look). */
+    var lookYawDegrees: Float
+        get() = _lookYawDeg.value
+        set(value) {
+            _lookYawDeg.value = value
+            syncPanNormFromYaw()
+        }
+
+    /**
+     * Pane arc used to convert between [lookYawDegrees] and [panNorm].
+     * Updated each frame from the live viewport / appearance.
+     */
+    var lastPaneArcDegrees: Float = 72f
+        set(value) {
+            field = value.coerceAtLeast(1f)
+        }
+
     private val _panNorm = MutableStateFlow(0f)
     val panNormFlow: StateFlow<Float> = _panNorm.asStateFlow()
 
@@ -113,9 +131,20 @@ object GlassesHomeLook {
     var panNorm: Float
         get() = _panNorm.value
         set(value) {
-            // Full-circle yaw like an FPS game — do not clamp to Desktop…Tray.
             _panNorm.value = value
+            _lookYawDeg.value = value * lastPaneArcDegrees
         }
+
+    private fun syncPanNormFromYaw() {
+        _panNorm.value = lookYawDegrees / lastPaneArcDegrees
+    }
+
+    /** Mouse / touch look deltas in degrees (full-circle yaw). */
+    fun addLookDegrees(yawDeltaDeg: Float, pitchDeltaDeg: Float) {
+        _lookYawDeg.value += yawDeltaDeg
+        lookPitch += pitchDeltaDeg
+        syncPanNormFromYaw()
+    }
 
     fun lookAt(pane: Float) {
         panNorm = pane
@@ -191,8 +220,10 @@ object GlassesHomeLook {
     }
 
     fun addFpsLook(deltaX: Float, deltaY: Float) {
-        panNorm += HomeSpaceScene.fpsPanNormDelta(deltaX)
-        lookPitch += HomeSpaceScene.fpsPitchDelta(deltaY)
+        addLookDegrees(
+            yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(deltaX),
+            pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(deltaY),
+        )
     }
 
     /** Recenter on Home without closing spatial app planes. */

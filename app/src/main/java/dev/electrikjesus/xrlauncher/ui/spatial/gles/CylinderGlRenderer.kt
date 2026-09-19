@@ -96,6 +96,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private var litSamplerHandle = 0
     private var litLightHandle = 0
     private var litAmbientHandle = 0
+    private var litDiffuseGainHandle = 0
     private var litTintHandle = 0
     private var litHighlightHandle = 0
     private var litUseTextureHandle = 0
@@ -190,6 +191,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         litSamplerHandle = GLES20.glGetUniformLocation(litProgram, "uTexture")
         litLightHandle = GLES20.glGetUniformLocation(litProgram, "uLightPos")
         litAmbientHandle = GLES20.glGetUniformLocation(litProgram, "uAmbient")
+        litDiffuseGainHandle = GLES20.glGetUniformLocation(litProgram, "uDiffuseGain")
         litTintHandle = GLES20.glGetUniformLocation(litProgram, "uTint")
         litHighlightHandle = GLES20.glGetUniformLocation(litProgram, "uHighlight")
         litUseTextureHandle = GLES20.glGetUniformLocation(litProgram, "uUseTexture")
@@ -324,6 +326,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glUniformMatrix4fv(litMvpHandle, 1, false, mvpMatrix, 0)
         GLES20.glUniform3f(litLightHandle, 0f, 0f, 0f)
         GLES20.glUniform1f(litAmbientHandle, 0.28f)
+        GLES20.glUniform1f(litDiffuseGainHandle, 1.35f)
         GLES20.glUniform3f(litTintHandle, 1f, 1f, 1f)
         GLES20.glUniform1f(litHighlightHandle, 0f)
         GLES20.glDisable(GLES20.GL_CULL_FACE)
@@ -401,8 +404,10 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             ambient: Float,
             useTexture: Boolean,
             highlight: Boolean = false,
+            diffuseGain: Float = 1.35f,
         ) {
             GLES20.glUniform1f(litAmbientHandle, ambient)
+            GLES20.glUniform1f(litDiffuseGainHandle, diffuseGain)
             GLES20.glUniform1f(litHighlightHandle, if (highlight) 1f else 0f)
             if (highlight) {
                 GLES20.glUniform3f(litTintHandle, 0.45f, 0.78f, 1f)
@@ -437,9 +442,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 buffer,
                 count,
                 textureId,
-                ambient = if (hovered) 0.58f else 0.42f,
+                // Flat-ish lighting so adaptive icons keep OEM colors (not crushed/oversaturated).
+                ambient = if (hovered) 0.96f else 0.92f,
                 useTexture = true,
                 highlight = hovered,
+                diffuseGain = if (hovered) 0.22f else 0.12f,
             )
         }
         GLES20.glDisableVertexAttribArray(litPositionHandle)
@@ -1082,6 +1089,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             uniform sampler2D uTexture;
             uniform vec3 uLightPos;
             uniform float uAmbient;
+            uniform float uDiffuseGain;
             uniform vec3 uTint;
             uniform float uHighlight;
             uniform int uUseTexture;
@@ -1103,9 +1111,9 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 vec3 n = normalize(vNormal);
                 vec3 lightDir = normalize(uLightPos - vPosition);
                 float diffuse = max(dot(n, lightDir), 0.0);
-                vec3 lit = base.rgb * (uAmbient + diffuse * 1.35);
+                vec3 lit = base.rgb * (uAmbient + diffuse * uDiffuseGain);
                 if (uHighlight > 0.5) {
-                    lit = mix(lit, uTint, 0.38) * 1.28;
+                    lit = mix(lit, uTint, 0.22) * 1.08;
                 }
                 gl_FragColor = vec4(lit, base.a);
             }

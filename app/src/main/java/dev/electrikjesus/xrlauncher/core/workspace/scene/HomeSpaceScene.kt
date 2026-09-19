@@ -143,10 +143,8 @@ object HomeSpaceScene {
     /**
      * Mouse-look on top of [look]: companion cursor yaws/pitches the FPS camera a little,
      * while hover still uses a ray through that same view onto the inner sphere.
-     * [GlassesLookMode.FPS] ignores cursor offset and uses [lookPitchDeg] instead.
-     *
-     * Absolute host mouse (BumpDesk) must pass [applyCursorOffset]=false — otherwise the
-     * camera and the pick ray both bake in the cursor and clicks land inches off-target.
+     * [GlassesLookMode.FPS] and absolute host use [lookYawDegrees] / [lookPitchDeg] directly
+     * so the user can spin a full circle (not clamped to Desktop…Tray pane units).
      */
     fun camera(
         look: Float,
@@ -159,12 +157,13 @@ object HomeSpaceScene {
         lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
         lookPitchDeg: Float = 0f,
         applyCursorOffset: Boolean = lookMode != GlassesLookMode.FPS,
+        lookYawDegrees: Float = Float.NaN,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
         if (lookMode == GlassesLookMode.FPS || !applyCursorOffset) {
-            // Pitch already limited by GlassesHomeLook.FREE_LOOK_MAX_PITCH_DEGREES.
+            val yaw = if (lookYawDegrees.isNaN()) look * arc else lookYawDegrees
             return Camera(
-                yawDeg = look * arc,
+                yawDeg = yaw,
                 pitchDeg = lookPitchDeg,
             )
         }
@@ -172,6 +171,18 @@ object HomeSpaceScene {
         val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
         return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
+    }
+
+    /** One viewport-width of mouse travel → one horizontal FOV of yaw (degrees). */
+    fun fpsYawDegreesDelta(
+        deltaXNorm: Float,
+        viewportWidthPx: Float = 1920f,
+        viewportHeightPx: Float = 1080f,
+    ): Float {
+        val aspect = viewportWidthPx / viewportHeightPx.coerceAtLeast(1f)
+        val halfFovY = Math.toRadians(FOV_Y_DEGREES / 2.0)
+        val hfovDeg = (2.0 * Math.toDegrees(atan(aspect * tan(halfFovY)))).toFloat()
+        return deltaXNorm * hfovDeg
     }
 
     /** Normalized pointer delta → panNorm units so a full-width swipe matches horizontal FOV. */
@@ -182,12 +193,9 @@ object HomeSpaceScene {
         panelScale: Float = 1f,
         sphereScale: Float = 1f,
     ): Float {
-        val aspect = viewportWidthPx / viewportHeightPx.coerceAtLeast(1f)
-        val halfFovY = Math.toRadians(FOV_Y_DEGREES / 2.0)
-        val hfovDeg = (2.0 * Math.toDegrees(atan(aspect * tan(halfFovY)))).toFloat()
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
             .coerceAtLeast(1f)
-        return deltaX * hfovDeg / arc
+        return fpsYawDegreesDelta(deltaX, viewportWidthPx, viewportHeightPx) / arc
     }
 
     fun fpsPitchDelta(deltaY: Float): Float = deltaY * FOV_Y_DEGREES

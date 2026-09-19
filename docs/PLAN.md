@@ -826,7 +826,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Round icon faces restored:** stop expanding adaptive bounds past canvas (that squared the OEM mask); clipPath circle + mild fill zoom; Home `CircleShape`; desk atlas circle clip; app meshes front-face only | Extra-inset expand filled square boxes; rectangular pancake sides read as plates |
 | 2026-09-19 | **Host absolute pick alignment:** `applyCursorOffset=false` for BumpDesk host; desk/camera/physics use live viewport; disable `pickNearestPager` magnet on host | Gesture path was BumpDesk but GRADIENT camera+ray double-offset + 1920×1080 layout vs real aspect caused inches-off launches |
 | 2026-09-19 | **Free-circle look + HUD under FPS:** unclamp `panNorm`; pitch ±89°; pause mouse-look over screen chrome; no host cursor snap on FPS enable | Look locked past All Apps / mid-tray; FPS ate top HUD look-mode clicks |
+| 2026-09-19 | **Free-look yaw degrees + 2-finger pan + flat icon light:** camera uses `lookYawDegrees`; pinch mid-drag pans; desk icons low diffuse | Mouse-look still felt FOV-clamped via panNorm*arc; pinch zoom only; lit shader crushed icon colors |
 
 ---
 
-*Last updated: 2026-09-19 (free-circle look + HUD under FPS)*
+*Last updated: 2026-09-19 (free-look yaw + pinch pan + icon light)*

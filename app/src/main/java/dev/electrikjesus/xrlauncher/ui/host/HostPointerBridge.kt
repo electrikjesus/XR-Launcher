@@ -49,6 +49,8 @@ fun HostPointerBridge(
     var deskGrab by remember { mutableStateOf(false) }
     var pinching by remember { mutableStateOf(false) }
     var pinchDistance by remember { mutableFloatStateOf(0f) }
+    var pinchMidX by remember { mutableFloatStateOf(0f) }
+    var pinchMidY by remember { mutableFloatStateOf(0f) }
     val zoomLatest by rememberUpdatedState(onZoomSphere)
 
     Box(
@@ -82,9 +84,24 @@ fun HostPointerBridge(
                                 CompanionPointerBus.setCursorPosition(nx, ny)
                                 if (pinching && pressed.size >= 2) {
                                     val dist = pinchDistanceOf(pressed[0].position, pressed[1].position)
+                                    val mid = pinchMidpoint(pressed[0].position, pressed[1].position)
+                                    val midDx = mid.x - pinchMidX
+                                    val midDy = mid.y - pinchMidY
+                                    if (midDx != 0f || midDy != 0f) {
+                                        GlassesHomeLook.addLookDegrees(
+                                            yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
+                                                deltaXNorm = midDx / w,
+                                                viewportWidthPx = w,
+                                                viewportHeightPx = h,
+                                            ),
+                                            pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(midDy / h),
+                                        )
+                                    }
                                     val delta = HostSpaceZoom.sphereDeltaFromPinch(pinchDistance, dist)
                                     if (delta != 0f) zoomLatest(delta)
                                     pinchDistance = dist
+                                    pinchMidX = mid.x
+                                    pinchMidY = mid.y
                                     pressed.forEach { it.consume() }
                                 } else if (
                                     fpsLook &&
@@ -95,13 +112,14 @@ fun HostPointerBridge(
                                 ) {
                                     val delta = change.positionChange()
                                     if (delta.x != 0f || delta.y != 0f) {
-                                        GlassesHomeLook.panNorm += HomeSpaceScene.fpsPanNormDelta(
-                                            deltaX = delta.x / w,
-                                            viewportWidthPx = w,
-                                            viewportHeightPx = h,
+                                        GlassesHomeLook.addLookDegrees(
+                                            yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
+                                                deltaXNorm = delta.x / w,
+                                                viewportWidthPx = w,
+                                                viewportHeightPx = h,
+                                            ),
+                                            pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(delta.y / h),
                                         )
-                                        GlassesHomeLook.lookPitch +=
-                                            HomeSpaceScene.fpsPitchDelta(delta.y / h)
                                     }
                                 }
                                 if (deskGrab) {
@@ -128,6 +146,9 @@ fun HostPointerBridge(
                                                 pressed[0].position,
                                                 pressed[1].position,
                                             )
+                                            val mid = pinchMidpoint(pressed[0].position, pressed[1].position)
+                                            pinchMidX = mid.x
+                                            pinchMidY = mid.y
                                         }
                                     }
                                     event.buttons.isPrimaryPressed || pressed.size == 1 -> {
@@ -169,3 +190,6 @@ fun HostPointerBridge(
 
 private fun pinchDistanceOf(a: Offset, b: Offset): Float =
     hypot(a.x - b.x, a.y - b.y)
+
+private fun pinchMidpoint(a: Offset, b: Offset): Offset =
+    Offset((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f)

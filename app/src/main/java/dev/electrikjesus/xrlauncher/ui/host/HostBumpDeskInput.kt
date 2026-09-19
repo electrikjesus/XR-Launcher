@@ -189,12 +189,14 @@ private fun applyAction(
             CompanionPointerBus.click(PointerButton.RIGHT)
         }
         is BumpDeskHostAction.LookPan -> {
-            GlassesHomeLook.panNorm += HomeSpaceScene.fpsPanNormDelta(
-                deltaX = action.dxPx / viewportW,
-                viewportWidthPx = viewportW,
-                viewportHeightPx = viewportH,
+            GlassesHomeLook.addLookDegrees(
+                yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
+                    deltaXNorm = action.dxPx / viewportW,
+                    viewportWidthPx = viewportW,
+                    viewportHeightPx = viewportH,
+                ),
+                pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH),
             )
-            GlassesHomeLook.lookPitch += HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH)
         }
         is BumpDeskHostAction.PinchZoom -> {
             val delta = HostSpaceZoom.sphereDeltaFromPinch(action.previousDistance, action.currentDistance)

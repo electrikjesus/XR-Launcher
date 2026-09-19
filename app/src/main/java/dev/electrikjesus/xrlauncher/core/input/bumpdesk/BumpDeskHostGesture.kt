@@ -141,14 +141,21 @@ class BumpDeskHostGesture(
 
     fun onPinchMove(distance: Float, midX: Float, midY: Float): List<BumpDeskHostAction> {
         if (!pinching) return emptyList()
+        val midDx = midX - lastX
+        val midDy = midY - lastY
         val prev = pinchDistance
         pinchDistance = distance
         lastX = midX
         lastY = midY
-        return listOf(
-            BumpDeskHostAction.CursorAt(midX, midY),
-            BumpDeskHostAction.PinchZoom(prev, distance),
-        )
+        val out = mutableListOf<BumpDeskHostAction>(BumpDeskHostAction.CursorAt(midX, midY))
+        // BumpDesk: two-finger mid-point drag pans the camera while span change zooms.
+        if (midDx != 0f || midDy != 0f) {
+            out += BumpDeskHostAction.LookPan(midDx, midDy)
+        }
+        if (prev > 1f && distance > 1f) {
+            out += BumpDeskHostAction.PinchZoom(prev, distance)
+        }
+        return out
     }
 
     fun onPrimaryUp(x: Float, y: Float): List<BumpDeskHostAction> {
