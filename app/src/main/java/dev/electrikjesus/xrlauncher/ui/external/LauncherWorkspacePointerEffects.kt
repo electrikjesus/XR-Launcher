@@ -655,10 +655,55 @@ fun bindDeskLeftButtonGrab(
             itemBounds = lastDeskItemBounds,
         )
     }
+    CompanionPointerBus.onPointerMoveWhilePressed = {
+        val c = CompanionPointerBus.cursor.value
+        if (c.isPressed) {
+            trackDeskDrag(
+                cursorX = c.x,
+                cursorY = c.y,
+                pressed = true,
+                rootWidthPx = lastDeskRootWidthPx,
+                rootHeightPx = lastDeskRootHeightPx,
+                panelScale = lastDeskPanelScale,
+                sphereScale = lastDeskSphereScale,
+                apps = lastDeskApps,
+                itemBounds = lastDeskItemBounds,
+            )
+        }
+    }
+    CompanionPointerBus.onPointerGestureFinalize = { endX, endY ->
+        // Apply the unlocked end sample, then release — before FPS re-locks to center.
+        if (HomeSpaceDeskState.drag != null || DeskLassoState.active || deskGesturePressed) {
+            trackDeskDrag(
+                cursorX = endX,
+                cursorY = endY,
+                pressed = true,
+                rootWidthPx = lastDeskRootWidthPx,
+                rootHeightPx = lastDeskRootHeightPx,
+                panelScale = lastDeskPanelScale,
+                sphereScale = lastDeskSphereScale,
+                apps = lastDeskApps,
+                itemBounds = lastDeskItemBounds,
+            )
+            trackDeskDrag(
+                cursorX = endX,
+                cursorY = endY,
+                pressed = false,
+                rootWidthPx = lastDeskRootWidthPx,
+                rootHeightPx = lastDeskRootHeightPx,
+                panelScale = lastDeskPanelScale,
+                sphereScale = lastDeskSphereScale,
+                apps = lastDeskApps,
+                itemBounds = lastDeskItemBounds,
+            )
+        }
+    }
 }
 
 fun clearDeskLeftButtonGrab() {
     CompanionPointerBus.onLeftButtonDown = null
+    CompanionPointerBus.onPointerMoveWhilePressed = null
+    CompanionPointerBus.onPointerGestureFinalize = null
 }
 
 private fun trackDeskDrag(

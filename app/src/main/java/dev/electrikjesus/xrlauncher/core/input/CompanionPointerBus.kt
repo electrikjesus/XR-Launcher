@@ -173,6 +173,7 @@ object CompanionPointerBus {
                     x = (current.x + deltaX).coerceIn(0f, 1f),
                     y = (current.y + deltaY).coerceIn(0f, 1f),
                 )
+                onPointerMoveWhilePressed?.invoke()
                 return
             }
             _cursor.value = current.copy(x = 0.5f, y = 0.5f)
@@ -184,6 +185,9 @@ object CompanionPointerBus {
             x = (current.x + deltaX).coerceIn(0f, 1f),
             y = (current.y + deltaY).coerceIn(0f, 1f),
         )
+        if (current.isPressed) {
+            onPointerMoveWhilePressed?.invoke()
+        }
     }
 
     fun moveByMotion(deltaX: Float, deltaY: Float) {
@@ -302,6 +306,20 @@ object CompanionPointerBus {
     @Volatile
     var onLeftButtonDown: (() -> Unit)? = null
 
+    /**
+     * Invoked synchronously on touchpad/motion moves while pressed so FPS unlock-drag
+     * updates the desk before Compose coalesces the falling edge with center re-lock.
+     */
+    @Volatile
+    var onPointerMoveWhilePressed: (() -> Unit)? = null
+
+    /**
+     * Finalize desk/lasso at the unlocked end position **before** FPS re-locks to center.
+     * Without this, Compose only sees (0.5, 0.5, up) and discards Desktop drops.
+     */
+    @Volatile
+    var onPointerGestureFinalize: ((endX: Float, endY: Float) -> Unit)? = null
+
     fun beginLeftButton() {
         leftButtonInGesture = true
         beginPointerGesture()
@@ -338,6 +356,7 @@ object CompanionPointerBus {
         leftButtonInGesture = false
         val endPos = _cursor.value
         if (startX == null || startY == null) {
+            onPointerGestureFinalize?.invoke(endPos.x, endPos.y)
             _cursor.value = fpsReleaseCursor(endPos)
             return
         }
@@ -347,6 +366,8 @@ object CompanionPointerBus {
         // and clear `pulling` before we decide whether to suppress the pointer-up click.
         val deskConsumesClick = HomeSpaceDeskState.notePointerUp(moved)
         val lassoConsumesClick = DeskLassoState.notePointerUp()
+        // Drop/place using unlocked endPos — then re-lock FPS cursor to center.
+        onPointerGestureFinalize?.invoke(endPos.x, endPos.y)
         _cursor.value = fpsReleaseCursor(endPos)
         when {
             deskConsumesClick || lassoConsumesClick -> { }

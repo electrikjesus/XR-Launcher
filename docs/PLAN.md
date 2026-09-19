@@ -587,6 +587,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
 | 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); revert to A when an app launches. Persist. | ☑ Partial — 0.1.16 Settings + Edit Look toggle; FPS only while launcher is in front |
+| 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed (already); **finalize desk move + `onDesktop` at endPos before `fpsReleaseCursor` re-locks to center**; sync move-while-pressed so Compose does not miss the drop sample. | ☑ |
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☐ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☐ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☐ |
@@ -610,6 +611,9 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dirty sync, **lasso state foundation** (`DeskLassoState`).
 
 **Do this next. One concern per change.**
+
+**Pointer / mouse-look (blocking):**
+0. **2.25a — Fix FPS Hold-Left drag/drop** — ☑ finalize at unlocked endPos before re-lock; sync move-while-pressed.
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
@@ -798,7 +802,9 @@ Record major choices here as they are made.
 | 2026-09-18 | **Lasso foundation** — `DeskLassoState` sphere yaw/pitch polygon + empty-Desktop Hold-Left stroke | Next: GLES stroke, selection chrome, pile-from-lasso, radial menu |
 | 2026-09-18 | **2.26–2.28 planned:** Expanded → GLES Home Space default; top HUD mirrors companion touchpad + Settings; Edit stays bottom-end | Large screen still opens legacy `SpatialDesktopScreen`; no host chrome for look/input/settings |
 | 2026-09-18 | **Plan sync for 2.26–2.28** — Current direction, Tier 0 rules, runtime tiers, mode selection, module layout, Phase 4.1 note | Earlier plan still described Expanded as Subspace `SpatialDesktopScreen` |
+| 2026-09-18 | **2.25a planned:** FPS Hold-Left DND — release at endPos before center re-lock; sync move-while-pressed | `fpsReleaseCursor` made `onDesktop` false when still facing Home; drops discarded |
+| 2026-09-18 | **2.25a:** sync `onPointerMoveWhilePressed` + `onPointerGestureFinalize` before FPS center re-lock | Compose only saw (0.5,0.5,up); Desktop drops discarded |
 
 ---
 
-*Last updated: 2026-09-18 (synced plan for large-screen XR Home Space + host HUD)*
+*Last updated: 2026-09-18 (2.25a FPS mouse-look drag/drop)*

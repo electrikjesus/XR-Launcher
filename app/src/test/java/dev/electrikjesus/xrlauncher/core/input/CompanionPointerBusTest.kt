@@ -340,6 +340,54 @@ class CompanionPointerBusTest {
     }
 
     @Test
+    fun endLeftButton_fpsFinalizeSeesUnlockedEndBeforeRelock() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        GlassesHomeLook.reset()
+        CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
+        var finalizeX = -1f
+        var finalizeY = -1f
+        var finalizeWhileStillAwayFromCenter = false
+        CompanionPointerBus.onPointerGestureFinalize = { x, y ->
+            finalizeX = x
+            finalizeY = y
+            finalizeWhileStillAwayFromCenter =
+                CompanionPointerBus.cursor.value.x > 0.55f &&
+                    CompanionPointerBus.cursor.value.isPressed
+        }
+        try {
+            CompanionPointerBus.beginLeftButton()
+            CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 200f, deltaY = 0f))
+            assertTrue(CompanionPointerBus.cursor.value.x > 0.55f)
+            CompanionPointerBus.endLeftButton()
+            assertTrue(finalizeX > 0.55f)
+            assertTrue(finalizeWhileStillAwayFromCenter)
+            assertEquals(0.5f, CompanionPointerBus.cursor.value.x, 0.001f)
+            assertEquals(false, CompanionPointerBus.cursor.value.isPressed)
+        } finally {
+            CompanionPointerBus.onPointerGestureFinalize = null
+            GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        }
+    }
+
+    @Test
+    fun moveBy_fpsWhilePressed_invokesMoveCallback() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        var moves = 0
+        CompanionPointerBus.onPointerMoveWhilePressed = { moves++ }
+        try {
+            CompanionPointerBus.beginLeftButton()
+            CompanionPointerBus.emit(PointerEvent(action = PointerAction.MOVE, deltaX = 50f, deltaY = 0f))
+            assertTrue(moves >= 1)
+            CompanionPointerBus.endLeftButton()
+        } finally {
+            CompanionPointerBus.onPointerMoveWhilePressed = null
+            GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        }
+    }
+
+    @Test
     fun moveBy_fpsFallsBackToCursorWhenAnAppIsInFront() {
         GlassesLookMode.preference = GlassesLookMode.FPS
         GlassesSessionState.launcherForeground = false
