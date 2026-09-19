@@ -611,7 +611,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed **0.1.19+ host:** Expanded → GLES Home Space (`HostHomeSpaceScreen`), top HUD, Edit/Settings as view-locked GLES dialog textures; phone/companion keep `SettingsActivity`.
+Landed **host pointer polish:** screen-locked HUD + modal Edit/Settings (Compose hits, FPS look paused while open); desk Hold-Left only when clear of chrome.
 
 **Do this next. One concern per change.**
 
@@ -625,14 +625,14 @@ Landed **0.1.19+ host:** Expanded → GLES Home Space (`HostHomeSpaceScreen`), t
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — mouse capture for FPS look, keyboard focus for HUD keyboard, DeX quirks.
+5. **Polish host pointer** — ☑ partial: absolute cursor + Compose chrome/modals; still open: OS mouse capture for FPS, HUD keyboard focus, DeX quirks.
 6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
 
 **BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
-**Host routing note:** Today `XRLauncherApp` sends Expanded → `SpatialDesktopScreen`. Target: Expanded → shared Home Space composable used by glasses/external; phone compact → `PhoneShellScreen` / companion.
+**Host chrome model:** Top HUD and Edit toggle stay **viewport-locked** (Minecraft hotbar). Edit/Settings open as **screen-space modals** (Minecraft inventory), not sphere panels. Desk/world picks only when no modal and cursor is off chrome.
 
 ---
 
@@ -813,7 +813,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Return to All Apps** — drop a Desktop icon on the All Apps tile (or open backing) removes it | Drop only pushed away from the tile / rejected on backing |
 | 2026-09-18 | **0.1.19 release** — pager click fix, return-to-drawer remove, Hold-Left / mouse-look desk polish | Post-0.1.18 desk interaction fixes |
 | 2026-09-19 | **2.26–2.28 host:** Expanded → `HostHomeSpaceScreen` GLES Home Space; top HUD; Edit/Settings as view-locked GLES dialog textures; phone keeps SettingsActivity | Large screen opened legacy SpatialDesktopScreen; overlays left immersion |
+| 2026-09-19 | **Host chrome = Minecraft layers:** viewport HUD + modal Edit/Settings (Compose `drawToScreen`); desk bus only off-chrome; FPS look paused in modals | FPS center-lock + GLES-only Edit skewed hits; HUD/desk fought for clicks |
 
 ---
 
-*Last updated: 2026-09-19 (large-screen immersive Home Space)*
+*Last updated: 2026-09-19 (host screen HUD + modal dialogs)*

@@ -450,6 +450,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     /** Camera-facing Edit/Settings dialogs — projection only so they stay readable while looking. */
     private fun drawViewLockedDialogs() {
+        // Host immersive session shows Compose dialogs for accurate hit-testing; skip the
+        // GLES billboard there so visuals and hits stay aligned.
+        if (dev.electrikjesus.xrlauncher.core.display.GlassesSessionState.hostImmersiveSession) {
+            return
+        }
         val dialogs = pendingTextures.filter { HomeSpaceDialogState.isDialogTexture(it.panelId) }
         if (dialogs.isEmpty()) return
         GLES20.glDisable(GLES20.GL_CULL_FACE)

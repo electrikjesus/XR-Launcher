@@ -147,4 +147,20 @@ object GlassesHomeHits {
         pointY: Float,
         contains: (String) -> Boolean,
     ): String? = actionKeyAt(contains)
+
+    /**
+     * Screen-locked HUD / Edit toggle — Minecraft-style viewport chrome, not world panels.
+     * Modal Edit/Settings bodies use Compose clickables while open; these keys still block desk grab.
+     */
+    fun isScreenLockedChromeKey(key: String): Boolean = when (key) {
+        EDIT_TOGGLE,
+        HUD_INPUT_TOUCHPAD,
+        HUD_INPUT_HEAD,
+        HUD_LOOK_MODE,
+        HUD_RECENTER,
+        HUD_KEYBOARD,
+        HUD_SETTINGS,
+        -> true
+        else -> false
+    }
 }

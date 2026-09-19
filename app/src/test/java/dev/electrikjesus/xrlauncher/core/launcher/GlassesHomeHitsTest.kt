@@ -25,6 +25,14 @@ class GlassesHomeHitsTest {
     }
 
     @Test
+    fun isScreenLockedChromeKey_marksHudAndEditToggleOnly() {
+        assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HUD_SETTINGS))
+        assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_TOGGLE))
+        assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HOME))
+        assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_CLOSE))
+    }
+
+    @Test
     fun actionKeyAt_prefersEditChromeOverHomePills() {
         val hit = GlassesHomeHits.actionKeyAt {
             it == GlassesHomeHits.HOME || it == GlassesHomeHits.EDIT_TOGGLE

@@ -621,6 +621,19 @@ private fun handlePaginationClick(
     return false
 }
 
+/**
+ * Host pointer bridge: true when the normalized cursor is over screen-locked HUD / Edit
+ * toggle. Desk grab must not start there — Compose clickables own those hits.
+ */
+fun isHostScreenChromeAt(normX: Float, normY: Float): Boolean {
+    if (lastDeskRootWidthPx <= 1f || lastDeskRootHeightPx <= 1f) return false
+    val point = Offset(normX * lastDeskRootWidthPx, normY * lastDeskRootHeightPx)
+    return lastDeskItemBounds.entries.any { (key, rect) ->
+        GlassesHomeHits.isScreenLockedChromeKey(key) &&
+            rect.containsWithSlop(point, HOST_CONTROL_HIT_SLOP_PX)
+    }
+}
+
 private fun Rect.containsWithSlop(point: Offset, slopPx: Float = CONTROL_HIT_SLOP_PX): Boolean =
     point.x >= left - slopPx && point.x <= right + slopPx &&
         point.y >= top - slopPx && point.y <= bottom + slopPx
@@ -980,4 +993,6 @@ private fun panelTitle(panel: PanelState): String = when (panel.id) {
 private const val LOG_TAG = "XRLauncher/Pointer"
 /** Extra pixels around chrome controls — compensates for cursor/visual offset on glasses. */
 private const val CONTROL_HIT_SLOP_PX = 16f
+/** Host screen HUD / Edit toggle — slightly larger so desk grab does not steal edge taps. */
+private const val HOST_CONTROL_HIT_SLOP_PX = 28f
 private const val APP_HIT_SLOP_PX = 8f
