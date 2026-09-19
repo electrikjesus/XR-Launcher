@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -67,6 +68,13 @@ fun BoxScope.GlassesHomeTuneOverlay(
     val hostModal = GlassesSessionState.hostImmersiveSession
     // Host Edit/Settings live as siblings above the desk catcher in HostHomeSpaceScreen.
     val showEditCard = editing && !hostModal
+    LaunchedEffect(showEditCard) {
+        if (!showEditCard) {
+            GlassesHomeHits.editBodyKeys.forEach { key ->
+                onBoundsChanged(key, Rect.Zero)
+            }
+        }
+    }
     WorkspaceScaledLayer(uiScale = tuned.uiScale) {
         if (showEditCard) {
             val cardModifier = with(this@GlassesHomeTuneOverlay) {

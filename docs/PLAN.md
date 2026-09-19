@@ -836,7 +836,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host Edit modal hoist:** compact unscaled `HostEditDialogLayer` above catcher; skip in-scene Edit card on host; drop empty InteractionLayer Box | Edit stayed under InteractionLayer + 1.2× uiScale; X/+/- never received Compose clicks |
 | 2026-09-19 | **Settings slider stuck press:** host Settings is direct Compose; scrim is a sibling, not a clickable parent, and no graphics-layer capture | Slider drag left the parent clickable pressed, so only sliders still received events |
 | 2026-09-19 | **Look deadzone sliders:** horizontal and vertical center band (0–50% of center-to-edge) zeros `cursorEdgeWeight` before the sine curve | Normal look moved as soon as the cursor left the exact center |
+| 2026-09-19 | **Stale Edit hits:** ignore Edit +/- unless Edit is open, and clear those bounds when the card hides | A Home pager miss landed on a leftover Icons & elements minus rect and shrank uiScale |
 
 ---
 
-*Last updated: 2026-09-19 (look deadzone sliders)*
+*Last updated: 2026-09-19 (stale edit hit on home pane)*

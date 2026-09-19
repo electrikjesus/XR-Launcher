@@ -163,4 +163,41 @@ object GlassesHomeHits {
         -> true
         else -> false
     }
+
+    /** Edit card controls. Not the corner Edit toggle. Invalid once the card is gone. */
+    fun isEditBodyKey(key: String): Boolean = when (key) {
+        EDIT_CLOSE,
+        EDIT_PAGE_PERSPECTIVE,
+        EDIT_PAGE_DESKTOP,
+        EDIT_DESK_ICONS,
+        EDIT_DESK_PILES,
+        EDIT_DESK_TILES,
+        EDIT_DESK_WIDGETS,
+        EDIT_LOOK_FPS,
+        EDIT_PANEL_MINUS,
+        EDIT_PANEL_PLUS,
+        EDIT_SPHERE_MINUS,
+        EDIT_SPHERE_PLUS,
+        EDIT_ELEMENT_MINUS,
+        EDIT_ELEMENT_PLUS,
+        -> true
+        else -> false
+    }
+
+    val editBodyKeys: List<String> = listOf(
+        EDIT_CLOSE,
+        EDIT_PAGE_PERSPECTIVE,
+        EDIT_PAGE_DESKTOP,
+        EDIT_DESK_ICONS,
+        EDIT_DESK_PILES,
+        EDIT_DESK_TILES,
+        EDIT_DESK_WIDGETS,
+        EDIT_LOOK_FPS,
+        EDIT_PANEL_MINUS,
+        EDIT_PANEL_PLUS,
+        EDIT_SPHERE_MINUS,
+        EDIT_SPHERE_PLUS,
+        EDIT_ELEMENT_MINUS,
+        EDIT_ELEMENT_PLUS,
+    )
 }

@@ -448,7 +448,8 @@ private fun handleLeftClick(
 
 private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
     val contains: (String) -> Boolean = { key ->
-        itemBounds[key]?.containsWithSlop(point) == true
+        val rect = itemBounds[key]
+        rect != null && !rect.isEmpty && rect.containsWithSlop(point)
     }
     GlassesHomeHits.actionKeyAt(contains)?.let { return it }
     return itemBounds.keys.firstOrNull { key ->
@@ -464,6 +465,9 @@ private fun handleHomeSpaceClick(
     onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
 ): Boolean {
     val key = homeHitKey(point, itemBounds) ?: return false
+    // Edit +/- used to stay in the hit map after the card closed, centered on the Home
+    // pane. A pagination miss then shrank Icons & elements.
+    if (GlassesHomeHits.isEditBodyKey(key) && !GlassesSessionState.homeSpaceEdit) return false
     Log.d(LOG_TAG, "left-click hit home chrome=$key")
     GlassesHomeHits.appClosePanelId(key)?.let { panelId ->
         GlassesHomeLook.closeAppPlane(panelId)

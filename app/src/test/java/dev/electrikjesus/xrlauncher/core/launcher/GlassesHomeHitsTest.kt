@@ -30,6 +30,9 @@ class GlassesHomeHitsTest {
         assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_TOGGLE))
         assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HOME))
         assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_CLOSE))
+        assertTrue(GlassesHomeHits.isEditBodyKey(GlassesHomeHits.EDIT_ELEMENT_MINUS))
+        assertTrue(!GlassesHomeHits.isEditBodyKey(GlassesHomeHits.EDIT_TOGGLE))
+        assertTrue(!GlassesHomeHits.isEditBodyKey(GlassesHomeHits.HOME))
     }
 
     @Test
