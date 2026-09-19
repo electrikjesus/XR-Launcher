@@ -596,7 +596,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
 | 2.28a | **Host BumpDesk input path.** Port BumpDesk `LauncherActivity` gesture model (absolute coords, touch-slop, middle-drag look, scroll/pinch zoom) as second host input method; skip companion FPS press/release re-lock while `hostImmersiveSession`. | ☑ Partial — `HostBumpDeskMotionBridge` + Compose `pointerInteropFilter` catcher (AndroidView ate swipes); HUD wrap-content above catcher; eye/mouse force look mode |
-| 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☐ |
+| 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☑ Partial — host immersive Settings is Home Space-only (wallpaper / All Apps / look); wallpaper re-uploads on choice; modal clicks own the pointer; phone SettingsActivity still full list |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -631,7 +631,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
 5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / mouse=FPS (force, not toggle); still open: OS mouse capture, Edit-above-catcher polish, Settings toggle.
-6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
+6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
 
@@ -832,7 +832,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host look feel:** FPS hover mouse-look (no click); GRADIENT absolute host pitches from cursor Y again | Catcher required primary-down; `applyCursorOffset=false` had zeroed gradient pitch |
 | 2026-09-19 | **Gradient look curve:** `cursorEdgeWeight` (`1-cos`) for pitch and horizontal pan — flat at center, steepest at the edges | Linear pitch and edge-only yaw dead zone |
 | 2026-09-19 | **Lasso stroke + radial menu:** GLES line strip and selection highlight from `DeskLassoState`; context actions are a screen-space ring above the host catcher | Stroke existed only as yaw/pitch state; right-click was a list under the catcher |
+| 2026-09-19 | **2.29 host Settings/Edit:** drop pointer catcher while modals open; Home Space-only settings; wallpaper upload keys include choice ordinal | Catcher ate back/scroll/Edit clicks; Settings listed 2D cylinder options; wallpaper choice never re-uploaded |
 
 ---
 
-*Last updated: 2026-09-19 (lasso stroke + radial menu)*
+*Last updated: 2026-09-19 (host Settings/Edit clicks + wallpaper)*

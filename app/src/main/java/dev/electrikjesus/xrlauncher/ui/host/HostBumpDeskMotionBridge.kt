@@ -51,7 +51,9 @@ object HostBumpDeskMotionBridge {
         val fpsLook = GlassesLookMode.effective() == GlassesLookMode.FPS
         val dialogOpen = GlassesSessionState.homeSpaceEdit ||
             HomeSpaceDialogState.dialog != HomeSpaceDialog.NONE
-        val allowDesk = !dialogOpen
+        // Modal Settings/Edit: let Compose own the event (catcher is also removed while open).
+        if (dialogOpen) return false
+        val allowDesk = true
 
         fun apply(actions: List<BumpDeskHostAction>) {
             for (action in actions) {
@@ -238,7 +240,9 @@ object HostBumpDeskMotionBridge {
         val fpsLook = GlassesLookMode.effective() == GlassesLookMode.FPS
         val dialogOpen = GlassesSessionState.homeSpaceEdit ||
             HomeSpaceDialogState.dialog != HomeSpaceDialog.NONE
-        val allowDesk = !dialogOpen
+        // Modal Settings/Edit: let Compose own the event (catcher is also removed while open).
+        if (dialogOpen) return false
+        val allowDesk = true
 
         fun apply(actions: List<BumpDeskHostAction>) {
             for (action in actions) {

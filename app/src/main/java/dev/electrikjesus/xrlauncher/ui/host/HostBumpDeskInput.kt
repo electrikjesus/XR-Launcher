@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 
 /**
  * BumpDesk-derived host pointer for Expanded Home Space.
@@ -31,6 +34,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
  * Touch / button events: [pointerInteropFilter] (GLES AndroidView ate parent pointerInput).
  * Mouse hover (no button): Compose [pointerInput] Move — classic FPS look without click.
  * Top HUD is a wrap-content sibling above this catcher in [HostHomeSpaceScreen].
+ * Settings / Edit modals own the pointer — the catcher is removed while they are open.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -42,6 +46,9 @@ fun HostBumpDeskInput(
     val zoomLatest by rememberUpdatedState(onZoomSphere)
     var catcherW by remember { mutableIntStateOf(1) }
     var catcherH by remember { mutableIntStateOf(1) }
+    val editing by GlassesSessionState.homeSpaceEditFlow.collectAsState()
+    val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
+    val modalOpen = editing || hostDialog != HomeSpaceDialog.NONE
 
     LaunchedEffect(zoomLatest) {
         HostBumpDeskMotionBridge.bind(zoomLatest)
@@ -57,45 +64,49 @@ fun HostBumpDeskInput(
 
     Box(modifier = modifier.fillMaxSize()) {
         content()
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Transparent) // empty catchers are not hit-tested without a draw
-                .onSizeChanged {
-                    catcherW = it.width.coerceAtLeast(1)
-                    catcherH = it.height.coerceAtLeast(1)
-                }
-                // Hover mouse-look (no buttons). Pressed paths stay on interop to avoid double-fire.
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            if (event.type != PointerEventType.Move &&
-                                event.type != PointerEventType.Enter
-                            ) {
-                                continue
-                            }
-                            if (event.changes.any { it.pressed }) continue
-                            val change = event.changes.firstOrNull() ?: continue
-                            val hover = MotionEvent.obtain(
-                                /* downTime */ 0L,
-                                /* eventTime */ System.currentTimeMillis(),
-                                MotionEvent.ACTION_HOVER_MOVE,
-                                change.position.x,
-                                change.position.y,
-                                0,
-                            )
-                            try {
-                                HostBumpDeskMotionBridge.onTouch(hover, catcherW, catcherH)
-                            } finally {
-                                hover.recycle()
+        // While Settings/Edit are open, Compose owns clicks (back, scroll, +/-). Leaving the
+        // catcher up would consume MotionEvents and never emit LeftClick for modals.
+        if (!modalOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent) // empty catchers are not hit-tested without a draw
+                    .onSizeChanged {
+                        catcherW = it.width.coerceAtLeast(1)
+                        catcherH = it.height.coerceAtLeast(1)
+                    }
+                    // Hover mouse-look (no buttons). Pressed paths stay on interop to avoid double-fire.
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Main)
+                                if (event.type != PointerEventType.Move &&
+                                    event.type != PointerEventType.Enter
+                                ) {
+                                    continue
+                                }
+                                if (event.changes.any { it.pressed }) continue
+                                val change = event.changes.firstOrNull() ?: continue
+                                val hover = MotionEvent.obtain(
+                                    /* downTime */ 0L,
+                                    /* eventTime */ System.currentTimeMillis(),
+                                    MotionEvent.ACTION_HOVER_MOVE,
+                                    change.position.x,
+                                    change.position.y,
+                                    0,
+                                )
+                                try {
+                                    HostBumpDeskMotionBridge.onTouch(hover, catcherW, catcherH)
+                                } finally {
+                                    hover.recycle()
+                                }
                             }
                         }
                     }
-                }
-                .pointerInteropFilter { event ->
-                    HostBumpDeskMotionBridge.onTouch(event, catcherW, catcherH)
-                },
-        )
+                    .pointerInteropFilter { event ->
+                        HostBumpDeskMotionBridge.onTouch(event, catcherW, catcherH)
+                    },
+            )
+        }
     }
 }

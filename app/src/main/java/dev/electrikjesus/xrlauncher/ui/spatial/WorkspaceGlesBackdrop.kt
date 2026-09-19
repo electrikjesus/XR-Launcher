@@ -69,7 +69,6 @@ fun WorkspaceGlesBackdrop(
 
     DisposableEffect(context, wallpaperChoice) {
         if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
-            onDispose { }
             return@DisposableEffect onDispose { }
         }
         val receiver = object : BroadcastReceiver() {
@@ -165,7 +164,12 @@ fun WorkspaceGlesBackdrop(
             renderer.curvature = curvature
             renderer.workspaceWidth = workspaceWidth
             renderer.workspaceHeight = workspaceHeight
-            renderer.setWallpaperBitmap(wallpaperBitmap, wallpaperGeneration.toLong())
+            // Include choice ordinal so a preset switch always re-uploads (generation alone
+            // only bumps for SYSTEM wallpaper broadcasts).
+            renderer.setWallpaperBitmap(
+                wallpaperBitmap,
+                wallpaperChoice.ordinal * 1_000_000L + wallpaperGeneration,
+            )
             renderer.panelGuideCenters = panelGuideCenters
             renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.surroundRoom = surroundRoom

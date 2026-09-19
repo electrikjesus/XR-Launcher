@@ -83,6 +83,7 @@ fun BoxScope.HostSettingsDialogLayer(
                     workspaceRepository = workspaceRepository,
                     onNavigateBack = onClose,
                     onShowOnboarding = onClose,
+                    homeSpaceOnly = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
