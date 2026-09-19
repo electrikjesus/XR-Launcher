@@ -32,6 +32,12 @@ class GlassesHomeLookTest {
     }
 
     @Test
+    fun offCenter_pansBeforeTheOldEdgeZone() {
+        GlassesHomeLook.tickEdgePan(cursorX = 0.35f, deltaSeconds = 0.2f)
+        assertTrue(GlassesHomeLook.panNorm < 0f)
+    }
+
+    @Test
     fun leftEdge_pansTowardAllApps() {
         repeat(40) {
             GlassesHomeLook.tickEdgePan(cursorX = 0.02f, deltaSeconds = 0.016f)

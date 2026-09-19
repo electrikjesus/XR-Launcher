@@ -33,7 +33,6 @@ object GlassesHomeLook {
     /** @deprecated Use [SIDE_LOOK_EXTRA]. */
     const val DESKTOP_LOOK_EXTRA = SIDE_LOOK_EXTRA
 
-    const val EDGE_START = 0.12f
     const val PAN_SPEED = 0.85f
 
     /** Fraction of the viewport between pane centers so neighbors stay in view. */
@@ -195,27 +194,16 @@ object GlassesHomeLook {
     }
 
     /**
-     * Game-style edge look: cursor parked on the left/right of the viewport
-     * pans toward the neighboring pane. Stronger the closer to the bezel.
+     * Gradient look: cursor distance from center pans yaw.
+     * [HomeSpaceScene.cursorEdgeWeight] is ~0 (and flat) at the middle, steepest at the edges.
      */
     fun tickEdgePan(cursorX: Float, deltaSeconds: Float) {
         if (GlassesLookMode.effective() == GlassesLookMode.FPS) return
         val dt = deltaSeconds.coerceIn(0f, 0.05f)
         if (dt <= 0f) return
-        val x = cursorX.coerceIn(0f, 1f)
-        val delta = when {
-            x < EDGE_START -> {
-                val t = 1f - (x / EDGE_START)
-                -PAN_SPEED * dt * t
-            }
-            x > 1f - EDGE_START -> {
-                val t = (x - (1f - EDGE_START)) / EDGE_START
-                PAN_SPEED * dt * t
-            }
-            else -> 0f
-        }
-        if (delta != 0f) {
-            panNorm += delta
+        val weight = HomeSpaceScene.cursorEdgeWeight(cursorX)
+        if (weight != 0f) {
+            panNorm += PAN_SPEED * dt * weight
         }
     }
 

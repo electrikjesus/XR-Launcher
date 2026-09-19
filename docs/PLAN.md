@@ -830,7 +830,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Mouse-look drag + HUD eye=normal:** FPS look pans while pressed; eye sets GRADIENT, mouse sets FPS; collect `lookYawDegFlow` | Screenrecord: mouse stayed selected; eye was head-track no-op; FPS ignored finger-drag look |
 | 2026-09-19 | **Host look unstuck:** `pointerInteropFilter` catcher + transparent hit target; HUD wrap-content above catcher; `effective()` honors `hostImmersiveSession`; HUD bus force GRADIENT/FPS (no toggle race) | GLES AndroidView ate swipes; fillMaxSize HUD overlay blocked catcher; delayed LeftClick toggled look back to FPS |
 | 2026-09-19 | **Host look feel:** FPS hover mouse-look (no click); GRADIENT absolute host pitches from cursor Y again | Catcher required primary-down; `applyCursorOffset=false` had zeroed gradient pitch |
+| 2026-09-19 | **Gradient look curve:** `cursorEdgeWeight` (`1-cos`) for pitch and horizontal pan — flat at center, steepest at the edges | Linear pitch and edge-only yaw dead zone |
 
 ---
 
-*Last updated: 2026-09-19 (FPS hover look + gradient pitch)*
+*Last updated: 2026-09-19 (gradient sine look curve)*

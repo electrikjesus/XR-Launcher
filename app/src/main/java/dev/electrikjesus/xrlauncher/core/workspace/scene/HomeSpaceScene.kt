@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.sin
@@ -23,6 +24,18 @@ object HomeSpaceScene {
     const val CURSOR_PITCH_DEGREES = 20f
     /** Soft pitch used by companion gradient cursor-look (not free-look FPS). */
     const val MAX_PITCH_DEGREES = 24f
+
+    /**
+     * Gradient cursor → look weight in [-1, 1].
+     *
+     * `1 - cos` of the distance from center: value and slope are ~0 in the middle,
+     * and the slope grows until the peak at the screen edge. Same shape for X and Y.
+     */
+    fun cursorEdgeWeight(norm: Float): Float {
+        val u = ((norm.coerceIn(0f, 1f) - 0.5f) * 2f).coerceIn(-1f, 1f)
+        val mag = (1.0 - cos(abs(u.toDouble()) * Math.PI / 2.0)).toFloat()
+        return if (u < 0f) -mag else mag
+    }
 
     data class Camera(
         val yawDeg: Float,
@@ -164,15 +177,14 @@ object HomeSpaceScene {
         if (lookMode == GlassesLookMode.FPS) {
             return Camera(yawDeg = baseYaw, pitchDeg = lookPitchDeg)
         }
-        val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
+        val cursorPitch = (cursorEdgeWeight(cursorY) * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
         if (!applyCursorOffset) {
-            // Absolute host GRADIENT: keep yaw from free-look / edge pan (no cursor-X yaw —
-            // that double-offset mis-aimed picks), but still pitch from cursor Y so looking
-            // up/down works without middle-drag.
+            // Absolute host GRADIENT: yaw stays on free-look / sine edge-pan (no extra
+            // cursor-X yaw — that double-offset mis-aimed picks). Pitch follows cursor Y.
             return Camera(yawDeg = baseYaw, pitchDeg = cursorPitch)
         }
-        val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
+        val yaw = look * arc + cursorEdgeWeight(cursorX) * CURSOR_YAW_DEGREES
         return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
     }
 

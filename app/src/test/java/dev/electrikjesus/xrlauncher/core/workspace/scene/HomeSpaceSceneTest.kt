@@ -75,6 +75,18 @@ class HomeSpaceSceneTest {
     }
 
     @Test
+    fun cursorEdgeWeight_isFlatInTheCenterAndSteepAtTheEdges() {
+        assertEquals(0f, HomeSpaceScene.cursorEdgeWeight(0.5f), 0.001f)
+        assertEquals(1f, HomeSpaceScene.cursorEdgeWeight(1f), 0.02f)
+        assertEquals(-1f, HomeSpaceScene.cursorEdgeWeight(0f), 0.02f)
+        val quarterDown = HomeSpaceScene.cursorEdgeWeight(0.75f)
+        assertTrue(quarterDown > 0f)
+        assertTrue(quarterDown < 0.45f)
+        val nearEdge = HomeSpaceScene.cursorEdgeWeight(0.95f)
+        assertTrue(nearEdge > quarterDown * 2f)
+    }
+
+    @Test
     fun fpsLook_ignoresCursorOffsetAndUsesLookPitch() {
         val fps = HomeSpaceScene.camera(
             look = 0f,
