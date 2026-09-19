@@ -25,6 +25,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
@@ -93,7 +94,14 @@ fun HostHomeSpaceScreen(
         scope.launch { workspaceRepository.toggleHotseatPin(app.componentKey()) }
     }
 
-    HostPointerBridge(modifier = modifier.fillMaxSize()) {
+    HostPointerBridge(
+        modifier = modifier.fillMaxSize(),
+        onZoomSphere = { delta ->
+            scope.launch {
+                workspaceRepository.nudgeAppearance(HomeSpaceTuneAxis.SPHERE, delta)
+            }
+        },
+    ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val density = LocalDensity.current
             val configuration = LocalConfiguration.current

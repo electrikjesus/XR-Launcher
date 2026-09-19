@@ -58,6 +58,18 @@ class WorkspaceRepository(private val context: Context) {
         }
     }
 
+    /** Apply a live Edit/host nudge against the stored appearance (safe under rapid scroll/pinch). */
+    suspend fun nudgeAppearance(axis: HomeSpaceTuneAxis, delta: Float) {
+        context.workspaceDataStore.edit { prefs ->
+            val current = prefs[WORKSPACE_JSON_KEY]?.let {
+                runCatching { WorkspaceJson.decode(it) }.getOrNull()
+            } ?: Workspace.default()
+            prefs[WORKSPACE_JSON_KEY] = WorkspaceJson.encode(
+                current.copy(appearance = HomeSpaceTune.apply(current.appearance, axis, delta)),
+            )
+        }
+    }
+
     /** Reset appearance tuning and return panels to the standard stack layout. */
     suspend fun resetLayoutDefaults() {
         context.workspaceDataStore.edit { prefs ->

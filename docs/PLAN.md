@@ -625,14 +625,14 @@ Landed **host pointer polish:** screen-locked HUD + modal Edit/Settings (Compose
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — ☑ partial: absolute cursor + Compose chrome/modals; still open: OS mouse capture for FPS, HUD keyboard focus, DeX quirks.
+5. **Polish host pointer** — ☑ partial: absolute cursor + Compose chrome/modals; scroll/pinch zoom + right-click landed; still open: OS mouse capture for FPS, HUD keyboard focus, DeX quirks.
 6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
 
 **BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
-**Host chrome model:** Top HUD and Edit toggle stay **viewport-locked** (Minecraft hotbar). Edit/Settings open as **screen-space modals** (Minecraft inventory), not sphere panels. Desk/world picks only when no modal and cursor is off chrome.
+**Host chrome model:** Top HUD and Edit toggle stay **viewport-locked** (Minecraft hotbar). Edit/Settings open as **screen-space modals** (Minecraft inventory), not sphere panels. Desk/world picks only when no modal and cursor is off chrome. Host **scroll / pinch** zooms [sphereScale]; **right-click** opens the existing context menu via [CompanionPointerBus].
 
 ---
 
@@ -664,7 +664,7 @@ Landed **host pointer polish:** screen-locked HUD + modal Edit/Settings (Compose
 
 | # | Task | Done |
 |---|------|------|
-| 4.1 | **Tier 0:** Mouse hover focus, scroll-to-zoom / orbit on host Home Space (after **2.26**). | ☐ Depends on 2.26 |
+| 4.1 | **Tier 0:** Mouse hover focus, scroll-to-zoom / orbit on host Home Space (after **2.26**). | ☑ Partial — host scroll + pinch zoom sphere; right-click → context menu; orbit / hover polish still open |
 | 4.2 | **Tier 0:** Keyboard shortcut polish + rebinding settings. | ☐ |
 | 4.3 | **Companion:** Refine touchpad (inertial scroll, tap zones, haptic on click). | ☐ |
 | 4.4 | **Companion:** Motion pointer calibration flow (neutral hold → recenter). | ☐ |
@@ -814,7 +814,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **0.1.19 release** — pager click fix, return-to-drawer remove, Hold-Left / mouse-look desk polish | Post-0.1.18 desk interaction fixes |
 | 2026-09-19 | **2.26–2.28 host:** Expanded → `HostHomeSpaceScreen` GLES Home Space; top HUD; Edit/Settings as view-locked GLES dialog textures; phone keeps SettingsActivity | Large screen opened legacy SpatialDesktopScreen; overlays left immersion |
 | 2026-09-19 | **Host chrome = Minecraft layers:** viewport HUD + modal Edit/Settings (Compose `drawToScreen`); desk bus only off-chrome; FPS look paused in modals | FPS center-lock + GLES-only Edit skewed hits; HUD/desk fought for clicks |
+| 2026-09-19 | **4.1 partial:** host scroll-wheel + 2-finger pinch → sphere zoom; mouse right-click → existing context menus | Host had left-only pointer; no zoom gestures |
 
 ---
 
-*Last updated: 2026-09-19 (host screen HUD + modal dialogs)*
+*Last updated: 2026-09-19 (host scroll/pinch zoom + right-click)*
