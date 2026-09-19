@@ -578,7 +578,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persisted poses (`desk_json`); still missing piles, lasso, radial menu |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + Home→Desktop copy-drag + `DeskLassoState`; still missing lasso draw, piles, radial menu |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -600,16 +600,17 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-#### Phase 2 — Next steps (immediate)
-
-Landed **0.1.18:** README screenshots; desk persist; pager speed/click fixes; mouse-look + left/right pan.
+Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dirty sync, **lasso state foundation** (`DeskLassoState`).
 
 **Do this next. One concern per change.**
 
-1. **Device-verify** All Apps expand + FPS/gradient Hold-Left after GLES bus sync.
-2. **Edit dialog in space** — dismissible 3D layer, not HUD-stuck-to-camera.
-3. **Piles / lasso / radial menu** — remaining BumpDesk InteractionManager pieces.
-4. **Stop** — Do not start 6.9 onboarding in this pass.
+1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
+2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile (port BumpDesk `createPileFromCaptured`); single-icon lasso just selects.
+3. **Radial menu** — right-click / long-press on desk icon or selection: BumpDesk radial (Open / Freeform / Pinned / Fullscreen / Remove from Desktop). Sphere-anchored, not HUD-stuck.
+4. **Edit dialog in space** — dismissible 3D layer after radial feels right.
+5. **Stop** — Do not start 6.9 onboarding in this pass.
+
+**BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
 ---
 
@@ -777,7 +778,9 @@ Record major choices here as they are made.
 | 2026-09-18 | **Tray look range** — `maxPan` = tray + SIDE_LOOK_EXTRA (mirror of Desktop left) | Mouse-look locked at tray center; right half unreachable |
 | 2026-09-18 | **FPS click-drag** — touchpad looks only when unpressed; Hold-Left unlocks cursor from center, then re-locks | Look ate every move so taps became no-op drags and grabs never traveled |
 | 2026-09-18 | **Desk GLES dirty render** — bus callback syncs icons/textures onto the renderer before `requestRender` | All Apps expand waited for the next cursor move to recompose AndroidView |
+| 2026-09-18 | **Home→Desktop copy-drag** — Hold-Left on Home pane app places a Desktop icon; Home list unchanged | Only All Apps drawer could seed the desk |
+| 2026-09-18 | **Lasso foundation** — `DeskLassoState` sphere yaw/pitch polygon + empty-Desktop Hold-Left stroke | Next: GLES stroke, selection chrome, pile-from-lasso, radial menu |
 
 ---
 
-*Last updated: 2026-09-18 (desk GLES bus sync on dirty render)*
+*Last updated: 2026-09-18 (Home copy-drag + lasso foundation)*

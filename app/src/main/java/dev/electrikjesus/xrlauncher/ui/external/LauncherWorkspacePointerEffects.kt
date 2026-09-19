@@ -22,6 +22,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
+import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
@@ -124,14 +125,14 @@ fun LauncherWorkspacePointerEffects(
             }
         }
         CompanionPointerBus.addClickListener(listener)
-        bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale, apps, itemBounds)
         onDispose {
             CompanionPointerBus.removeClickListener(listener)
             clearDeskLeftButtonGrab()
         }
     }
     // Keep sync Left-down grab params current without tearing down the click listener.
-    bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    bindDeskLeftButtonGrab(rootWidthPx, rootHeightPx, panelScale, sphereScale, apps, itemBounds)
 
     val cursor by CompanionPointerBus.cursor.collectAsState()
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
@@ -147,8 +148,20 @@ fun LauncherWorkspacePointerEffects(
         rootHeightPx,
         panelScale,
         sphereScale,
+        apps,
+        itemBounds,
     ) {
-        trackDeskDrag(cursor.x, cursor.y, cursor.isPressed, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        trackDeskDrag(
+            cursor.x,
+            cursor.y,
+            cursor.isPressed,
+            rootWidthPx,
+            rootHeightPx,
+            panelScale,
+            sphereScale,
+            apps,
+            itemBounds,
+        )
     }
     LaunchedEffect(
         cursor.x,
@@ -610,6 +623,8 @@ private var lastDeskRootWidthPx = 1920f
 private var lastDeskRootHeightPx = 1080f
 private var lastDeskPanelScale = 1f
 private var lastDeskSphereScale = 1f
+private var lastDeskApps: List<LaunchableApp> = emptyList()
+private var lastDeskItemBounds: Map<String, Rect> = emptyMap()
 
 /** Sync grab from [CompanionPointerBus.beginLeftButton] while touchpad may already be moving. */
 fun bindDeskLeftButtonGrab(
@@ -617,11 +632,15 @@ fun bindDeskLeftButtonGrab(
     rootHeightPx: Float,
     panelScale: Float,
     sphereScale: Float,
+    apps: List<LaunchableApp> = emptyList(),
+    itemBounds: Map<String, Rect> = emptyMap(),
 ) {
     lastDeskRootWidthPx = rootWidthPx
     lastDeskRootHeightPx = rootHeightPx
     lastDeskPanelScale = panelScale
     lastDeskSphereScale = sphereScale
+    lastDeskApps = apps
+    lastDeskItemBounds = itemBounds
     CompanionPointerBus.onLeftButtonDown = {
         val c = CompanionPointerBus.cursor.value
         trackDeskDrag(
@@ -632,6 +651,8 @@ fun bindDeskLeftButtonGrab(
             rootHeightPx = lastDeskRootHeightPx,
             panelScale = lastDeskPanelScale,
             sphereScale = lastDeskSphereScale,
+            apps = lastDeskApps,
+            itemBounds = lastDeskItemBounds,
         )
     }
 }
@@ -648,11 +669,15 @@ private fun trackDeskDrag(
     rootHeightPx: Float,
     panelScale: Float,
     sphereScale: Float,
+    apps: List<LaunchableApp> = emptyList(),
+    itemBounds: Map<String, Rect> = emptyMap(),
 ) {
     lastDeskRootWidthPx = rootWidthPx
     lastDeskRootHeightPx = rootHeightPx
     lastDeskPanelScale = panelScale
     lastDeskSphereScale = sphereScale
+    lastDeskApps = apps
+    lastDeskItemBounds = itemBounds
     if (pressed) {
         val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val hit = HomeSpaceScene.sphereHit(
@@ -664,26 +689,46 @@ private fun trackDeskDrag(
             sphereScale = sphereScale,
         )
         // Grab on Left-down even if the touchpad finger was already moving (missed rising edge).
-        if (!HomeSpaceDeskState.hasActiveGesture()) {
-            deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)?.let { icon ->
-                HomeSpaceDeskState.press(
-                    icon = icon,
+        if (!HomeSpaceDeskState.hasActiveGesture() && !DeskLassoState.active) {
+            val deskIcon = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+            when {
+                deskIcon != null -> HomeSpaceDeskState.press(
+                    icon = deskIcon,
                     cursorX = cursorX,
                     cursorY = cursorY,
                     hitYawDeg = hit.yawDeg,
                     hitPitchDeg = hit.pitchDeg,
                 )
+                tryPressHomePaneApp(
+                    cursorX = cursorX,
+                    cursorY = cursorY,
+                    hitYawDeg = hit.yawDeg,
+                    hitPitchDeg = hit.pitchDeg,
+                    rootWidthPx = rootWidthPx,
+                    rootHeightPx = rootHeightPx,
+                    panelScale = panelScale,
+                    sphereScale = sphereScale,
+                    apps = apps,
+                    itemBounds = itemBounds,
+                ) -> Unit
+                homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null ->
+                    DeskLassoState.begin(hit.yawDeg, hit.pitchDeg)
             }
         }
-        if (HomeSpaceDeskState.drag != null) {
-            HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
+        when {
+            HomeSpaceDeskState.drag != null ->
+                HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
+            DeskLassoState.active ->
+                DeskLassoState.extend(hit.yawDeg, hit.pitchDeg)
         }
     } else if (deskGesturePressed) {
-        val drag = HomeSpaceDeskState.drag
-        val draggingKey = drag?.app?.componentKey
-        val icons = DeskIconTextureBus.icons().ifEmpty {
+        val iconsForLasso = DeskIconTextureBus.icons().ifEmpty {
             HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
         }
+        DeskLassoState.completePending(iconsForLasso)
+        val drag = HomeSpaceDeskState.drag
+        val draggingKey = drag?.app?.componentKey
+        val icons = iconsForLasso
         val pane = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val panes = GlassesHomeLook.homeSpaceSlots().map { slot ->
             HomeSpaceScene.pane(
@@ -709,6 +754,48 @@ private fun trackDeskDrag(
         )
     }
     deskGesturePressed = pressed
+}
+
+/** Hold-Left on a Home pane app starts a Desktop copy-drag; Home list is never mutated. */
+private fun tryPressHomePaneApp(
+    cursorX: Float,
+    cursorY: Float,
+    hitYawDeg: Float,
+    hitPitchDeg: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+    apps: List<LaunchableApp>,
+    itemBounds: Map<String, Rect>,
+): Boolean {
+    val pick = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        ?: return false
+    if (pick.slot.panelId != "home") return false
+    val screenPoint = Offset(cursorX * rootWidthPx, cursorY * rootHeightPx)
+    val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
+    val paneBounds = paneItemBounds(itemBounds, "home")
+    val app = findAppAt(panePoint, paneBounds, apps) ?: return false
+    val icon = HomeSpaceDesk.iconOf(
+        app = HomeSpaceDesk.AppRef(
+            componentKey = app.componentKey(),
+            label = app.label,
+            packageName = app.packageName,
+        ),
+        yawDeg = hitYawDeg,
+        pitchDeg = hitPitchDeg,
+        sphereScale = sphereScale,
+        lift = 0.15f,
+    )
+    HomeSpaceDeskState.press(
+        icon = icon,
+        cursorX = cursorX,
+        cursorY = cursorY,
+        hitYawDeg = hitYawDeg,
+        hitPitchDeg = hitPitchDeg,
+        fromHome = true,
+    )
+    return true
 }
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {

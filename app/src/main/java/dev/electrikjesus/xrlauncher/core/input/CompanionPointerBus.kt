@@ -18,6 +18,7 @@ import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationSes
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
+import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
@@ -345,9 +346,10 @@ object CompanionPointerBus {
         // Snapshot before clearing isPressed — Compose may sync-release the desk drag
         // and clear `pulling` before we decide whether to suppress the pointer-up click.
         val deskConsumesClick = HomeSpaceDeskState.notePointerUp(moved)
+        val lassoConsumesClick = DeskLassoState.notePointerUp()
         _cursor.value = fpsReleaseCursor(endPos)
         when {
-            deskConsumesClick -> { }
+            deskConsumesClick || lassoConsumesClick -> { }
             moved && primaryGesture && pointerInjectionAvailable() ->
                 DisplayPointerInjector.dispatchDrag(
                     GlassesSessionState.secondaryDisplayId!!,

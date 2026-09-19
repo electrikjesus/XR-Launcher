@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.hypot
 
-/** Placed Desktop icons + live drag from the All Apps widget onto empty sphere space. */
+/** Placed Desktop icons + live drag from All Apps / Home onto empty sphere space. */
 object HomeSpaceDeskState {
     private const val DRAG_SLOP = 0.018f
     private const val ANGLE_SLOP_DEG = 3.5f
@@ -19,7 +19,13 @@ object HomeSpaceDeskState {
 
     data class Drag(
         val app: HomeSpaceDesk.AppRef,
+        /** True when pulled from the open All Apps drawer (not already on the desk). */
         val fromDrawer: Boolean,
+        /**
+         * True when pulled from the Home pane grid. Home stays unchanged — this only
+         * places (or repositions) a Desktop copy.
+         */
+        val fromHome: Boolean,
         val startX: Float,
         val startY: Float,
         val startYawDeg: Float,
@@ -50,6 +56,8 @@ object HomeSpaceDeskState {
     /**
      * @param hitYawDeg / [hitPitchDeg] sphere angles under the cursor at press (not icon center).
      * Anchoring pull-slop here keeps off-center grabs and FPS look-follow from instantly pulling.
+     * @param fromHome when true, dropping onto Desktop copies the app onto the desk without
+     * removing it from the Home pane list.
      */
     fun press(
         icon: HomeSpaceDesk.Icon,
@@ -57,6 +65,7 @@ object HomeSpaceDeskState {
         cursorY: Float,
         hitYawDeg: Float = icon.yawDeg,
         hitPitchDeg: Float = icon.pitchDeg,
+        fromHome: Boolean = false,
     ) {
         pendingChrome = when {
             icon.isPager || icon.isAppDrawer -> icon
@@ -72,7 +81,8 @@ object HomeSpaceDeskState {
         }
         _drag.value = Drag(
             app = icon.app,
-            fromDrawer = icon.isDesktopApp && icon.lift > 0f,
+            fromDrawer = !fromHome && icon.isDesktopApp && icon.lift > 0f,
+            fromHome = fromHome,
             startX = cursorX,
             startY = cursorY,
             startYawDeg = hitYawDeg,

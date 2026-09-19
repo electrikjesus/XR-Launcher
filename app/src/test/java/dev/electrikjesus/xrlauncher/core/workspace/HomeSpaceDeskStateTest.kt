@@ -190,4 +190,22 @@ class HomeSpaceDeskStateTest {
         assertEquals(1, HomeSpaceDeskState.placed.size)
         assertEquals(-20f, HomeSpaceDeskState.placed.first().yawDeg, 0.01f)
     }
+
+    @Test
+    fun pullFromHome_placesDesktopCopy() {
+        val icon = HomeSpaceDesk.iconOf(
+            app,
+            yawDeg = -10f,
+            pitchDeg = 5f,
+            sphereScale = 1f,
+            lift = 0.15f,
+        )
+        HomeSpaceDeskState.press(icon, 0.5f, 0.5f, hitYawDeg = -10f, hitPitchDeg = 5f, fromHome = true)
+        assertTrue(HomeSpaceDeskState.drag!!.fromHome)
+        HomeSpaceDeskState.move(0.6f, 0.45f, yawDeg = -25f, pitchDeg = 8f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true))
+        assertEquals(1, HomeSpaceDeskState.placed.size)
+        assertEquals(app.componentKey, HomeSpaceDeskState.placed.first().app.componentKey)
+        assertTrue(HomeSpaceDeskState.drag == null)
+    }
 }
