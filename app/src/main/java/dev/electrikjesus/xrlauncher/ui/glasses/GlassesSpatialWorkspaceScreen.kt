@@ -472,7 +472,10 @@ fun GlassesSpatialWorkspaceScreen(
             onNudge = onTuneAppearance,
         )
 
-        if (hostDialog == HomeSpaceDialog.SETTINGS && workspaceRepository != null) {
+        if (hostDialog == HomeSpaceDialog.SETTINGS &&
+            workspaceRepository != null &&
+            !GlassesSessionState.hostImmersiveSession
+        ) {
             HostSettingsDialogLayer(
                 workspaceRepository = workspaceRepository,
                 hoveredLabel = cursor.hoveredLabel,

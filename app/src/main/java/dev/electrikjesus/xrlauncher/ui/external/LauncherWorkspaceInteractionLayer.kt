@@ -89,19 +89,19 @@ fun LauncherWorkspaceInteractionLayer(
         },
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        if (showContextMenu) {
+    if (showContextMenu) {
+        Box(modifier = modifier.fillMaxSize()) {
             LauncherContextMenuHost(
-            rootWidthPx = rootWidthPx,
-            rootHeightPx = rootHeightPx,
-            onLaunchApp = onLaunchApp,
-            onToggleHotseatPin = onToggleHotseatPin,
-            onHidePanel = { panelId ->
-                scope.launch { workspaceRepository.setPanelVisible(panelId, visible = false) }
-            },
-            onSnapPanelToGrid = { panelId ->
-                scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
-            },
+                rootWidthPx = rootWidthPx,
+                rootHeightPx = rootHeightPx,
+                onLaunchApp = onLaunchApp,
+                onToggleHotseatPin = onToggleHotseatPin,
+                onHidePanel = { panelId ->
+                    scope.launch { workspaceRepository.setPanelVisible(panelId, visible = false) }
+                },
+                onSnapPanelToGrid = { panelId ->
+                    scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
+                },
             )
         }
     }

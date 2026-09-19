@@ -28,6 +28,7 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
@@ -237,9 +238,32 @@ fun HostHomeSpaceScreen(
                 onOpenSettings = onOpenSettings,
             )
         }
+        val editing by GlassesSessionState.homeSpaceEditFlow.collectAsState()
+        if (editing) {
+            HostEditDialogLayer(
+                appearance = appearance,
+                onClose = { GlassesSessionState.homeSpaceEdit = false },
+                onNudge = { axis, delta ->
+                    scope.launch {
+                        workspaceRepository.updateAppearance(HomeSpaceTune.apply(appearance, axis, delta))
+                    }
+                },
+            )
+        }
+        val settingsOpen by HomeSpaceDialogState.dialogFlow.collectAsState()
+        if (settingsOpen == HomeSpaceDialog.SETTINGS) {
+            Box(Modifier.fillMaxSize().zIndex(9f)) {
+                HostSettingsDialogLayer(
+                    workspaceRepository = workspaceRepository,
+                    hoveredLabel = cursor.hoveredLabel,
+                    onBoundsChanged = { key, rect -> itemBounds[key] = rect },
+                    onClose = { HomeSpaceDialogState.close() },
+                )
+            }
+        }
         val contextMenu by LauncherContextMenuState.request.collectAsState()
         if (contextMenu != null) {
-            Box(Modifier.fillMaxSize().zIndex(9f)) {
+            Box(Modifier.fillMaxSize().zIndex(10f)) {
                 LauncherContextMenuHost(
                     rootWidthPx = rootWidthPx,
                     rootHeightPx = rootHeightPx,

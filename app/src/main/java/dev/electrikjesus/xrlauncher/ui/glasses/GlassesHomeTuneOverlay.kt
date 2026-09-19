@@ -2,13 +2,11 @@ package dev.electrikjesus.xrlauncher.ui.glasses
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,7 +50,6 @@ import java.util.Locale
 private val PillBg = Color(0xCC1C1C1E)
 private val CardBg = Color(0xF21C1C1E)
 private val Accent = Color(0xFF8AB4F8)
-private val HostScrimBg = Color(0x99000000)
 
 @Composable
 fun BoxScope.GlassesHomeTuneOverlay(
@@ -69,40 +65,16 @@ fun BoxScope.GlassesHomeTuneOverlay(
     val tuned = appearance.clamped()
     val editPage by GlassesSessionState.homeSpaceEditPageFlow.collectAsState()
     val hostModal = GlassesSessionState.hostImmersiveSession
+    // Host Edit/Settings live as siblings above the desk catcher in HostHomeSpaceScreen.
+    val showEditCard = editing && !hostModal
     WorkspaceScaledLayer(uiScale = tuned.uiScale) {
-        if (editing) {
-            if (hostModal) {
-                Box(
-                    modifier = with(this@GlassesHomeTuneOverlay) {
-                        Modifier
-                            .fillMaxSize()
-                            .zIndex(3f)
-                    }
-                        .background(HostScrimBg)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleEdit,
-                        ),
-                )
-            }
+        if (showEditCard) {
             val cardModifier = with(this@GlassesHomeTuneOverlay) {
                 Modifier
                     .align(Alignment.Center)
                     .zIndex(4f)
             }
                 .widthIn(min = 520.dp, max = 720.dp)
-                .then(
-                    if (hostModal) {
-                        Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {},
-                        )
-                    } else {
-                        Modifier
-                    },
-                )
             val cardContent: @Composable () -> Unit = {
                 Column(
                     modifier = Modifier
@@ -220,14 +192,12 @@ fun BoxScope.GlassesHomeTuneOverlay(
                 }
             }
             if (immersiveDialog) {
-                // Host: draw Compose so hit bounds match what you see. Glasses GLES
-                // billboard still receives the same capture for view-locked display.
                 PanelTextureCapture(
                     panelId = HomeSpaceDialogState.EDIT_TEXTURE_ID,
                     centerXNorm = 0.5f,
                     centerYNorm = 0.5f,
                     enabled = true,
-                    drawToScreen = GlassesSessionState.hostImmersiveSession,
+                    drawToScreen = false,
                     modifier = cardModifier,
                     content = cardContent,
                 )

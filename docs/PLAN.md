@@ -833,7 +833,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Gradient look curve:** `cursorEdgeWeight` (`1-cos`) for pitch and horizontal pan — flat at center, steepest at the edges | Linear pitch and edge-only yaw dead zone |
 | 2026-09-19 | **Lasso stroke + radial menu:** GLES line strip and selection highlight from `DeskLassoState`; context actions are a screen-space ring above the host catcher | Stroke existed only as yaw/pitch state; right-click was a list under the catcher |
 | 2026-09-19 | **2.29 host Settings/Edit:** drop pointer catcher while modals open; Home Space-only settings; wallpaper upload keys include choice ordinal | Catcher ate back/scroll/Edit clicks; Settings listed 2D cylinder options; wallpaper choice never re-uploaded |
+| 2026-09-19 | **Host Edit modal hoist:** compact unscaled `HostEditDialogLayer` above catcher; skip in-scene Edit card on host; drop empty InteractionLayer Box | Edit stayed under InteractionLayer + 1.2× uiScale; X/+/- never received Compose clicks |
 
 ---
 
-*Last updated: 2026-09-19 (host Settings/Edit clicks + wallpaper)*
+*Last updated: 2026-09-19 (host Edit dialog hoist + scale)*
