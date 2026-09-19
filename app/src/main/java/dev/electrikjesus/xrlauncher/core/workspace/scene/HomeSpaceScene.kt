@@ -160,16 +160,19 @@ object HomeSpaceScene {
         lookYawDegrees: Float = Float.NaN,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
-        if (lookMode == GlassesLookMode.FPS || !applyCursorOffset) {
-            val yaw = if (lookYawDegrees.isNaN()) look * arc else lookYawDegrees
-            return Camera(
-                yawDeg = yaw,
-                pitchDeg = lookPitchDeg,
-            )
+        val baseYaw = if (lookYawDegrees.isNaN()) look * arc else lookYawDegrees
+        if (lookMode == GlassesLookMode.FPS) {
+            return Camera(yawDeg = baseYaw, pitchDeg = lookPitchDeg)
         }
-        val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
         val cursorPitch = ((cursorY.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_PITCH_DEGREES)
             .coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES)
+        if (!applyCursorOffset) {
+            // Absolute host GRADIENT: keep yaw from free-look / edge pan (no cursor-X yaw —
+            // that double-offset mis-aimed picks), but still pitch from cursor Y so looking
+            // up/down works without middle-drag.
+            return Camera(yawDeg = baseYaw, pitchDeg = cursorPitch)
+        }
+        val yaw = look * arc + (cursorX.coerceIn(0f, 1f) - 0.5f) * 2f * CURSOR_YAW_DEGREES
         return Camera(yawDeg = yaw, pitchDeg = cursorPitch)
     }
 

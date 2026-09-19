@@ -77,16 +77,26 @@ class BumpDeskHostGestureTest {
     }
 
     @Test
-    fun unpressedMove_fpsLook_doesNotEmitLookPan() {
-        val actions = gesture.onMove(
-            x = 50f,
-            y = 50f,
+    fun unpressedMove_fpsLook_emitsLookPanAfterSeed() {
+        // First sample seeds position (no jump from 0,0).
+        val seed = gesture.onMove(
+            x = 100f,
+            y = 100f,
             allowDeskGrab = true,
             fpsLook = true,
             dialogOpen = false,
         )
-        // Absolute host: look only while primary is held (see fpsLook_primaryDrag).
-        assertFalse(actions.any { it is BumpDeskHostAction.LookPan })
+        assertFalse(seed.any { it is BumpDeskHostAction.LookPan })
+        val actions = gesture.onMove(
+            x = 140f,
+            y = 110f,
+            allowDeskGrab = true,
+            fpsLook = true,
+            dialogOpen = false,
+        )
+        val pan = actions.filterIsInstance<BumpDeskHostAction.LookPan>().single()
+        assertEquals(40f, pan.dxPx, 0.01f)
+        assertEquals(10f, pan.dyPx, 0.01f)
     }
 
     @Test

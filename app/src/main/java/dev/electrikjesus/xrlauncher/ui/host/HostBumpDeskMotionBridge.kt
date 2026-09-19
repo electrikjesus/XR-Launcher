@@ -127,6 +127,22 @@ object HostBumpDeskMotionBridge {
                     else -> CompanionPointerBus.setCursorPosition(nx, ny)
                 }
             }
+            // OS mouse without button — classic FPS mouse-look.
+            MotionEvent.ACTION_HOVER_MOVE, MotionEvent.ACTION_HOVER_ENTER -> {
+                if (!fpsLook || dialogOpen) {
+                    CompanionPointerBus.setCursorPosition(nx, ny)
+                    return true
+                }
+                apply(
+                    gesture.onMove(
+                        x = x,
+                        y = y,
+                        allowDeskGrab = allowDesk,
+                        fpsLook = true,
+                        dialogOpen = false,
+                    ),
+                )
+            }
             else -> return false
         }
         return true

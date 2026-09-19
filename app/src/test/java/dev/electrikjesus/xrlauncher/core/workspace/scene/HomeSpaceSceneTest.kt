@@ -90,7 +90,7 @@ class HomeSpaceSceneTest {
     }
 
     @Test
-    fun absoluteHostCursor_ignoresGradientCursorOffset() {
+    fun absoluteHostCursor_keepsYawFromLook_butPitchesFromCursor() {
         val cam = HomeSpaceScene.camera(
             look = 0f,
             cursorX = 1f,
@@ -100,9 +100,11 @@ class HomeSpaceSceneTest {
             lookMode = dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode.GRADIENT,
             lookPitchDeg = 5f,
             applyCursorOffset = false,
+            lookYawDegrees = 12f,
         )
-        assertEquals(0f, cam.yawDeg, 0.2f)
-        assertEquals(5f, cam.pitchDeg, 0.2f)
+        // No cursor-X yaw (absolute pick alignment); cursor-Y still pitches.
+        assertEquals(12f, cam.yawDeg, 0.2f)
+        assertEquals(HomeSpaceScene.CURSOR_PITCH_DEGREES, cam.pitchDeg, 0.2f)
     }
 
     @Test

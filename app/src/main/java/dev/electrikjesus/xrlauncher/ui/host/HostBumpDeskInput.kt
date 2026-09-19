@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.ui.host
 
 import android.util.Log
+import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
@@ -24,9 +28,9 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 /**
  * BumpDesk-derived host pointer for Expanded Home Space.
  *
- * Full-screen [pointerInteropFilter] catcher above GLES — Compose pointerInput never saw
- * desk swipes over AndroidView (interop hits the embedded SurfaceView instead). Top HUD is
- * a wrap-content sibling above this catcher in [HostHomeSpaceScreen].
+ * Touch / button events: [pointerInteropFilter] (GLES AndroidView ate parent pointerInput).
+ * Mouse hover (no button): Compose [pointerInput] Move — classic FPS look without click.
+ * Top HUD is a wrap-content sibling above this catcher in [HostHomeSpaceScreen].
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -60,6 +64,34 @@ fun HostBumpDeskInput(
                 .onSizeChanged {
                     catcherW = it.width.coerceAtLeast(1)
                     catcherH = it.height.coerceAtLeast(1)
+                }
+                // Hover mouse-look (no buttons). Pressed paths stay on interop to avoid double-fire.
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            if (event.type != PointerEventType.Move &&
+                                event.type != PointerEventType.Enter
+                            ) {
+                                continue
+                            }
+                            if (event.changes.any { it.pressed }) continue
+                            val change = event.changes.firstOrNull() ?: continue
+                            val hover = MotionEvent.obtain(
+                                /* downTime */ 0L,
+                                /* eventTime */ System.currentTimeMillis(),
+                                MotionEvent.ACTION_HOVER_MOVE,
+                                change.position.x,
+                                change.position.y,
+                                0,
+                            )
+                            try {
+                                HostBumpDeskMotionBridge.onTouch(hover, catcherW, catcherH)
+                            } finally {
+                                hover.recycle()
+                            }
+                        }
+                    }
                 }
                 .pointerInteropFilter { event ->
                     HostBumpDeskMotionBridge.onTouch(event, catcherW, catcherH)

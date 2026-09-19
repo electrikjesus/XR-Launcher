@@ -829,7 +829,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Free-look yaw degrees + 2-finger pan + flat icon light:** camera uses `lookYawDegrees`; pinch mid-drag pans; desk icons low diffuse | Mouse-look still felt FOV-clamped via panNorm*arc; pinch zoom only; lit shader crushed icon colors |
 | 2026-09-19 | **Mouse-look drag + HUD eye=normal:** FPS look pans while pressed; eye sets GRADIENT, mouse sets FPS; collect `lookYawDegFlow` | Screenrecord: mouse stayed selected; eye was head-track no-op; FPS ignored finger-drag look |
 | 2026-09-19 | **Host look unstuck:** `pointerInteropFilter` catcher + transparent hit target; HUD wrap-content above catcher; `effective()` honors `hostImmersiveSession`; HUD bus force GRADIENT/FPS (no toggle race) | GLES AndroidView ate swipes; fillMaxSize HUD overlay blocked catcher; delayed LeftClick toggled look back to FPS |
+| 2026-09-19 | **Host look feel:** FPS hover mouse-look (no click); GRADIENT absolute host pitches from cursor Y again | Catcher required primary-down; `applyCursorOffset=false` had zeroed gradient pitch |
 
 ---
 
-*Last updated: 2026-09-19 (host FPS look catcher + eye/normal HUD)*
+*Last updated: 2026-09-19 (FPS hover look + gradient pitch)*

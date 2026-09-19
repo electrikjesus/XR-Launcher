@@ -37,6 +37,9 @@ class BumpDeskHostGesture(
     var pinchDistance: Float = 0f
         private set
 
+    /** False until the first sample so hover look does not jump from (0,0) → cursor. */
+    private var positionSeeded: Boolean = false
+
     fun reset() {
         primaryDown = false
         deskGrabAllowed = false
@@ -44,6 +47,7 @@ class BumpDeskHostGesture(
         middleDragging = false
         pinching = false
         pinchDistance = 0f
+        positionSeeded = false
         downX = 0f
         downY = 0f
         lastX = 0f
@@ -58,6 +62,7 @@ class BumpDeskHostGesture(
         deskDragArmed = allowDeskGrab && !fpsLook
         middleDragging = false
         pinching = false
+        positionSeeded = true
         downX = x
         downY = y
         lastX = x
@@ -80,6 +85,7 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskDragArmed = false
         pinching = false
+        positionSeeded = true
         lastX = x
         lastY = y
         return BumpDeskHostAction.CursorAt(x, y)
@@ -109,6 +115,12 @@ class BumpDeskHostGesture(
         fpsLook: Boolean,
         dialogOpen: Boolean,
     ): List<BumpDeskHostAction> {
+        if (!positionSeeded) {
+            positionSeeded = true
+            lastX = x
+            lastY = y
+            return listOf(BumpDeskHostAction.CursorAt(x, y))
+        }
         val dx = x - lastX
         val dy = y - lastY
         lastX = x
@@ -130,10 +142,8 @@ class BumpDeskHostGesture(
             primaryDown && !deskGrabAllowed -> {
                 // Pressed on chrome / modal: Compose owns the hit; no look-steal.
             }
-            // FPS: look while the primary button/finger is dragging on the desk.
-            // Hover-only deltas are companion center-lock territory — absolute host must
-            // not yaw from the first Move after (0,0) last-sample.
-            fpsLook && !dialogOpen && primaryDown && deskGrabAllowed -> {
+            // FPS: mouse-look on hover (no button) and finger/mouse drag while pressed.
+            fpsLook && !dialogOpen && !(primaryDown && !deskGrabAllowed) -> {
                 if (dx != 0f || dy != 0f) {
                     out += BumpDeskHostAction.LookPan(dx, dy)
                 }
