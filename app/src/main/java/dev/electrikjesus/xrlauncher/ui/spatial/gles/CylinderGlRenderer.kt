@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
+import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelTextureSnapshot
@@ -21,6 +22,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.Vec3
 import dev.electrikjesus.xrlauncher.core.workspace.scene.normalized
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneMesh
 import dev.electrikjesus.xrlauncher.core.workspace.scene.sphereHit
+import dev.electrikjesus.xrlauncher.core.workspace.scene.spherePoint
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -233,6 +235,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         if (homeSpacePanesEnabled && surroundRoom) {
             drawHomeSpacePanes()
             drawDesk()
+            drawLasso()
             drawViewLockedDialogs()
             drawSphereCursor()
         }
@@ -438,21 +441,54 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
             val hovered = icon.componentKey == deskHoveredKey && !icon.isBacking
+            val selected = icon.componentKey in DeskLassoState.selectedKeys && icon.isDesktopApp
             drawMesh(
                 buffer,
                 count,
                 textureId,
-                // Flat-ish lighting so adaptive icons keep OEM colors (not crushed/oversaturated).
-                ambient = if (hovered) 0.96f else 0.92f,
+                ambient = if (hovered || selected) 0.96f else 0.92f,
                 useTexture = true,
-                highlight = hovered,
-                diffuseGain = if (hovered) 0.22f else 0.12f,
+                highlight = hovered || selected,
+                diffuseGain = if (hovered || selected) 0.22f else 0.12f,
             )
         }
         GLES20.glDisableVertexAttribArray(litPositionHandle)
         GLES20.glDisableVertexAttribArray(litNormalHandle)
         GLES20.glDisableVertexAttribArray(litTexCoordHandle)
         GLES20.glEnable(GLES20.GL_CULL_FACE)
+    }
+
+    /** Active lasso polygon on the inner sphere, slightly in front of the wall. */
+    private fun drawLasso() {
+        val points = DeskLassoState.points
+        if (points.size < 2) return
+        val radius = HomeSpaceScene.sphereRadius(homeSpaceSphereScale) * 0.992f
+        val closed = points.size >= 3
+        val count = points.size + if (closed) 1 else 0
+        val verts = FloatArray(count * 3)
+        for (i in points.indices) {
+            val p = HomeSpaceScene.spherePoint(points[i].yawDeg, points[i].pitchDeg, radius)
+            verts[i * 3] = p.x
+            verts[i * 3 + 1] = p.y
+            verts[i * 3 + 2] = p.z
+        }
+        if (closed) {
+            verts[points.size * 3] = verts[0]
+            verts[points.size * 3 + 1] = verts[1]
+            verts[points.size * 3 + 2] = verts[2]
+        }
+        val buffer = verts.toFloatBuffer()
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(lineProgram)
+        GLES20.glUniformMatrix4fv(lineMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+        GLES20.glLineWidth(3f)
+        GLES20.glEnableVertexAttribArray(linePositionHandle)
+        GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, buffer)
+        GLES20.glUniform4f(lineColorHandle, 0.45f, 0.86f, 1f, 0.9f)
+        GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, count)
+        GLES20.glDisableVertexAttribArray(linePositionHandle)
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST)
     }
 
     /** Camera-facing Edit/Settings dialogs — projection only so they stay readable while looking. */

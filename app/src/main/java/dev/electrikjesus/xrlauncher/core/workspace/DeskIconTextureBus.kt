@@ -51,6 +51,10 @@ object DeskIconTextureBus {
         renderCallbacks.forEach { it.invoke() }
     }
 
+    fun requestRender() {
+        renderCallbacks.forEach { it.invoke() }
+    }
+
     fun icons(): List<HomeSpaceDesk.Icon> = iconsRef.get()
 
     fun snapshots(): List<DeskIconSnapshot> = snapshotsRef.get()

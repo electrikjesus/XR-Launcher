@@ -584,7 +584,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + return-to-All-Apps remove + physics + persist + Home→Desktop copy-drag + `DeskLassoState`; still missing lasso draw, piles, radial menu |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso stroke/selection + radial context menu; still missing piles |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -623,9 +623,9 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; wire BumpDesk-style empty-space lasso start through the same absolute path; optional Settings toggle for `HostInputMethod`. ☑ partial: absolute host no longer double-applies cursor into camera; desk layout uses real viewport (not hardcoded 1920×1080); pager magnet disabled on host.
 
 **BumpDesk desktop (sphere):**
-1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons.
+1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient). Mouse-look still uses primary drag to look.
 2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile.
-3. **Radial menu** — right-click / long-press on desk icon or selection.
+3. **Radial menu** — ☑ right-click / long-press opens a ring (Open, hotseat, app info, uninstall, All apps, Clear selection). Host menu sits above the pointer catcher.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
 
 **Large-screen host:**
@@ -831,7 +831,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host look unstuck:** `pointerInteropFilter` catcher + transparent hit target; HUD wrap-content above catcher; `effective()` honors `hostImmersiveSession`; HUD bus force GRADIENT/FPS (no toggle race) | GLES AndroidView ate swipes; fillMaxSize HUD overlay blocked catcher; delayed LeftClick toggled look back to FPS |
 | 2026-09-19 | **Host look feel:** FPS hover mouse-look (no click); GRADIENT absolute host pitches from cursor Y again | Catcher required primary-down; `applyCursorOffset=false` had zeroed gradient pitch |
 | 2026-09-19 | **Gradient look curve:** `cursorEdgeWeight` (`1-cos`) for pitch and horizontal pan — flat at center, steepest at the edges | Linear pitch and edge-only yaw dead zone |
+| 2026-09-19 | **Lasso stroke + radial menu:** GLES line strip and selection highlight from `DeskLassoState`; context actions are a screen-space ring above the host catcher | Stroke existed only as yaw/pitch state; right-click was a list under the catcher |
 
 ---
 
-*Last updated: 2026-09-19 (gradient sine look curve)*
+*Last updated: 2026-09-19 (lasso stroke + radial menu)*

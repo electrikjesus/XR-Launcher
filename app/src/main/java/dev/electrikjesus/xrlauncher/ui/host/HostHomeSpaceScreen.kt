@@ -32,6 +32,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
+import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
@@ -42,6 +43,7 @@ import dev.electrikjesus.xrlauncher.ui.external.rememberDebouncedPanelSaver
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesSpatialWorkspaceScreen
 import dev.electrikjesus.xrlauncher.ui.glasses.HostXrChromeBar
 import dev.electrikjesus.xrlauncher.ui.launcher.rememberLaunchableApps
+import dev.electrikjesus.xrlauncher.ui.workspace.LauncherContextMenuHost
 import dev.electrikjesus.xrlauncher.ui.workspace.openAppContextMenuFromBounds
 import kotlinx.coroutines.launch
 
@@ -193,6 +195,7 @@ fun HostHomeSpaceScreen(
                     },
                     panelScale = appearance.clamped().panelScale,
                     sphereScale = appearance.clamped().sphereScale,
+                    showContextMenu = false,
                     onPanelBoundsChanged = { panelId, bounds ->
                         panelSaver.save(
                             panels.map { panel ->
@@ -233,6 +236,23 @@ fun HostHomeSpaceScreen(
                 onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                 onOpenSettings = onOpenSettings,
             )
+        }
+        val contextMenu by LauncherContextMenuState.request.collectAsState()
+        if (contextMenu != null) {
+            Box(Modifier.fillMaxSize().zIndex(9f)) {
+                LauncherContextMenuHost(
+                    rootWidthPx = rootWidthPx,
+                    rootHeightPx = rootHeightPx,
+                    onLaunchApp = onLaunchApp,
+                    onToggleHotseatPin = onToggleHotseatPin,
+                    onHidePanel = { panelId ->
+                        scope.launch { workspaceRepository.setPanelVisible(panelId, visible = false) }
+                    },
+                    onSnapPanelToGrid = { panelId ->
+                        scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
+                    },
+                )
+            }
         }
     }
 }

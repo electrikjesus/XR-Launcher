@@ -36,6 +36,7 @@ fun LauncherWorkspaceInteractionLayer(
     onTuneAppearance: (HomeSpaceTuneAxis, Float) -> Unit = { _, _ -> },
     panelScale: Float = 1f,
     sphereScale: Float = 1f,
+    showContextMenu: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -89,7 +90,8 @@ fun LauncherWorkspaceInteractionLayer(
     )
 
     Box(modifier = modifier.fillMaxSize()) {
-        LauncherContextMenuHost(
+        if (showContextMenu) {
+            LauncherContextMenuHost(
             rootWidthPx = rootWidthPx,
             rootHeightPx = rootHeightPx,
             onLaunchApp = onLaunchApp,
@@ -100,7 +102,8 @@ fun LauncherWorkspaceInteractionLayer(
             onSnapPanelToGrid = { panelId ->
                 scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
             },
-        )
+            )
+        }
     }
 }
 

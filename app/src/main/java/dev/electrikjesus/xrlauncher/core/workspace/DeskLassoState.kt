@@ -28,6 +28,7 @@ object DeskLassoState {
 
     fun begin(yawDeg: Float, pitchDeg: Float) {
         _points.value = listOf(Point(yawDeg, pitchDeg))
+        DeskIconTextureBus.requestRender()
     }
 
     fun extend(yawDeg: Float, pitchDeg: Float) {
@@ -39,6 +40,7 @@ object DeskLassoState {
         val last = current.last()
         if (hypot(yawDeg - last.yawDeg, pitchDeg - last.pitchDeg) < 0.35f) return
         _points.value = current + Point(yawDeg, pitchDeg)
+        DeskIconTextureBus.requestRender()
     }
 
     /**
@@ -62,8 +64,12 @@ object DeskLassoState {
         pendingFinish = false
         val poly = _points.value
         _points.value = emptyList()
-        if (poly.size < MIN_POINTS || !spansEnough(poly)) return
+        if (poly.size < MIN_POINTS || !spansEnough(poly)) {
+            DeskIconTextureBus.requestRender()
+            return
+        }
         _selectedKeys.value = capture(poly, icons)
+        DeskIconTextureBus.requestRender()
     }
 
     /**
@@ -74,21 +80,26 @@ object DeskLassoState {
         pendingFinish = false
         val poly = _points.value
         _points.value = emptyList()
+        DeskIconTextureBus.requestRender()
         if (poly.size < MIN_POINTS || !spansEnough(poly)) {
             return false
         }
         val captured = capture(poly, icons)
         _selectedKeys.value = captured
+        DeskIconTextureBus.requestRender()
         return captured.isNotEmpty() || poly.size >= MIN_POINTS
     }
 
     fun cancel() {
         pendingFinish = false
         _points.value = emptyList()
+        DeskIconTextureBus.requestRender()
     }
 
     fun clearSelection() {
+        if (_selectedKeys.value.isEmpty()) return
         _selectedKeys.value = emptySet()
+        DeskIconTextureBus.requestRender()
     }
 
     fun reset() {

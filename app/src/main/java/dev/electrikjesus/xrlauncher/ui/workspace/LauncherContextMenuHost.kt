@@ -1,17 +1,12 @@
 package dev.electrikjesus.xrlauncher.ui.workspace
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,23 +14,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.capability.SpatialEmbedCapability
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
+import dev.electrikjesus.xrlauncher.core.workspace.RadialMenuGeometry
+import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import kotlin.math.roundToInt
 
 fun openAppContextMenuFromBounds(
@@ -69,12 +68,40 @@ fun LauncherContextMenuHost(
 
     val context = LocalContext.current
     val density = LocalDensity.current
-    val menuWidthPx = with(density) { 240.dp.toPx() }
+    val selectedKeys by DeskLassoState.selectedKeysFlow.collectAsState()
     val anchorXPx = request!!.anchorX * rootWidthPx
     val anchorYPx = request!!.anchorY * rootHeightPx
-    val offsetX = (anchorXPx - menuWidthPx / 2f).coerceIn(8f, rootWidthPx - menuWidthPx - 8f)
-    val offsetY = (anchorYPx + with(density) { 12.dp.toPx() })
-        .coerceIn(8f, rootHeightPx - with(density) { 280.dp.toPx() })
+    val radiusPx = with(density) { 128.dp.toPx() }
+    val chipWidthPx = with(density) { 168.dp.toPx() }
+    val chipHeightPx = with(density) { 44.dp.toPx() }
+
+    val actions = when (val target = request!!.target) {
+        is LauncherContextMenuTarget.App -> appRadialActions(
+            app = target.app,
+            isPinned = target.isPinned,
+            showClear = target.app.componentKey() in selectedKeys && selectedKeys.size > 1,
+            onLaunchApp = onLaunchApp,
+            onToggleHotseatPin = onToggleHotseatPin,
+            context = context,
+        )
+        is LauncherContextMenuTarget.Panel -> panelRadialActions(
+            panelId = target.panelId,
+            onHidePanel = onHidePanel,
+            onSnapPanelToGrid = onSnapPanelToGrid,
+        )
+        is LauncherContextMenuTarget.Desktop -> desktopRadialActions(
+            showClear = selectedKeys.isNotEmpty(),
+        )
+    }
+    val title = when (val target = request!!.target) {
+        is LauncherContextMenuTarget.App -> target.app.label
+        is LauncherContextMenuTarget.Panel -> panelTitle(target.panelId, target.kind)
+        is LauncherContextMenuTarget.Desktop -> if (selectedKeys.isEmpty()) {
+            stringResource(R.string.xr_desktop)
+        } else {
+            stringResource(R.string.context_menu_selection_count, selectedKeys.size)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -87,161 +114,147 @@ fun LauncherContextMenuHost(
     ) {
         Surface(
             modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .widthIn(min = 200.dp, max = 280.dp)
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = {},
-                ),
+                .offset {
+                    IntOffset(
+                        (anchorXPx - chipWidthPx / 2f)
+                            .coerceIn(8f, rootWidthPx - chipWidthPx - 8f)
+                            .roundToInt(),
+                        (anchorYPx - chipHeightPx / 2f)
+                            .coerceIn(8f, rootHeightPx - chipHeightPx - 8f)
+                            .roundToInt(),
+                    )
+                }
+                .zIndex(1f),
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
-            shadowElevation = 12.dp,
+            shadowElevation = 8.dp,
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                when (val target = request!!.target) {
-                    is LauncherContextMenuTarget.App -> AppContextMenuItems(
-                        app = target.app,
-                        isPinned = target.isPinned,
-                        onLaunchApp = onLaunchApp,
-                        onToggleHotseatPin = onToggleHotseatPin,
-                        onDismiss = { LauncherContextMenuState.dismiss() },
-                        context = context,
-                    )
-                    is LauncherContextMenuTarget.Panel -> PanelContextMenuItems(
-                        panelId = target.panelId,
-                        kind = target.kind,
-                        onHidePanel = onHidePanel,
-                        onSnapPanelToGrid = onSnapPanelToGrid,
-                        onDismiss = { LauncherContextMenuState.dismiss() },
-                    )
-                    is LauncherContextMenuTarget.Desktop -> DesktopContextMenuItems(
-                        onDismiss = { LauncherContextMenuState.dismiss() },
-                    )
-                }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
+        actions.forEachIndexed { index, action ->
+            val (dx, dy) = RadialMenuGeometry.slotOffsetPx(index, actions.size, radiusPx)
+            val x = (anchorXPx + dx - chipWidthPx / 2f)
+                .coerceIn(8f, (rootWidthPx - chipWidthPx - 8f).coerceAtLeast(8f))
+            val y = (anchorYPx + dy - chipHeightPx / 2f)
+                .coerceIn(8f, (rootHeightPx - chipHeightPx - 8f).coerceAtLeast(8f))
+            Surface(
+                modifier = Modifier
+                    .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
+                    .zIndex(2f)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = action.onClick,
+                    ),
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                tonalElevation = 8.dp,
+                shadowElevation = 10.dp,
+            ) {
+                Text(
+                    text = action.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                )
             }
         }
     }
 }
 
+private data class RadialAction(val label: String, val onClick: () -> Unit)
+
 @Composable
-private fun AppContextMenuItems(
+private fun appRadialActions(
     app: LaunchableApp,
     isPinned: Boolean,
+    showClear: Boolean,
     onLaunchApp: (LaunchableApp) -> Unit,
     onToggleHotseatPin: (LaunchableApp) -> Unit,
-    onDismiss: () -> Unit,
     context: android.content.Context,
-) {
-    ContextMenuHeader(app.label)
+): List<RadialAction> {
     val launchPanel = launchPanelForContextMenu()
     val launchMode = SpatialEmbedCapability.launchLabel(context, launchPanel)
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_open_app_with_mode, launchMode),
-        onClick = {
-            onDismiss()
+    val dismiss = { LauncherContextMenuState.dismiss() }
+    val actions = mutableListOf(
+        RadialAction(stringResource(R.string.context_menu_open_app_with_mode, launchMode)) {
+            dismiss()
+            DeskLassoState.clearSelection()
             onLaunchApp(app)
         },
-    )
-    ContextMenuItem(
-        label = if (isPinned) {
-            stringResource(R.string.context_menu_remove_from_hotseat)
-        } else {
-            stringResource(R.string.context_menu_add_to_hotseat)
-        },
-        onClick = {
-            onDismiss()
+        RadialAction(
+            if (isPinned) {
+                stringResource(R.string.context_menu_remove_from_hotseat)
+            } else {
+                stringResource(R.string.context_menu_add_to_hotseat)
+            },
+        ) {
+            dismiss()
             onToggleHotseatPin(app)
         },
-    )
-    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_app_info),
-        onClick = {
-            onDismiss()
+        RadialAction(stringResource(R.string.context_menu_app_info)) {
+            dismiss()
             AppSystemActions.openAppInfo(context, app)
         },
-    )
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_uninstall),
-        onClick = {
-            onDismiss()
+        RadialAction(stringResource(R.string.context_menu_uninstall)) {
+            dismiss()
             AppSystemActions.requestUninstall(context, app)
         },
     )
+    if (showClear) {
+        actions += RadialAction(stringResource(R.string.context_menu_clear_selection)) {
+            dismiss()
+            DeskLassoState.clearSelection()
+        }
+    }
+    return actions
 }
 
 @Composable
-private fun PanelContextMenuItems(
+private fun panelRadialActions(
     panelId: String,
-    kind: PanelKind,
     onHidePanel: (String) -> Unit,
     onSnapPanelToGrid: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ContextMenuHeader(panelTitle(panelId, kind))
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_focus_panel),
-        onClick = {
-            onDismiss()
+): List<RadialAction> {
+    val dismiss = { LauncherContextMenuState.dismiss() }
+    return listOf(
+        RadialAction(stringResource(R.string.context_menu_focus_panel)) {
+            dismiss()
             CompanionPointerBus.setFocusedPanelId(panelId)
         },
-    )
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_snap_to_grid),
-        onClick = {
-            onDismiss()
+        RadialAction(stringResource(R.string.context_menu_snap_to_grid)) {
+            dismiss()
             onSnapPanelToGrid(panelId)
         },
-    )
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_hide_panel),
-        onClick = {
-            onDismiss()
+        RadialAction(stringResource(R.string.context_menu_hide_panel)) {
+            dismiss()
             onHidePanel(panelId)
         },
     )
 }
 
 @Composable
-private fun DesktopContextMenuItems(
-    onDismiss: () -> Unit,
-) {
-    ContextMenuHeader(stringResource(R.string.xr_desktop))
-    ContextMenuItem(
-        label = stringResource(R.string.context_menu_open_all_apps),
-        onClick = {
-            onDismiss()
+private fun desktopRadialActions(showClear: Boolean): List<RadialAction> {
+    val dismiss = { LauncherContextMenuState.dismiss() }
+    val actions = mutableListOf(
+        RadialAction(stringResource(R.string.context_menu_open_all_apps)) {
+            dismiss()
             GlassesSessionState.showAllAppsOverlay()
         },
     )
-}
-
-@Composable
-private fun ContextMenuHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
-}
-
-@Composable
-private fun ContextMenuItem(
-    label: String,
-    onClick: () -> Unit,
-) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    )
+    if (showClear) {
+        actions += RadialAction(stringResource(R.string.context_menu_clear_selection)) {
+            dismiss()
+            DeskLassoState.clearSelection()
+        }
+    }
+    return actions
 }
 
 @Composable

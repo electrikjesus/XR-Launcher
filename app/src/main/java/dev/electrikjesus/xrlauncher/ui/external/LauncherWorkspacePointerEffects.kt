@@ -372,6 +372,7 @@ private fun handleLeftClick(
         apps.find { it.componentKey() == desk.componentKey }?.let { app ->
             Log.d(LOG_TAG, "left-click hit desk icon=${app.label}")
             GlassesSessionState.hideHomeOverlays()
+            DeskLassoState.clearSelection()
             onLaunchApp(app)
             return
         }
@@ -442,6 +443,7 @@ private fun handleLeftClick(
         return
     }
     logClickMiss(point, itemBounds)
+    DeskLassoState.clearSelection()
 }
 
 private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {

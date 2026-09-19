@@ -72,6 +72,8 @@
     <string name="context_menu_focus_panel">Focus panel</string>
     <string name="context_menu_snap_to_grid">Snap to grid</string>
     <string name="context_menu_hide_panel">Hide panel</string>
+    <string name="context_menu_clear_selection">Clear selection</string>
+    <string name="context_menu_selection_count">%1$d selected</string>
     <string name="context_menu_widget">Widget · %1$s</string>
     <string name="launcher_return_bubble_label">XR</string>
     <string name="launcher_return_bubble_hint">Return to launcher</string>
