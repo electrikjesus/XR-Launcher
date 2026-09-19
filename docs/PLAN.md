@@ -589,6 +589,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); revert to A when an app launches. Persist. | ☑ Partial — 0.1.16 Settings + Edit Look toggle; FPS only while launcher is in front |
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
+| 2.25c | **Mouse-look + motion drag.** While FPS mouse-look is on and a grab is active, phone **motion** should drive the same unlocked-cursor desk drag as the touchpad (or a clear look-follow grab). Today motion+FPS registers the press/click but the drag phase moves the cursor without a usable view/grab feel — touchpad path only is reliable. | ☐ Partial — touchpad OK; motion+FPS DnD broken/awkward |
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☐ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☐ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☐ |
@@ -617,6 +618,7 @@ Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dir
 **Pointer / mouse-look (blocking):**
 0. **2.25a** — ☑ finalize before re-lock (partial).
 0b. **2.25b — Touchpad long-press = Hold-Left** — ☑ press starts on long-press (origin), not only click on finger-up.
+0c. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad (README lists this as partial).
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
@@ -810,7 +812,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.25a:** sync `onPointerMoveWhilePressed` + `onPointerGestureFinalize` before FPS center re-lock | Compose only saw (0.5,0.5,up); Desktop drops discarded |
 | 2026-09-18 | **2.25b + 2.29 planned:** touchpad long-press = Hold-Left origin; repair Home sprocket `SettingsActivity` | Touch'n'hold still only clicked on finger-up; settings UI drifted from Home Space |
 | 2026-09-18 | **2.25b:** touchpad long-press begins Hold-Left; Left always holdable (not a11y-gated) | Finger-up-only clicks; no grab origin while mouse-looking |
+| 2026-09-18 | **2.25c planned + README partial:** FPS mouse-look desk DnD works on touchpad; motion+FPS drag still awkward | Grab click registers; drag phase moves cursor without usable view/motion grab |
 
 ---
 
-*Last updated: 2026-09-18 (2.25b touchpad long-press grab + plan 2.29 settings)*
+*Last updated: 2026-09-18 (2.25c motion+FPS drag + README partial)*

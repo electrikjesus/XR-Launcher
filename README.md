@@ -8,6 +8,14 @@ Active development — Home Space desk (BumpDesk-style icons on the sphere), com
 
 **Latest:** `v0.1.18` — Desktop icon persistence, All Apps drawer on the sphere, companion mouse-look toggle.
 
+### Partial / known gaps
+
+| Feature | Status |
+|---------|--------|
+| **Mouse-look + desk drag/drop** | **Partial** — works with **touchpad** long-press / Hold-Left (grab origin → drag → drop). With **motion controls** while mouse-look is on, the click/grab can register but the drag phase moves the cursor without turning the view and does not yet feel correct; improving motion+FPS drag is tracked as **2.25c** in [docs/PLAN.md](docs/PLAN.md). |
+| **Home sprocket Settings** | Drifted after Home Space changes — repair tracked as **2.29**. |
+| **Lasso / piles / radial menu** | Lasso state exists; draw, piles, and radial UI still TODO. |
+
 **New developer?** Start with **[docs/DEVELOPER.md](docs/DEVELOPER.md)** — architecture, build, debugging, device support, and workflow.
 
 ## Screenshots
