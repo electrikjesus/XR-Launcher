@@ -13,6 +13,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
@@ -536,6 +537,8 @@ private fun homeSpaceCamera(
     sphereScale = sphereScale,
     lookMode = GlassesLookMode.effective(),
     lookPitchDeg = GlassesHomeLook.lookPitch,
+    // BumpDesk absolute host: ray through the screen cursor; do not also yaw the camera.
+    applyCursorOffset = !HostInputMethod.usesAbsoluteHostCursor(),
 )
 
 private fun homeSpacePick(
@@ -658,8 +661,12 @@ private fun deskIconAt(
         HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
     }
     HomeSpaceDesk.pickAlongRay(ray, icons)?.let { return it }
-    // XR cursor jitter often lands just outside pager boxes while still aiming at them.
-    if (GlassesSessionState.allAppsOverlayVisible) {
+    // XR companion cursor jitter: magnet to nearest pager. Absolute host mouse must not —
+    // a 9° pull launches apps inches away from the arrow.
+    if (
+        GlassesSessionState.allAppsOverlayVisible &&
+        !HostInputMethod.usesAbsoluteHostCursor()
+    ) {
         return HomeSpaceDesk.pickNearestPager(ray, icons)
     }
     return null

@@ -143,6 +143,9 @@ object HomeSpaceScene {
      * Mouse-look on top of [look]: companion cursor yaws/pitches the FPS camera a little,
      * while hover still uses a ray through that same view onto the inner sphere.
      * [GlassesLookMode.FPS] ignores cursor offset and uses [lookPitchDeg] instead.
+     *
+     * Absolute host mouse (BumpDesk) must pass [applyCursorOffset]=false — otherwise the
+     * camera and the pick ray both bake in the cursor and clicks land inches off-target.
      */
     fun camera(
         look: Float,
@@ -154,9 +157,10 @@ object HomeSpaceScene {
         sphereScale: Float = 1f,
         lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
         lookPitchDeg: Float = 0f,
+        applyCursorOffset: Boolean = lookMode != GlassesLookMode.FPS,
     ): Camera {
         val arc = paneArcDegrees(viewportWidthPx, viewportHeightPx, panelScale, sphereScale)
-        if (lookMode == GlassesLookMode.FPS) {
+        if (lookMode == GlassesLookMode.FPS || !applyCursorOffset) {
             return Camera(
                 yawDeg = look * arc,
                 pitchDeg = lookPitchDeg.coerceIn(-MAX_PITCH_DEGREES, MAX_PITCH_DEGREES),

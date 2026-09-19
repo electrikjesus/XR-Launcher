@@ -16,12 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -31,6 +33,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.IntSize
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
@@ -191,16 +194,26 @@ fun GlassesSpatialWorkspaceScreen(
     val workspaceWidth = tuned.workspaceWidth
     val workspaceHeight = tuned.workspaceHeight
     val lookMode = if (launcherForeground) tuned.lookMode else GlassesLookMode.GRADIENT
+    val absoluteHostCursor = HostInputMethod.usesAbsoluteHostCursor()
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    var viewportWidthPx by remember {
+        mutableFloatStateOf(with(density) { configuration.screenWidthDp.dp.toPx() }.coerceAtLeast(1f))
+    }
+    var viewportHeightPx by remember {
+        mutableFloatStateOf(with(density) { configuration.screenHeightDp.dp.toPx() }.coerceAtLeast(1f))
+    }
     val sceneCamera = HomeSpaceScene.camera(
         look = panNorm,
         cursorX = cursor.x,
         cursorY = cursor.y,
-        viewportWidthPx = 1920f,
-        viewportHeightPx = 1080f,
+        viewportWidthPx = viewportWidthPx,
+        viewportHeightPx = viewportHeightPx,
         panelScale = tuned.panelScale,
         sphereScale = tuned.sphereScale,
         lookMode = lookMode,
         lookPitchDeg = lookPitch,
+        applyCursorOffset = !absoluteHostCursor,
     )
     val homeCamera = WorkspaceCylinderGeometry.CameraState(
         yawDegrees = sceneCamera.yawDeg,
@@ -215,9 +228,10 @@ fun GlassesSpatialWorkspaceScreen(
         onLaunchApp?.invoke(app)
     }
     val allAppsPage by AllAppsPaginationState.pageIndexFlow.collectAsState()
-    LaunchedEffect(tuned.lookMode, launcherForeground) {
+    LaunchedEffect(tuned.lookMode, launcherForeground, absoluteHostCursor) {
         GlassesLookMode.preference = tuned.lookMode
-        if (launcherForeground && tuned.lookMode == GlassesLookMode.FPS) {
+        // Companion FPS re-locks to center; absolute host mouse must keep screen coords.
+        if (launcherForeground && tuned.lookMode == GlassesLookMode.FPS && !absoluteHostCursor) {
             CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
         }
     }
@@ -232,6 +246,8 @@ fun GlassesSpatialWorkspaceScreen(
         deskPlaced,
         deskDrag,
         deskDrawerPose,
+        viewportWidthPx,
+        viewportHeightPx,
     ) {
         if (!tuned.desktopIcons) {
             DeskIconTextureBus.clear()
@@ -247,8 +263,8 @@ fun GlassesSpatialWorkspaceScreen(
         val icons = HomeSpaceDesk.layout(
             placed = deskPlaced,
             sphereScale = tuned.sphereScale,
-            viewportWidthPx = 1920f,
-            viewportHeightPx = 1080f,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
             panelScale = tuned.panelScale,
             uiScale = tuned.uiScale,
             drawerOpen = allAppsOverlayVisible,
@@ -290,6 +306,8 @@ fun GlassesSpatialWorkspaceScreen(
     }
     val currentTuned = rememberUpdatedState(tuned)
     val currentAppPlanes = rememberUpdatedState(appPlanes)
+    val currentViewportW = rememberUpdatedState(viewportWidthPx)
+    val currentViewportH = rememberUpdatedState(viewportHeightPx)
     LaunchedEffect(Unit) {
         var lastFrame = 0L
         while (true) {
@@ -306,8 +324,8 @@ fun GlassesSpatialWorkspaceScreen(
                     val panes = GlassesHomeLook.homeSpaceSlots(currentAppPlanes.value).map { slot ->
                         HomeSpaceScene.pane(
                             worldX = slot.worldX,
-                            viewportWidthPx = 1920f,
-                            viewportHeightPx = 1080f,
+                            viewportWidthPx = currentViewportW.value,
+                            viewportHeightPx = currentViewportH.value,
                             panelScale = appearance.panelScale,
                             sphereScale = appearance.sphereScale,
                         )
@@ -332,6 +350,10 @@ fun GlassesSpatialWorkspaceScreen(
                 maxWidth.toPx().toInt().coerceAtLeast(1),
                 maxHeight.toPx().toInt().coerceAtLeast(1),
             )
+        }
+        LaunchedEffect(overlayViewport.width, overlayViewport.height) {
+            viewportWidthPx = overlayViewport.width.toFloat()
+            viewportHeightPx = overlayViewport.height.toFloat()
         }
         WorkspaceGlesBackdrop(
             camera = homeCamera,

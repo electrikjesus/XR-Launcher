@@ -88,4 +88,20 @@ class HomeSpaceSceneTest {
         assertEquals(0f, fps.yawDeg, 0.2f)
         assertEquals(8f, fps.pitchDeg, 0.2f)
     }
+
+    @Test
+    fun absoluteHostCursor_ignoresGradientCursorOffset() {
+        val cam = HomeSpaceScene.camera(
+            look = 0f,
+            cursorX = 1f,
+            cursorY = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            lookMode = dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode.GRADIENT,
+            lookPitchDeg = 5f,
+            applyCursorOffset = false,
+        )
+        assertEquals(0f, cam.yawDeg, 0.2f)
+        assertEquals(5f, cam.pitchDeg, 0.2f)
+    }
 }
