@@ -376,6 +376,14 @@ private fun handleLeftClick(
     if (handleHomeSpaceClick(point, screenBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     if (handleHomeSpaceClick(panePoint, paneBounds, onOpenSettings, onOpenAllApps, onTuneAppearance)) return
     val overlayVisible = GlassesSessionState.allAppsOverlayVisible
+    // GLES drawer: clicks that land just outside pager chrome still count as "on widget".
+    if (
+        overlayVisible &&
+        openDrawerClickZone(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    ) {
+        Log.d(LOG_TAG, "left-click near open All Apps widget — keep open")
+        return
+    }
     val hitClose = itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitAllAppsLauncher = itemBounds[AllAppsLauncher.BOUNDS_KEY]?.containsWithSlop(point) == true
     val hitOtherTarget = itemBounds[GlassesWorkspaceTitleBar.BOUNDS_KEY]?.containsWithSlop(point) == true ||
@@ -616,7 +624,34 @@ private fun deskIconAt(
     val icons = DeskIconTextureBus.icons().ifEmpty {
         HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
     }
-    return HomeSpaceDesk.pickAlongRay(ray, icons)
+    HomeSpaceDesk.pickAlongRay(ray, icons)?.let { return it }
+    // XR cursor jitter often lands just outside pager boxes while still aiming at them.
+    if (GlassesSessionState.allAppsOverlayVisible) {
+        return HomeSpaceDesk.pickNearestPager(ray, icons)
+    }
+    return null
+}
+
+private fun openDrawerClickZone(
+    cursorX: Float,
+    cursorY: Float,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+): Boolean {
+    if (!GlassesSessionState.allAppsOverlayVisible) return false
+    val camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    val ray = HomeSpaceScene.worldRay(
+        cursorX = cursorX,
+        cursorY = cursorY,
+        camera = camera,
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+    )
+    val icons = DeskIconTextureBus.icons()
+    if (icons.isEmpty()) return false
+    return HomeSpaceDesk.inOpenDrawerClickZone(ray, icons)
 }
 
 private var lastDeskRootWidthPx = 1920f
@@ -673,29 +708,46 @@ fun bindDeskLeftButtonGrab(
     }
     CompanionPointerBus.onPointerGestureFinalize = { endX, endY ->
         // Apply the unlocked end sample, then release — before FPS re-locks to center.
-        if (HomeSpaceDeskState.drag != null || DeskLassoState.active || deskGesturePressed) {
-            trackDeskDrag(
-                cursorX = endX,
-                cursorY = endY,
-                pressed = true,
-                rootWidthPx = lastDeskRootWidthPx,
-                rootHeightPx = lastDeskRootHeightPx,
-                panelScale = lastDeskPanelScale,
-                sphereScale = lastDeskSphereScale,
-                apps = lastDeskApps,
-                itemBounds = lastDeskItemBounds,
-            )
-            trackDeskDrag(
-                cursorX = endX,
-                cursorY = endY,
-                pressed = false,
-                rootWidthPx = lastDeskRootWidthPx,
-                rootHeightPx = lastDeskRootHeightPx,
-                panelScale = lastDeskPanelScale,
-                sphereScale = lastDeskSphereScale,
-                apps = lastDeskApps,
-                itemBounds = lastDeskItemBounds,
-            )
+        // Do NOT re-press here: notePointerUp already fired pager/All-Apps chrome, and a
+        // second pressed=true would clear hasActiveGesture and grab empty space / dismiss.
+        when {
+            HomeSpaceDeskState.drag != null || DeskLassoState.active -> {
+                trackDeskDrag(
+                    cursorX = endX,
+                    cursorY = endY,
+                    pressed = true,
+                    rootWidthPx = lastDeskRootWidthPx,
+                    rootHeightPx = lastDeskRootHeightPx,
+                    panelScale = lastDeskPanelScale,
+                    sphereScale = lastDeskSphereScale,
+                    apps = lastDeskApps,
+                    itemBounds = lastDeskItemBounds,
+                )
+                trackDeskDrag(
+                    cursorX = endX,
+                    cursorY = endY,
+                    pressed = false,
+                    rootWidthPx = lastDeskRootWidthPx,
+                    rootHeightPx = lastDeskRootHeightPx,
+                    panelScale = lastDeskPanelScale,
+                    sphereScale = lastDeskSphereScale,
+                    apps = lastDeskApps,
+                    itemBounds = lastDeskItemBounds,
+                )
+            }
+            deskGesturePressed || HomeSpaceDeskState.hasActiveGesture() -> {
+                trackDeskDrag(
+                    cursorX = endX,
+                    cursorY = endY,
+                    pressed = false,
+                    rootWidthPx = lastDeskRootWidthPx,
+                    rootHeightPx = lastDeskRootHeightPx,
+                    panelScale = lastDeskPanelScale,
+                    sphereScale = lastDeskSphereScale,
+                    apps = lastDeskApps,
+                    itemBounds = lastDeskItemBounds,
+                )
+            }
         }
     }
 }
@@ -756,7 +808,12 @@ private fun trackDeskDrag(
                     apps = apps,
                     itemBounds = itemBounds,
                 ) -> Unit
-                homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null ->
+                // Near-misses on open All Apps pagination must not start a Desktop lasso —
+                // a one-point lasso cancels and the follow-up click dismisses the drawer.
+                homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null &&
+                    !openDrawerClickZone(
+                        cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
+                    ) ->
                     DeskLassoState.begin(hit.yawDeg, hit.pitchDeg)
             }
         }

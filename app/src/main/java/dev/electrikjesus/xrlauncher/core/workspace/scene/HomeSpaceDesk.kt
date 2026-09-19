@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
 import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -484,7 +485,11 @@ object HomeSpaceDesk {
             val dz = hit.z - icon.center.z
             val localX = dx * right.x + dy * right.y + dz * right.z
             val localY = dx * up.x + dy * up.y + dz * up.z
-            val slop = if (icon.isPager) 1.65f else 1.12f
+            val slop = when {
+                icon.isPager -> 2.05f
+                icon.isBacking -> 1.22f
+                else -> 1.12f
+            }
             if (abs(localX) > icon.halfWidth * slop) return@forEach
             if (abs(localY) > icon.halfHeight * slop) return@forEach
             val priority = pickPriority(icon)
@@ -493,6 +498,57 @@ object HomeSpaceDesk {
             if (best == null || closer || better) {
                 bestT = t
                 bestPriority = priority
+                best = icon
+            }
+        }
+        return best
+    }
+
+    /**
+     * Generous hit for the open All Apps widget (backing + pager + page apps).
+     * Used so near-misses on pagination do not start a Desktop lasso or dismiss the drawer.
+     */
+    fun inOpenDrawerClickZone(rayDir: Vec3, icons: List<Icon>): Boolean {
+        val open = icons.filter { it.isBacking || it.isPager || (it.isDesktopApp && it.lift > 0f) }
+        if (open.isEmpty()) return false
+        val dir = rayDir.normalized()
+        open.forEach { icon ->
+            val n = (icon.center * -1f).normalized()
+            val denom = dir.dot(n)
+            if (abs(denom) < 1e-4f) return@forEach
+            val t = icon.center.dot(n) / denom
+            if (t < 0.05f) return@forEach
+            val hit = dir * t
+            val right = rightAxis(icon.yawDeg)
+            val up = upAxis(icon.yawDeg, icon.pitchDeg)
+            val dx = hit.x - icon.center.x
+            val dy = hit.y - icon.center.y
+            val dz = hit.z - icon.center.z
+            val localX = dx * right.x + dy * right.y + dz * right.z
+            val localY = dx * up.x + dy * up.y + dz * up.z
+            val slop = when {
+                icon.isPager -> 2.6f
+                icon.isBacking -> 1.45f
+                else -> 1.3f
+            }
+            if (abs(localX) <= icon.halfWidth * slop && abs(localY) <= icon.halfHeight * slop) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Closest pager control under [rayDir], with a wide angular grab for XR cursor jitter. */
+    fun pickNearestPager(rayDir: Vec3, icons: List<Icon>, maxAngleDeg: Float = 9f): Icon? {
+        val dir = rayDir.normalized()
+        var best: Icon? = null
+        var bestAngle = maxAngleDeg
+        icons.filter { it.isPager }.forEach { icon ->
+            val toIcon = icon.center.normalized()
+            val dot = dir.dot(toIcon).coerceIn(-1f, 1f)
+            val angle = Math.toDegrees(acos(dot.toDouble())).toFloat()
+            if (angle < bestAngle) {
+                bestAngle = angle
                 best = icon
             }
         }

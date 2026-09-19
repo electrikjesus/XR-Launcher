@@ -618,7 +618,8 @@ Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dir
 **Pointer / mouse-look (blocking):**
 0. **2.25a** — ☑ finalize before re-lock (partial).
 0b. **2.25b — Touchpad long-press = Hold-Left** — ☑ press starts on long-press (origin), not only click on finger-up.
-0c. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad (README lists this as partial).
+0c. **All Apps pager clicks (touchpad)** — ☑ finalize no longer re-presses after chrome; near-miss uses `pickNearestPager` / open-drawer zone so pagination does not dismiss the widget.
+0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad (README lists this as partial).
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
@@ -813,7 +814,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **2.25b + 2.29 planned:** touchpad long-press = Hold-Left origin; repair Home sprocket `SettingsActivity` | Touch'n'hold still only clicked on finger-up; settings UI drifted from Home Space |
 | 2026-09-18 | **2.25b:** touchpad long-press begins Hold-Left; Left always holdable (not a11y-gated) | Finger-up-only clicks; no grab origin while mouse-looking |
 | 2026-09-18 | **2.25c planned + README partial:** FPS mouse-look desk DnD works on touchpad; motion+FPS drag still awkward | Grab click registers; drag phase moves cursor without usable view/motion grab |
+| 2026-09-18 | **All Apps pager clicks:** finalize must not re-press after chrome; near-miss → `pickNearestPager` + open-drawer zone (no lasso / no scrim dismiss) | 2.25a finalize re-press + empty-click dismiss closed the widget on pagination |
 
 ---
 
-*Last updated: 2026-09-18 (2.25c motion+FPS drag + README partial)*
+*Last updated: 2026-09-18 (All Apps pager click fix)*

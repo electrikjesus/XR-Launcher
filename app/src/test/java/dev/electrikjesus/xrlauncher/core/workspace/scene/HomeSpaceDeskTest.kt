@@ -324,6 +324,57 @@ class HomeSpaceDeskTest {
     }
 
     @Test
+    fun pickNearestPager_grabsSlightlyOffTargetPagination() {
+        val many = (0 until 20).map { i ->
+            HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
+        }
+        val open = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+        )
+        val next = open.first { it.kind == HomeSpaceDesk.Kind.PAGE_NEXT }
+        val off = HomeSpaceDesk.iconOf(
+            next.app,
+            yawDeg = next.yawDeg + 4f,
+            pitchDeg = next.pitchDeg - 3f,
+            sphereScale = 1f,
+            halfWidth = next.halfWidth,
+            halfHeight = next.halfHeight,
+            lift = next.lift,
+        )
+        val ray = off.center.normalized()
+        val nearest = HomeSpaceDesk.pickNearestPager(ray, open)
+        assertEquals(HomeSpaceDesk.PAGE_NEXT_KEY, nearest!!.componentKey)
+        assertTrue(HomeSpaceDesk.inOpenDrawerClickZone(ray, open))
+    }
+
+    @Test
+    fun inOpenDrawerClickZone_falseFarFromWidget() {
+        val many = (0 until 20).map { i ->
+            HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
+        }
+        val open = HomeSpaceDesk.layout(
+            placed = emptyList(),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            drawerOpen = true,
+            drawerApps = many,
+        )
+        val far = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef("x", "x", "x"),
+            yawDeg = 40f,
+            pitchDeg = 10f,
+            sphereScale = 1f,
+        )
+        assertFalse(HomeSpaceDesk.inOpenDrawerClickZone(far.center.normalized(), open))
+    }
+
+    @Test
     fun moved_reposesAnIconOnTheSphere() {
         val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f).first()
         val moved = HomeSpaceDesk.moved(drawer, yawDeg = 10f, pitchDeg = -8f, sphereScale = 1f)
