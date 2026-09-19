@@ -583,6 +583,9 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
 | 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); revert to A when an app launches. Persist. | ☑ Partial — 0.1.16 Settings + Edit Look toggle; FPS only while launcher is in front |
+| 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☐ |
+| 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☐ |
+| 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
 
@@ -604,13 +607,22 @@ Landed **0.1.18+:** desk persist, mouse-look, Home→Desktop copy-drag, GLES dir
 
 **Do this next. One concern per change.**
 
+**BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons (BumpDesk yellow lasso / selection lift).
 2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile (port BumpDesk `createPileFromCaptured`); single-icon lasso just selects.
 3. **Radial menu** — right-click / long-press on desk icon or selection: BumpDesk radial (Open / Freeform / Pinned / Fullscreen / Remove from Desktop). Sphere-anchored, not HUD-stuck.
-4. **Edit dialog in space** — dismissible 3D layer after radial feels right.
-5. **Stop** — Do not start 6.9 onboarding in this pass.
+
+**Large-screen host (Tier 0 → XR):**
+4. **2.26** — Expanded window → default into GLES Home Space (retire `SpatialDesktopScreen` as the Expanded default).
+5. **2.27** — Top HUD: companion touchpad icons (touchpad / head / mouse-look / recenter [/ keyboard]) screen-locked like Edit (bottom-end).
+6. **2.28** — Top HUD Settings → `SettingsActivity`.
+
+7. **Edit dialog in space** — dismissible 3D layer after radial feels right.
+8. **Stop** — Do not start 6.9 onboarding in this pass.
 
 **BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
+
+**Host routing note:** Today `XRLauncherApp` sends Expanded → `SpatialDesktopScreen`. Target: Expanded → shared Home Space composable used by glasses/external; phone compact → `PhoneShellScreen` / companion.
 
 ---
 
@@ -780,7 +792,8 @@ Record major choices here as they are made.
 | 2026-09-18 | **Desk GLES dirty render** — bus callback syncs icons/textures onto the renderer before `requestRender` | All Apps expand waited for the next cursor move to recompose AndroidView |
 | 2026-09-18 | **Home→Desktop copy-drag** — Hold-Left on Home pane app places a Desktop icon; Home list unchanged | Only All Apps drawer could seed the desk |
 | 2026-09-18 | **Lasso foundation** — `DeskLassoState` sphere yaw/pitch polygon + empty-Desktop Hold-Left stroke | Next: GLES stroke, selection chrome, pile-from-lasso, radial menu |
+| 2026-09-18 | **2.26–2.28 planned:** Expanded → GLES Home Space default; top HUD mirrors companion touchpad + Settings; Edit stays bottom-end | Large screen still opens legacy `SpatialDesktopScreen`; no host chrome for look/input/settings |
 
 ---
 
-*Last updated: 2026-09-18 (Home copy-drag + lasso foundation)*
+*Last updated: 2026-09-18 (plan 2.26–2.28 large-screen XR + host HUD)*
