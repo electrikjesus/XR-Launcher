@@ -61,6 +61,8 @@ There is one scene graph. Do not keep a “panel renderer” and a “desktop re
 
 **Large-screen host (planned 2.26–2.28):** On `WindowSizeClass.Expanded` with no glasses, the default HOME surface is this **same GLES Home Space**, not the legacy Compose `SpatialDesktopScreen` Subspace shell. Screen-locked HUD: companion-style icons along the **top** (input / mouse-look / recenter [/ keyboard] + Settings); Edit stays **bottom-end**. Compact phone remains Tier 0c (`PhoneShellScreen` / companion).
 
+**Host input (BumpDesk absolute):** Expanded host Home Space uses **BumpDesk-derived absolute mouse/touch** (`HostBumpDeskInput` + `BumpDeskHostGesture`), not companion FPS center-lock. `HostInputMethod.BUMPDESK` (default) vs `COMPANION_BUS` (`HostPointerBridge`) for A/B. Glasses / phone companion keep `CompanionPointerBus` FPS semantics.
+
 ---
 
 ## Rules
@@ -593,6 +595,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
+| 2.28a | **Host BumpDesk input path.** Port BumpDesk `LauncherActivity` gesture model (absolute coords, touch-slop, middle-drag look, scroll/pinch zoom) as second host input method; skip companion FPS press/release re-lock while `hostImmersiveSession`. | ☑ Partial — `HostBumpDeskInput` + `BumpDeskHostGesture` + `HostInputMethod` switch; InteractionManager ray-pick still via existing desk bus |
 | 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☐ |
 
 #### Phase 2.19 — Glasses UX polish (2026-06-12, decisions locked)
@@ -611,12 +614,13 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 
 #### Phase 2 — Next steps (immediate)
 
-Landed **host pointer polish:** screen-locked HUD + modal Edit/Settings (Compose hits, FPS look paused while open); desk Hold-Left only when clear of chrome.
+Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInput` (default); companion FPS center-lock skipped on host; `HostPointerBridge` retained behind `HostInputMethod.COMPANION_BUS`.
 
 **Do this next. One concern per change.**
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
+0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; wire BumpDesk-style empty-space lasso start through the same absolute path; optional Settings toggle for `HostInputMethod`.
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — GLES line strip for active stroke; highlight `DeskLassoState.selectedKeys` on desk icons.
@@ -626,14 +630,14 @@ Landed **host pointer polish:** screen-locked HUD + modal Edit/Settings (Compose
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
-5. **Polish host pointer** — ☑ partial: absolute cursor + Compose chrome/modals; scroll/pinch zoom + right-click landed; still open: OS mouse capture for FPS, HUD keyboard focus, DeX quirks.
+5. **Polish host pointer** — ☑ partial: BumpDesk absolute path default; scroll/pinch zoom + right-click + middle-drag look; still open: OS mouse capture, HUD keyboard focus, DeX quirks, Settings toggle.
 6. **2.29 — Repair Settings content** — fix broken settings sections after Home Space changes.
 
 7. **Stop** — Do not start 6.9 onboarding in this pass.
 
-**BumpDesk references (port, don’t reinvent):** `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
+**BumpDesk references (port, don’t reinvent):** `LauncherActivity` gestures (host input), `InteractionManager` lasso capture, `Lasso`/`LassoRenderer`, `RadialMenuView` / `RadialMenuGeometry`, `MenuManager`.
 
-**Host chrome model:** Top HUD and Edit toggle stay **viewport-locked** (Minecraft hotbar). Edit/Settings open as **screen-space modals** (Minecraft inventory), not sphere panels. Desk/world picks only when no modal and cursor is off chrome. Host **scroll / pinch** zooms [sphereScale]; **right-click** opens the existing context menu via [CompanionPointerBus].
+**Host chrome model:** Top HUD and Edit toggle stay **viewport-locked** (Minecraft hotbar). Edit/Settings open as **screen-space modals** (Minecraft inventory), not sphere panels. Desk/world picks only when no modal and cursor is off chrome. Host **scroll / pinch** zooms [sphereScale]; **right-click** opens the existing context menu via [CompanionPointerBus]. **Host input default** = BumpDesk absolute (`HostBumpDeskInput`); companion bus FPS re-lock is glasses/phone only.
 
 ---
 
@@ -817,7 +821,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Host chrome = Minecraft layers:** viewport HUD + modal Edit/Settings (Compose `drawToScreen`); desk bus only off-chrome; FPS look paused in modals | FPS center-lock + GLES-only Edit skewed hits; HUD/desk fought for clicks |
 | 2026-09-19 | **4.1 partial:** host scroll-wheel + 2-finger pinch → sphere zoom; mouse right-click → existing context menus | Host had left-only pointer; no zoom gestures |
 | 2026-09-19 | **Desk/Home icon uniformity:** `AppIconCache` normalizes adaptive insets to a square bitmap; Desktop GLES tiles share a plate; `DRAWER_OPEN_ICON_SCALE = 1.0`; base `ICON_HALF_*` raised to 0.064×0.077 | Transparent adaptive icons looked tiny vs filled ones; open-drawer was 1.05× Desktop; desk tiles were hard to read |
+| 2026-09-19 | **2.28a host BumpDesk input:** `HostBumpDeskInput` + `BumpDeskHostGesture`; skip FPS center-lock when `hostImmersiveSession`; `HostInputMethod` switch (default BUMPDESK) | Companion FPS press/release re-lock fought absolute mouse on Expanded host |
 
 ---
 
-*Last updated: 2026-09-19 (desk/home icon size uniformity)*
+*Last updated: 2026-09-19 (host BumpDesk absolute input slice)*

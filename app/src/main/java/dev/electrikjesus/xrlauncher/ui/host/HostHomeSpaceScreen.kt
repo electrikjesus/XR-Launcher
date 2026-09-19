@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
@@ -94,14 +95,15 @@ fun HostHomeSpaceScreen(
         scope.launch { workspaceRepository.toggleHotseatPin(app.componentKey()) }
     }
 
-    HostPointerBridge(
-        modifier = modifier.fillMaxSize(),
-        onZoomSphere = { delta ->
-            scope.launch {
-                workspaceRepository.nudgeAppearance(HomeSpaceTuneAxis.SPHERE, delta)
-            }
-        },
-    ) {
+    val onZoomSphere: (Float) -> Unit = { delta ->
+        scope.launch {
+            workspaceRepository.nudgeAppearance(HomeSpaceTuneAxis.SPHERE, delta)
+        }
+    }
+
+    // BumpDesk absolute mouse/touch is the default host path; COMPANION_BUS keeps the
+    // older HostPointerBridge for A/B (HostInputMethod.preference).
+    val hostContent: @Composable () -> Unit = {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val density = LocalDensity.current
             val configuration = LocalConfiguration.current
@@ -195,5 +197,18 @@ fun HostHomeSpaceScreen(
                 )
             }
         }
+    }
+
+    when (HostInputMethod.preference) {
+        HostInputMethod.BUMPDESK -> HostBumpDeskInput(
+            modifier = modifier.fillMaxSize(),
+            onZoomSphere = onZoomSphere,
+            content = hostContent,
+        )
+        HostInputMethod.COMPANION_BUS -> HostPointerBridge(
+            modifier = modifier.fillMaxSize(),
+            onZoomSphere = onZoomSphere,
+            content = hostContent,
+        )
     }
 }

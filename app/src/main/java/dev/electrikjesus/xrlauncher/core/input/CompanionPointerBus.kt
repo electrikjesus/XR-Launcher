@@ -381,15 +381,23 @@ object CompanionPointerBus {
                     mapViaLauncherFrame = GlassesSessionState.launcherForeground,
                 )
             !moved && primaryGesture -> deliverLeftClick(
-                x = if (GlassesLookMode.effective() == GlassesLookMode.FPS) 0.5f else endPos.x,
-                y = if (GlassesLookMode.effective() == GlassesLookMode.FPS) 0.5f else endPos.y,
+                x = if (usesFpsCenterLock()) 0.5f else endPos.x,
+                y = if (usesFpsCenterLock()) 0.5f else endPos.y,
             )
         }
     }
 
+    /**
+     * Host BumpDesk absolute mouse keeps screen coords through press/release.
+     * Companion / glasses FPS still re-locks to the crosshair.
+     */
+    private fun usesFpsCenterLock(): Boolean =
+        GlassesLookMode.effective() == GlassesLookMode.FPS &&
+            !HostInputMethod.usesAbsoluteHostCursor()
+
     /** FPS: press starts from view center so look aim and click-drag share the same origin. */
     private fun fpsPressCursor(current: CompanionCursorState, pressed: Boolean): CompanionCursorState {
-        if (GlassesLookMode.effective() != GlassesLookMode.FPS) {
+        if (!usesFpsCenterLock()) {
             return current.copy(isPressed = pressed)
         }
         return current.copy(x = 0.5f, y = 0.5f, isPressed = pressed)
@@ -397,7 +405,7 @@ object CompanionPointerBus {
 
     /** FPS: re-lock the cursor to center after a click/drag so the next look stays crosshair-based. */
     private fun fpsReleaseCursor(current: CompanionCursorState): CompanionCursorState {
-        if (GlassesLookMode.effective() != GlassesLookMode.FPS) {
+        if (!usesFpsCenterLock()) {
             return current.copy(isPressed = false)
         }
         return current.copy(x = 0.5f, y = 0.5f, isPressed = false)

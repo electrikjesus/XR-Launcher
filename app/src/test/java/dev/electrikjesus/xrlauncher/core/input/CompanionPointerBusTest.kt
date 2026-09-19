@@ -397,4 +397,28 @@ class CompanionPointerBusTest {
         GlassesLookMode.preference = GlassesLookMode.GRADIENT
         GlassesSessionState.markLauncherForeground()
     }
+
+    @Test
+    fun hostBumpDeskAbsolute_keepsPressPositionWithoutCenterRelock() {
+        GlassesLookMode.preference = GlassesLookMode.FPS
+        GlassesSessionState.markLauncherForeground()
+        GlassesSessionState.hostImmersiveSession = true
+        HostInputMethod.preference = HostInputMethod.BUMPDESK
+        try {
+            CompanionPointerBus.setCursorPosition(0.2f, 0.8f)
+            CompanionPointerBus.beginLeftButton()
+            assertEquals(0.2f, CompanionPointerBus.cursor.value.x, 0.001f)
+            assertEquals(0.8f, CompanionPointerBus.cursor.value.y, 0.001f)
+            assertTrue(CompanionPointerBus.cursor.value.isPressed)
+            CompanionPointerBus.setCursorPosition(0.35f, 0.7f)
+            CompanionPointerBus.endLeftButton()
+            assertEquals(0.35f, CompanionPointerBus.cursor.value.x, 0.001f)
+            assertEquals(0.7f, CompanionPointerBus.cursor.value.y, 0.001f)
+            assertEquals(false, CompanionPointerBus.cursor.value.isPressed)
+        } finally {
+            GlassesSessionState.hostImmersiveSession = false
+            HostInputMethod.preference = HostInputMethod.BUMPDESK
+            GlassesLookMode.preference = GlassesLookMode.GRADIENT
+        }
+    }
 }
