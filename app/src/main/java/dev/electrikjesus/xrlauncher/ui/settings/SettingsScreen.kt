@@ -34,6 +34,7 @@ import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingMovementScales
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingSensitivityStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
@@ -56,10 +57,13 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current.applicationContext
+    LauncherReturnBubbleStore.init(context)
+    AllAppsGridConfigStore.init(context)
     val scope = rememberCoroutineScope()
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val appearance = workspace?.appearance?.clamped() ?: WorkspaceAppearance.default()
     val gridDimensions by AllAppsGridConfigStore.dimensions.collectAsState()
+    val returnBubbleSizeDp by LauncherReturnBubbleStore.sizeDp.collectAsState()
     val headTrackingScales by CompanionPointerBus.glassesImuMovementScales.collectAsState()
     val motionSensitivity by CompanionPointerBus.motionSensitivity.collectAsState()
     val touchpadSensitivity by CompanionPointerBus.touchpadSensitivity.collectAsState()
@@ -125,6 +129,14 @@ fun SettingsScreen(
                         AllAppsPaginationState.goToPage(0)
                     },
                     onReset = { AllAppsGridConfigStore.resetToDefaults(context) },
+                )
+            }
+            item {
+                SettingsSectionTitle(stringResource(R.string.settings_return_bubble_section))
+                ReturnBubbleSettingsSection(
+                    sizeDp = returnBubbleSizeDp,
+                    onSizeDpChange = { LauncherReturnBubbleStore.saveSizeDp(context, it) },
+                    onReset = { LauncherReturnBubbleStore.resetToDefaults(context) },
                 )
             }
             item {

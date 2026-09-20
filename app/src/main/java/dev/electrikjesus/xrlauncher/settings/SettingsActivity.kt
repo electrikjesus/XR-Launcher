@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfigStore
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.settings.SettingsScreen
@@ -16,6 +17,7 @@ class SettingsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AllAppsGridConfigStore.init(this)
+        LauncherReturnBubbleStore.init(this)
         OnboardingStore.init(this)
 
         setContent {

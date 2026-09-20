@@ -17,6 +17,7 @@ import android.widget.TextView
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 
 /**
  * Draws the companion cursor (passthrough overlay) and an optional return-to-launcher bubble.
@@ -35,10 +36,13 @@ class DisplayCursorOverlayManager(
     private var bubbleWindowManager: WindowManager? = null
     private var attachedDisplayId: Int? = null
     private var launcherForeground = true
+    private var bubbleSizeDp = LauncherReturnBubbleStore.DEFAULT_SIZE_DP
 
     fun attach(displayId: Int) {
         if (attachedDisplayId == displayId && cursorRoot != null) return
         detach()
+        LauncherReturnBubbleStore.init(context)
+        bubbleSizeDp = LauncherReturnBubbleStore.current()
         val displayManager = context.getSystemService(DisplayManager::class.java)
         val display = displayManager.getDisplay(displayId)
         if (display == null) {
@@ -63,6 +67,23 @@ class DisplayCursorOverlayManager(
         attachedDisplayId = displayId
         syncBubbleVisibility()
         Log.d(TAG, "Cursor overlay attached on display $displayId (passthrough)")
+    }
+
+    fun setBubbleSizeDp(sizeDp: Float) {
+        val next = sizeDp.coerceIn(
+            LauncherReturnBubbleStore.MIN_SIZE_DP,
+            LauncherReturnBubbleStore.MAX_SIZE_DP,
+        )
+        if (next == bubbleSizeDp) return
+        bubbleSizeDp = next
+        val bubble = bubbleView ?: return
+        val wm = bubbleWindowManager ?: return
+        bubble.applySizeDp(bubbleSizeDp)
+        runCatching {
+            wm.updateViewLayout(bubble, bubbleOverlayLayoutParams(bubble.context))
+        }.onFailure { e ->
+            Log.w(TAG, "Failed to resize return bubble", e)
+        }
     }
 
     fun update(normalizedX: Float, normalizedY: Float, pressed: Boolean) {
@@ -114,7 +135,7 @@ class DisplayCursorOverlayManager(
         val display = displayManager.getDisplay(displayId) ?: return
         val displayContext = context.createDisplayContext(display)
         val wm = displayContext.getSystemService(WindowManager::class.java)
-        val bubble = LauncherReturnBubbleView(displayContext) { onReturnToLauncher() }
+        val bubble = LauncherReturnBubbleView(displayContext, bubbleSizeDp) { onReturnToLauncher() }
         wm.addView(bubble, bubbleOverlayLayoutParams(displayContext))
         bubbleView = bubble
         bubbleWindowManager = wm
@@ -147,14 +168,20 @@ class DisplayCursorOverlayManager(
         )
 
     private fun bubbleOverlayLayoutParams(displayContext: Context): WindowManager.LayoutParams {
+        val metrics = displayContext.resources.displayMetrics
+        val size = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            bubbleSizeDp,
+            metrics,
+        ).toInt()
         val margin = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             20f,
-            displayContext.resources.displayMetrics,
+            metrics,
         ).toInt()
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            size,
+            size,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -225,28 +252,24 @@ class DisplayCursorOverlayManager(
 
     private class LauncherReturnBubbleView(
         context: Context,
+        sizeDp: Float,
         onClick: () -> Unit,
     ) : FrameLayout(context) {
+        private val label: TextView
+
         init {
             isClickable = true
             isFocusable = true
+            contentDescription = context.getString(R.string.launcher_return_bubble_hint)
             val bg = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#CC1A1520"))
                 setStroke(2, Color.parseColor("#03DAC5"))
             }
             background = bg
-            val size = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                56f,
-                resources.displayMetrics,
-            ).toInt()
-            minimumWidth = size
-            minimumHeight = size
-            val label = TextView(context).apply {
+            label = TextView(context).apply {
                 text = context.getString(R.string.launcher_return_bubble_label)
                 setTextColor(Color.parseColor("#03DAC5"))
-                textSize = 11f
                 gravity = Gravity.CENTER
             }
             addView(
@@ -258,6 +281,24 @@ class DisplayCursorOverlayManager(
             )
             setOnClickListener { onClick() }
             elevation = 12f
+            applySizeDp(sizeDp)
+        }
+
+        fun applySizeDp(sizeDp: Float) {
+            val clamped = sizeDp.coerceIn(
+                LauncherReturnBubbleStore.MIN_SIZE_DP,
+                LauncherReturnBubbleStore.MAX_SIZE_DP,
+            )
+            val size = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                clamped,
+                resources.displayMetrics,
+            ).toInt()
+            minimumWidth = size
+            minimumHeight = size
+            // Scale label with the circle so "XR" stays readable on large bubbles.
+            label.textSize = (clamped * 0.22f).coerceIn(11f, 28f)
+            requestLayout()
         }
     }
 

@@ -57,6 +57,10 @@
     <string name="settings_all_apps_rows">Rows · %1$d</string>
     <string name="settings_all_apps_page_size">%1$d apps per page</string>
     <string name="settings_all_apps_reset">Reset grid to 5×5</string>
+    <string name="settings_return_bubble_section">Return to XR bubble</string>
+    <string name="settings_return_bubble_hint">Size of the bottom-corner XR circle shown over apps so you can return to the glasses launcher.</string>
+    <string name="settings_return_bubble_size">Size · %1$d dp</string>
+    <string name="settings_return_bubble_reset">Reset bubble size</string>
     <string name="settings_workspace_section">Workspace layout</string>
     <string name="settings_pointer_section">Pointer sensitivity</string>
     <string name="settings_pointer_sensitivity_hint">Touchpad and motion sensitivity for companion mode.</string>

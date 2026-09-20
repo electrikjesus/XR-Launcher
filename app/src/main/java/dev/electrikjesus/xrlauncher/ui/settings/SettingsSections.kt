@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGrid
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
@@ -244,6 +245,41 @@ fun AllAppsGridSettingsSection(
             shape = MaterialTheme.shapes.medium,
         ) {
             Text(stringResource(R.string.settings_all_apps_reset))
+        }
+    }
+}
+
+@Composable
+fun ReturnBubbleSettingsSection(
+    sizeDp: Float,
+    onSizeDpChange: (Float) -> Unit,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_return_bubble_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.settings_return_bubble_size, sizeDp.toInt()),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = sizeDp,
+            onValueChange = onSizeDpChange,
+            valueRange = LauncherReturnBubbleStore.MIN_SIZE_DP..LauncherReturnBubbleStore.MAX_SIZE_DP,
+        )
+        OutlinedButton(
+            onClick = onReset,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(stringResource(R.string.settings_return_bubble_reset))
         }
     }
 }

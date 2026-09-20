@@ -627,6 +627,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
 0c4. **Host + glasses attach** — ☑ Prompt **XR Glasses UI** vs **Android Desktop** (+ companion); USB-only (no DisplayManager secondary) disables XR option with explanation; drop Companion USB chooser duplicate.
 0c5. **Home = desk surface** — ☑ Home pane is chrome only (clock/pills); no Compose app grid; Home face accepts Desktop apps/widgets (drops + physics); Tray/app panes still block. All Apps drawer stays **5×4**.
+0c6. **Return-to-XR bubble size** — ☑ Settings slider (48–128 dp, default 80) for the bottom-corner overlay circle over apps.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -879,7 +880,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Host glasses USB-only:** prompt on RayNeo USB even without secondary display; disable XR UI until DisplayManager has a target | onn tablet exposes RayNeo as USB HID only — openGlassesSession had nowhere to launch |
 | 2026-09-20 | **Home = Desktop apps:** remove Home All Apps pill; mirror desk-placed icons on Home 4×3; widen sphere drawer to 5×4 | Home duplicated All Apps; drawer had spare FOV width |
 | 2026-09-20 | **Home = desk surface (correct):** Home chrome only; desk items place/stay on Home yaw; no mirrored Compose grid; drawer remains 5×4 | Prior Home grid duplicated Desktop icons instead of accepting placements |
+| 2026-09-20 | **Return bubble size Settings:** 48–128 dp slider (default 80) for the XR overlay circle over apps | Hard-coded 56 dp was too small to hit on glasses |
 
 ---
 
-*Last updated: 2026-09-20 (Home desk-compatible surface)*
+*Last updated: 2026-09-20 (return-to-XR bubble size Settings)*

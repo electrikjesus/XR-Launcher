@@ -14,6 +14,7 @@ import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,6 +32,7 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         DisplayPointerInjector.service = this
+        LauncherReturnBubbleStore.init(this)
         overlayManager = DisplayCursorOverlayManager(this) {
             DisplayLaunchHelper.showLauncherOnGlasses(this)
         }
@@ -49,6 +51,11 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         serviceScope.launch {
             GlassesSessionState.launcherForegroundFlow.collect { foreground ->
                 overlayManager?.setLauncherForeground(foreground)
+            }
+        }
+        serviceScope.launch {
+            LauncherReturnBubbleStore.sizeDp.collect { sizeDp ->
+                overlayManager?.setBubbleSizeDp(sizeDp)
             }
         }
         Log.d(TAG, "Display pointer service connected")
