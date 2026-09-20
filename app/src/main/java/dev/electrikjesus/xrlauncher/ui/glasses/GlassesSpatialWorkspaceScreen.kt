@@ -50,6 +50,8 @@ import kotlinx.coroutines.withContext
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
+import dev.electrikjesus.xrlauncher.core.workspace.DeskPileLayout
+import dev.electrikjesus.xrlauncher.core.workspace.DeskPileOps
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
@@ -130,6 +132,7 @@ fun GlassesSpatialWorkspaceScreen(
     val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
     val deskDrag by HomeSpaceDeskState.dragFlow.collectAsState()
     val deskDrawerPose by HomeSpaceDeskState.drawerPoseFlow.collectAsState()
+    val deskPiles by HomeSpaceDeskState.pilesFlow.collectAsState()
     val groupMoveArmed by DeskGroupMoveState.armedKeysFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
@@ -153,7 +156,7 @@ fun GlassesSpatialWorkspaceScreen(
             workspaceRepository?.saveDeskLayout(HomeSpaceDeskState.toLayout())
         }
     }
-    LaunchedEffect(workspaceRepository, deskPlaced, deskDrawerPose, deskDrag, deskHydrated) {
+    LaunchedEffect(workspaceRepository, deskPlaced, deskDrawerPose, deskDrag, deskPiles, deskHydrated) {
         val repo = workspaceRepository ?: return@LaunchedEffect
         if (!deskHydrated || deskDrag != null) return@LaunchedEffect
         delay(350)
@@ -275,6 +278,7 @@ fun GlassesSpatialWorkspaceScreen(
         deskPlaced,
         deskDrag,
         deskDrawerPose,
+        deskPiles,
         groupMoveArmed,
         viewportWidthPx,
         viewportHeightPx,
@@ -290,6 +294,7 @@ fun GlassesSpatialWorkspaceScreen(
                 packageName = app.packageName,
             )
         }
+        val memberKeys = DeskPileOps.memberKeys(deskPiles)
         val icons = HomeSpaceDesk.layout(
             placed = deskPlaced,
             sphereScale = tuned.sphereScale,
@@ -299,7 +304,7 @@ fun GlassesSpatialWorkspaceScreen(
             uiScale = tuned.uiScale,
             density = densityScale,
             drawerOpen = allAppsOverlayVisible,
-            drawerApps = drawerApps,
+            drawerApps = drawerApps.filter { it.componentKey !in memberKeys },
             drawerPage = allAppsPage,
             draggingKey = deskDrag?.app?.componentKey,
             dragYawDeg = deskDrag?.yawDeg ?: 0f,
@@ -309,8 +314,19 @@ fun GlassesSpatialWorkspaceScreen(
         )
         val halfW = icons.firstOrNull { it.isDesktopApp || it.isWidget }?.halfWidth
             ?: HomeSpaceDesk.ICON_HALF_WIDTH
-        val withHandle = DeskGroupMoveState.appendHandle(
+        val halfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        val withPiles = DeskPileLayout.appendIcons(
             icons = icons,
+            piles = deskPiles,
+            sphereScale = tuned.sphereScale,
+            halfWidth = halfW,
+            halfHeight = halfH,
+            draggingKey = deskDrag?.app?.componentKey,
+            dragYawDeg = deskDrag?.yawDeg ?: 0f,
+            dragPitchDeg = deskDrag?.pitchDeg ?: 0f,
+        )
+        val withHandle = DeskGroupMoveState.appendHandle(
+            icons = withPiles,
             placed = deskPlaced,
             sphereScale = tuned.sphereScale,
             halfWidth = halfW,

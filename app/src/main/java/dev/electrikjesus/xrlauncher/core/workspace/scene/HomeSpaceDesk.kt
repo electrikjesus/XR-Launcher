@@ -151,7 +151,22 @@ object HomeSpaceDesk {
     fun labeledIconHalfHeight(iconHalfWidth: Float): Float =
         iconHalfWidth * LABELED_ICON_ASPECT
 
-    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE, WIDGET, GROUP_HANDLE }
+    enum class Kind {
+        APP_DRAWER,
+        APP,
+        DRAWER_BACKING,
+        PAGE_PREV,
+        PAGE_NEXT,
+        PAGE,
+        WIDGET,
+        GROUP_HANDLE,
+        /** Collapsed BumpDesk stack pile face. */
+        PILE_STACK,
+        /** Collapsed BumpDesk folder pile face (2×2 preview). */
+        PILE_FOLDER,
+        /** Expanded pile content backing (pick to collapse). */
+        PILE_BACKING,
+    }
 
     data class AppRef(
         val componentKey: String,
@@ -191,6 +206,8 @@ object HomeSpaceDesk {
         val isDesktopApp: Boolean get() = kind == Kind.APP
         val isWidget: Boolean get() = kind == Kind.WIDGET
         val isGroupHandle: Boolean get() = kind == Kind.GROUP_HANDLE
+        val isPileFace: Boolean get() = kind == Kind.PILE_STACK || kind == Kind.PILE_FOLDER
+        val isPileBacking: Boolean get() = kind == Kind.PILE_BACKING
     }
 
     fun yawDegrees(
@@ -492,7 +509,8 @@ object HomeSpaceDesk {
     private fun pickPriority(icon: Icon): Int = when (icon.kind) {
         Kind.GROUP_HANDLE -> 0
         Kind.PAGE_PREV, Kind.PAGE_NEXT, Kind.PAGE -> 0
-        Kind.APP, Kind.APP_DRAWER, Kind.WIDGET -> 1
+        Kind.APP, Kind.APP_DRAWER, Kind.WIDGET, Kind.PILE_STACK, Kind.PILE_FOLDER -> 1
+        Kind.PILE_BACKING -> 2
         Kind.DRAWER_BACKING -> 3
     }
 

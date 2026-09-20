@@ -584,7 +584,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + BumpDesk radial + AppWidgetHost desk items; still missing piles |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + radial + AppWidgetHost + DeskPile Folder/Stack; pile polish / leaf still open |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** via pane-matched half-extents (same 92.dp Home face). Min uiScale 0.5. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -621,7 +621,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Launcher surface / BumpDesk widgets:**
 0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Grow / Shrink** (1.25×) for selected widgets. Still open: touch-through / drag resize handles.
-0b. **True Smart Pile objects** — ☐ after arrange stand-ins.
+0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** (2×2 preview, expand grid) or **Stack** (layered face, expand fan); persist in `desk_json`; break/open still light.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -629,7 +629,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
-2. **Lasso → pile / arrange** — ☑ Partial: radial **Move** (centroid handle + rigid drag); Stack/Folder/Row/Column/Grid rearrange. True Smart Pile objects still open.
+2. **Lasso → pile / arrange** — ☑ Partial: radial **Move**; Create Pile **Folder** / **Stack** are real pile objects; Layout Grid/Row/Column rearrange free icons.
 3. **Radial menu** — ☑ BumpDesk `RadialMenuView`; empty **Add widget**; selected widgets Grow/Shrink; multi-select **Move** + arrange; host catcher drops while open.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
@@ -861,7 +861,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Widget Grow/Shrink radial:** 1.25× half-extent scale with clamp; dirty capture refresh | Resize was only via future drag handles |
 | 2026-09-20 | **Empty-desk radial clears selection** — and drag-press clears prior lasso/widget keys | Stale widget selection showed Grow/Shrink after move + empty click |
 | 2026-09-20 | **Lasso Move + group handle:** arm selection, centroid grab handle, rigid yaw/pitch offsets (BumpDesk prepareGroupMove) | Multi-select could only rearrange, not translate as a group |
+| 2026-09-20 | **Create Pile Folder vs Stack:** real `DeskPile` objects (2×2 folder preview / layered stack); expand toggle; desk_json piles segment | Folder and Stack arrange stand-ins both just jumped icons |
 
 ---
 
-*Last updated: 2026-09-20 (lasso group Move)*
+*Last updated: 2026-09-20 (DeskPile Folder/Stack)*

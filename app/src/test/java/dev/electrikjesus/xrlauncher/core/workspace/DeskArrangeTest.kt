@@ -80,32 +80,22 @@ class DeskArrangeTest {
     }
 
     @Test
-    fun arrange_stack_isMoreCompactThanRow() {
+    fun arrange_grid_placesInRows() {
         val items = listOf(
             placed("a", -20f, 0f),
             placed("b", 0f, 0f),
             placed("c", 20f, 0f),
+            placed("d", 40f, 0f),
         )
-        val row = DeskArrange.arrange(
+        val grid = DeskArrange.arrange(
             placed = items,
-            keys = setOf("a", "b", "c"),
-            mode = DeskArrangeMode.ROW,
+            keys = setOf("a", "b", "c", "d"),
+            mode = DeskArrangeMode.GRID,
             sphereScale = 1f,
             halfWidth = HomeSpaceDesk.ICON_HALF_WIDTH,
             halfHeight = HomeSpaceDesk.ICON_HALF_HEIGHT,
         )!!
-        val stack = DeskArrange.arrange(
-            placed = items,
-            keys = setOf("a", "b", "c"),
-            mode = DeskArrangeMode.STACK,
-            sphereScale = 1f,
-            halfWidth = HomeSpaceDesk.ICON_HALF_WIDTH,
-            halfHeight = HomeSpaceDesk.ICON_HALF_HEIGHT,
-        )!!
-        fun span(list: List<HomeSpaceDesk.Placed>): Float {
-            val yaws = list.map { it.yawDeg }
-            return yaws.max() - yaws.min()
-        }
-        assertTrue(span(stack) < span(row))
+        val pitches = grid.map { it.pitchDeg }.distinct()
+        assertTrue(pitches.size >= 2)
     }
 }

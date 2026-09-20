@@ -29,6 +29,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskPileLayout
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
@@ -391,7 +392,17 @@ private fun handleLeftClick(
                 return
             }
             desk.isBacking -> return
+            desk.isPileBacking -> {
+                DeskPileLayout.pileIdFromBackingKey(desk.componentKey)?.let {
+                    HomeSpaceDeskState.togglePileExpanded(it)
+                }
+                return
+            }
             desk.isGroupHandle -> return
+            desk.isPileFace -> {
+                HomeSpaceDeskState.togglePileExpanded(desk.componentKey)
+                return
+            }
             desk.kind == HomeSpaceDesk.Kind.PAGE_PREV -> {
                 AllAppsPaginationState.prevPage()
                 return

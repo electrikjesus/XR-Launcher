@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import dev.electrikjesus.xrlauncher.core.launcher.AppIconCache
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 
 /**
@@ -25,7 +26,7 @@ object DeskIconBitmaps {
     private const val APP_PAD = 8
 
     fun create(context: Context, icon: HomeSpaceDesk.Icon): Bitmap {
-        val withLabel = drawsLabel(icon)
+        val withLabel = drawsLabel(icon) || icon.kind == HomeSpaceDesk.Kind.PILE_FOLDER
         val width = ICON_SIZE
         val height = if (withLabel) ICON_SIZE + LABEL_HEIGHT else ICON_SIZE
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -39,11 +40,16 @@ object DeskIconBitmaps {
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
             icon.isAppDrawer -> drawAppDrawer(canvas, width, ICON_SIZE)
             icon.isGroupHandle -> drawGroupMoveHandle(canvas, width, ICON_SIZE)
+            icon.isPileBacking -> Unit
+            icon.kind == HomeSpaceDesk.Kind.PILE_FOLDER ->
+                drawFolderPile(canvas, context, icon, width, ICON_SIZE)
+            icon.kind == HomeSpaceDesk.Kind.PILE_STACK ->
+                drawStackPile(canvas, context, icon, width, ICON_SIZE)
             icon.isWidget -> drawWidgetPlaceholder(canvas, width, ICON_SIZE)
             else -> drawAppIcon(canvas, context, icon.packageName, width, ICON_SIZE)
         }
 
-        if (withLabel) {
+        if (drawsLabel(icon)) {
             val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
                 textSize = 22f
@@ -61,6 +67,8 @@ object DeskIconBitmaps {
         !icon.isBacking &&
             !icon.isWidget &&
             !icon.isGroupHandle &&
+            !icon.isPileBacking &&
+            icon.kind != HomeSpaceDesk.Kind.PILE_FOLDER &&
             icon.kind != HomeSpaceDesk.Kind.PAGE &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
@@ -135,6 +143,88 @@ object DeskIconBitmaps {
         paint.textSize = 28f
         paint.typeface = Typeface.DEFAULT_BOLD
         canvas.drawText("Widget", width / 2f, iconSize / 2f + 10f, paint)
+    }
+
+    private fun drawFolderPile(
+        canvas: Canvas,
+        context: Context,
+        icon: HomeSpaceDesk.Icon,
+        width: Int,
+        iconSize: Int,
+    ) {
+        val pile = HomeSpaceDeskState.piles.firstOrNull { it.id == icon.componentKey }
+        val packages = pile?.members?.map { it.packageName }.orEmpty()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.argb(230, 48, 56, 70)
+        canvas.drawRoundRect(RectF(4f, 4f, width - 4f, iconSize - 4f), 28f, 28f, paint)
+        val padding = iconSize * 0.14f
+        val gap = iconSize * 0.06f
+        val cell = (iconSize - 2f * padding - gap) / 2f
+        for (index in 0 until 4) {
+            val pkg = packages.getOrNull(index) ?: break
+            val row = index / 2
+            val col = index % 2
+            val left = padding + col * (cell + gap)
+            val top = padding + row * (cell + gap)
+            drawAppIconInRect(canvas, context, pkg, left, top, cell)
+        }
+        paint.color = Color.WHITE
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 22f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        val label = (pile?.name ?: icon.label).take(14)
+        canvas.drawText(label, width / 2f, iconSize + LABEL_HEIGHT * 0.72f, paint)
+    }
+
+    private fun drawStackPile(
+        canvas: Canvas,
+        context: Context,
+        icon: HomeSpaceDesk.Icon,
+        width: Int,
+        iconSize: Int,
+    ) {
+        val pile = HomeSpaceDeskState.piles.firstOrNull { it.id == icon.componentKey }
+        val packages = pile?.members?.map { it.packageName }.orEmpty()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        // Layered plates behind the top icon.
+        for (layer in 2 downTo 1) {
+            val inset = layer * 6f
+            paint.color = Color.argb(160 - layer * 30, 70, 80, 100)
+            canvas.drawRoundRect(
+                RectF(8f + inset, 8f + inset * 0.5f, width - 8f - inset * 0.3f, iconSize - 8f - inset),
+                22f,
+                22f,
+                paint,
+            )
+        }
+        val topPkg = packages.firstOrNull() ?: icon.packageName
+        drawAppIcon(canvas, context, topPkg, width, iconSize)
+        paint.color = Color.argb(220, 90, 140, 220)
+        canvas.drawCircle(width - 28f, 28f, 18f, paint)
+        paint.color = Color.WHITE
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 20f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        val count = (pile?.members?.size ?: 0).coerceAtLeast(1)
+        canvas.drawText(count.toString(), width - 28f, 35f, paint)
+    }
+
+    private fun drawAppIconInRect(
+        canvas: Canvas,
+        context: Context,
+        packageName: String,
+        left: Float,
+        top: Float,
+        size: Float,
+    ) {
+        val drawable = runCatching { AppIconCache.getIcon(context, packageName) }.getOrNull()
+        if (drawable != null) {
+            drawable.setBounds(left.toInt(), top.toInt(), (left + size).toInt(), (top + size).toInt())
+            drawable.draw(canvas)
+        } else {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(180, 80, 90, 110) }
+            canvas.drawRoundRect(RectF(left, top, left + size, top + size), size * 0.2f, size * 0.2f, paint)
+        }
     }
 
     private fun drawGroupMoveHandle(canvas: Canvas, width: Int, iconSize: Int) {

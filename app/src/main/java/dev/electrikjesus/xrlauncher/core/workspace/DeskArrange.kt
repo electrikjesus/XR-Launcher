@@ -5,12 +5,8 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
-/** BumpDesk-style layout modes for a lasso / selection group on the sphere. */
+/** Freeform rearrange modes for a multi-select on the sphere (not Create Pile). */
 enum class DeskArrangeMode {
-    /** Compact overlapping stack (pile stand-in until true Pile items land). */
-    STACK,
-    /** Compact grid — BumpDesk folder layout stand-in. */
-    FOLDER,
     GRID,
     ROW,
     COLUMN,
@@ -33,8 +29,6 @@ object DeskArrange {
         if (targets.size < 2) return null
         val radius = HomeSpaceScene.sphereRadius(sphereScale).coerceAtLeast(0.01f)
         val spacingMul = when (mode) {
-            DeskArrangeMode.STACK -> 0.35f
-            DeskArrangeMode.FOLDER -> 1.15f
             DeskArrangeMode.GRID -> 2.45f
             DeskArrangeMode.ROW -> 2.45f
             DeskArrangeMode.COLUMN -> 2.55f
@@ -44,11 +38,7 @@ object DeskArrange {
         val centerYaw = targets.map { it.yawDeg }.average().toFloat()
         val centerPitch = targets.map { it.pitchDeg }.average().toFloat()
         val slots = when (mode) {
-            DeskArrangeMode.STACK -> targets.indices.map { i ->
-                val t = i - (targets.size - 1) * 0.5f
-                (centerYaw + t * yawStep * 0.4f) to (centerPitch + t * pitchStep * 0.25f)
-            }
-            DeskArrangeMode.FOLDER, DeskArrangeMode.GRID -> {
+            DeskArrangeMode.GRID -> {
                 val cols = ceil(sqrt(targets.size.toDouble())).toInt().coerceAtLeast(1)
                 targets.indices.map { i ->
                     val col = i % cols

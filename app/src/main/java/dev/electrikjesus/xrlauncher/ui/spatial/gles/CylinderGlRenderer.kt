@@ -447,7 +447,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             val selected = (
                 icon.componentKey in DeskLassoState.selectedKeys ||
                     DeskGroupMoveState.isArmedMember(icon.componentKey)
-                ) && (icon.isDesktopApp || icon.isWidget)
+                ) && (icon.isDesktopApp || icon.isWidget || icon.isPileFace)
             val handleLit = icon.isGroupHandle
             drawMesh(
                 buffer,

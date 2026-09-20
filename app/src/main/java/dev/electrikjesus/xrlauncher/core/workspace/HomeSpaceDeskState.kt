@@ -39,6 +39,10 @@ object HomeSpaceDeskState {
     val placedFlow: StateFlow<List<HomeSpaceDesk.Placed>> = _placed.asStateFlow()
     val placed: List<HomeSpaceDesk.Placed> get() = _placed.value
 
+    private val _piles = MutableStateFlow<List<DeskPile>>(emptyList())
+    val pilesFlow: StateFlow<List<DeskPile>> = _piles.asStateFlow()
+    val piles: List<DeskPile> get() = _piles.value
+
     private val _drag = MutableStateFlow<Drag?>(null)
     val dragFlow: StateFlow<Drag?> = _drag.asStateFlow()
     val drag: Drag? get() = _drag.value
@@ -72,11 +76,11 @@ object HomeSpaceDeskState {
             icon.isPager || icon.isAppDrawer -> icon
             else -> null
         }
-        if (icon.isPager || icon.isBacking) {
+        if (icon.isPager || icon.isBacking || icon.isPileBacking) {
             _drag.value = null
             return
         }
-        if (!icon.isDesktopApp && !icon.isAppDrawer && !icon.isWidget) {
+        if (!icon.isDesktopApp && !icon.isAppDrawer && !icon.isWidget && !icon.isPileFace) {
             _drag.value = null
             return
         }
@@ -157,6 +161,9 @@ object HomeSpaceDeskState {
             HomeSpaceDesk.Kind.APP,
             HomeSpaceDesk.Kind.WIDGET,
             HomeSpaceDesk.Kind.DRAWER_BACKING,
+            HomeSpaceDesk.Kind.PILE_STACK,
+            HomeSpaceDesk.Kind.PILE_FOLDER,
+            HomeSpaceDesk.Kind.PILE_BACKING,
             -> Unit
         }
     }
@@ -213,11 +220,14 @@ object HomeSpaceDeskState {
             return true
         }
         val wasOnDesktop = _placed.value.any { it.app.componentKey == current.app.componentKey }
+        val wasPile = _piles.value.any { it.id == current.app.componentKey }
         // BumpDesk: drag a Desktop icon onto the All Apps tile (or open backing) to remove it.
         // Widgets are not returned to All Apps — they stay until Delete from radial.
+        // Piles break apart onto the desk when dropped on All Apps.
         if (
             onDesktop &&
             current.app.kind != HomeSpaceDesk.Kind.WIDGET &&
+            !current.app.kind.name.startsWith("PILE_") &&
             HomeSpaceDesk.hitsAllAppsReturn(
                 yawDeg = current.yawDeg,
                 pitchDeg = current.pitchDeg,
@@ -236,6 +246,29 @@ object HomeSpaceDeskState {
             return true
         }
         if (!onDesktop) return true
+        if (wasPile ||
+            current.app.kind == HomeSpaceDesk.Kind.PILE_STACK ||
+            current.app.kind == HomeSpaceDesk.Kind.PILE_FOLDER
+        ) {
+            val resolved = HomeSpaceDesk.resolveDesktopDrop(
+                yawDeg = current.yawDeg,
+                pitchDeg = current.pitchDeg,
+                halfWidth = halfWidth,
+                halfHeight = halfHeight,
+                sphereScale = sphereScale,
+                obstacles = obstacles.filter { !DeskPile.isPileKey(it.componentKey) },
+                paneBlocks = panes,
+                excludeKey = current.app.componentKey,
+            ) ?: return true
+            _piles.value = _piles.value.map { pile ->
+                if (pile.id == current.app.componentKey) {
+                    pile.copy(yawDeg = resolved.first, pitchDeg = resolved.second)
+                } else {
+                    pile
+                }
+            }
+            return true
+        }
         val existing = _placed.value.firstOrNull { it.app.componentKey == current.app.componentKey }
         val dropHalfW = existing?.halfWidth ?: halfWidth
         val dropHalfH = existing?.halfHeight ?: halfHeight
@@ -379,6 +412,7 @@ object HomeSpaceDeskState {
 
     fun clear() {
         _placed.value = emptyList()
+        _piles.value = emptyList()
         _drag.value = null
         _drawerPose.value = null
         pendingChrome = null
@@ -407,6 +441,24 @@ object HomeSpaceDeskState {
                 halfHeight = item.halfHeight,
             )
         }
+        _piles.value = layout.piles.map { pile ->
+            DeskPile(
+                id = pile.id,
+                mode = if (pile.mode == "FOLDER") DeskPileMode.FOLDER else DeskPileMode.STACK,
+                name = pile.name,
+                members = pile.members.map { m ->
+                    HomeSpaceDesk.AppRef(
+                        componentKey = m.componentKey,
+                        label = m.label,
+                        packageName = m.packageName,
+                        kind = HomeSpaceDesk.Kind.APP,
+                    )
+                },
+                yawDeg = pile.yawDeg,
+                pitchDeg = pile.pitchDeg,
+                expanded = false,
+            )
+        }
         _drawerPose.value = layout.drawerYawDeg?.let { yaw ->
             yaw to (layout.drawerPitchDeg ?: 0f)
         }
@@ -427,17 +479,40 @@ object HomeSpaceDeskState {
                 halfHeight = item.halfHeight,
             )
         },
+        piles = _piles.value.map { pile ->
+            DeskPileItem(
+                id = pile.id,
+                name = pile.name,
+                mode = pile.mode.name,
+                yawDeg = pile.yawDeg,
+                pitchDeg = pile.pitchDeg,
+                members = pile.members.map { m ->
+                    DeskPileMemberItem(
+                        componentKey = m.componentKey,
+                        label = m.label,
+                        packageName = m.packageName,
+                    )
+                },
+            )
+        },
         drawerYawDeg = _drawerPose.value?.first,
         drawerPitchDeg = _drawerPose.value?.second,
     )
 
     /** Drop icons whose apps are no longer installed. Widgets are kept (host id is durable). */
     fun pruneMissing(validComponentKeys: Set<String>): Boolean {
-        val next = _placed.value.filter {
+        val nextPlaced = _placed.value.filter {
             it.app.kind == HomeSpaceDesk.Kind.WIDGET || it.app.componentKey in validComponentKeys
         }
-        if (next.size == _placed.value.size) return false
-        _placed.value = next
+        val singles = DeskPileOps.singletonReleases(_piles.value, validComponentKeys)
+        val nextPiles = DeskPileOps.pruneMembers(_piles.value, validComponentKeys)
+        val changed = nextPlaced.size != _placed.value.size ||
+            nextPiles.size != _piles.value.size ||
+            singles.isNotEmpty() ||
+            nextPiles.zip(_piles.value).any { (a, b) -> a.members.size != b.members.size }
+        if (!changed) return false
+        _placed.value = nextPlaced + singles
+        _piles.value = nextPiles
         return true
     }
 
@@ -445,7 +520,8 @@ object HomeSpaceDeskState {
     fun removeByKeys(componentKeys: Set<String>): Boolean {
         if (componentKeys.isEmpty()) return false
         val removed = _placed.value.filter { it.app.componentKey in componentKeys }
-        if (removed.isEmpty()) return false
+        val removedPiles = _piles.value.filter { it.id in componentKeys }
+        if (removed.isEmpty() && removedPiles.isEmpty()) return false
         removed.forEach { item ->
             if (item.app.kind == HomeSpaceDesk.Kind.WIDGET) {
                 DeskWidgetUtils.parseWidgetId(item.app.componentKey)?.let { id ->
@@ -454,6 +530,7 @@ object HomeSpaceDeskState {
             }
         }
         _placed.value = _placed.value.filter { it.app.componentKey !in componentKeys }
+        _piles.value = _piles.value.filter { it.id !in componentKeys }
         return true
     }
 
@@ -509,8 +586,38 @@ object HomeSpaceDeskState {
         return true
     }
 
+    /** BumpDesk createPileFromCaptured — STACK or FOLDER group at the selection centroid. */
+    fun createPile(keys: Set<String>, mode: DeskPileMode): Boolean {
+        val created = DeskPileOps.create(_placed.value, keys, mode) ?: return false
+        _placed.value = created.second
+        _piles.value = _piles.value + created.first
+        DeskGroupMoveState.clear()
+        Log.d(LOG_TAG, "createPile mode=$mode members=${created.first.members.size} id=${created.first.id}")
+        return true
+    }
+
+    fun togglePileExpanded(pileId: String): Boolean {
+        val pile = _piles.value.firstOrNull { it.id == pileId } ?: return false
+        _piles.value = _piles.value.map {
+            when {
+                it.id == pileId -> DeskPileOps.toggleExpanded(it)
+                // Only one expanded pile at a time (BumpDesk collapseNonPinnedPiles).
+                it.expanded -> DeskPileOps.collapse(it)
+                else -> it
+            }
+        }
+        return true
+    }
+
+    fun breakPile(pileId: String): Boolean {
+        val pile = _piles.value.firstOrNull { it.id == pileId } ?: return false
+        _piles.value = _piles.value.filter { it.id != pileId }
+        _placed.value = DeskPileOps.breakApart(pile, _placed.value)
+        return true
+    }
+
     /**
-     * BumpDesk lasso layout: rearrange selected Desktop icons (row / column / grid / stack / folder).
+     * BumpDesk lasso layout: rearrange selected Desktop icons (row / column / grid).
      */
     fun arrangeSelected(
         keys: Set<String>,

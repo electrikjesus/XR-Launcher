@@ -21,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskPileMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetUtils
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
@@ -281,11 +282,19 @@ private fun desktopMenuItems(
                             RadialMenuItem(
                                 label = context.getString(R.string.context_menu_arrange_folder),
                                 iconRes = android.R.drawable.ic_menu_agenda,
-                            ) { arrange(DeskArrangeMode.FOLDER) },
+                            ) {
+                                dismiss()
+                                HomeSpaceDeskState.createPile(selected, DeskPileMode.FOLDER)
+                                DeskLassoState.clearSelection()
+                            },
                             RadialMenuItem(
                                 label = context.getString(R.string.context_menu_arrange_stack),
                                 iconRes = android.R.drawable.ic_menu_sort_by_size,
-                            ) { arrange(DeskArrangeMode.STACK) },
+                            ) {
+                                dismiss()
+                                HomeSpaceDeskState.createPile(selected, DeskPileMode.STACK)
+                                DeskLassoState.clearSelection()
+                            },
                         ),
                     ),
                 )
