@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
@@ -443,16 +444,19 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
             val hovered = icon.componentKey == deskHoveredKey && !icon.isBacking
-            val selected = icon.componentKey in DeskLassoState.selectedKeys &&
-                (icon.isDesktopApp || icon.isWidget)
+            val selected = (
+                icon.componentKey in DeskLassoState.selectedKeys ||
+                    DeskGroupMoveState.isArmedMember(icon.componentKey)
+                ) && (icon.isDesktopApp || icon.isWidget)
+            val handleLit = icon.isGroupHandle
             drawMesh(
                 buffer,
                 count,
                 textureId,
-                ambient = if (hovered || selected) 0.96f else 0.92f,
+                ambient = if (hovered || selected || handleLit) 0.96f else 0.92f,
                 useTexture = true,
-                highlight = hovered || selected,
-                diffuseGain = if (hovered || selected) 0.22f else 0.12f,
+                highlight = hovered || selected || handleLit,
+                diffuseGain = if (hovered || selected || handleLit) 0.22f else 0.12f,
             )
         }
         GLES20.glDisableVertexAttribArray(litPositionHandle)

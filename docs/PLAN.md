@@ -629,8 +629,8 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
-2. **Lasso → pile / arrange** — ☑ Partial: radial Stack (pile stand-in), Folder layout, Row, Column, Grid rearrange selected desk icons around their centroid. True Smart Pile objects still open.
-3. **Radial menu** — ☑ BumpDesk `RadialMenuView` pie wedges + secondary ring; empty menu **Add widget**; selected widgets get **Grow / Shrink**; host catcher drops while open.
+2. **Lasso → pile / arrange** — ☑ Partial: radial **Move** (centroid handle + rigid drag); Stack/Folder/Row/Column/Grid rearrange. True Smart Pile objects still open.
+3. **Radial menu** — ☑ BumpDesk `RadialMenuView`; empty **Add widget**; selected widgets Grow/Shrink; multi-select **Move** + arrange; host catcher drops while open.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
 **Large-screen host:**
@@ -860,7 +860,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **AppWidgetHost desk widgets:** off-screen host → Canvas capture → GLES; empty radial **Add widget** at click sphere pose; `desk_json` WIDGET half extents | Live widgets were deferred after tray/wallpaper surface work |
 | 2026-09-20 | **Widget Grow/Shrink radial:** 1.25× half-extent scale with clamp; dirty capture refresh | Resize was only via future drag handles |
 | 2026-09-20 | **Empty-desk radial clears selection** — and drag-press clears prior lasso/widget keys | Stale widget selection showed Grow/Shrink after move + empty click |
+| 2026-09-20 | **Lasso Move + group handle:** arm selection, centroid grab handle, rigid yaw/pitch offsets (BumpDesk prepareGroupMove) | Multi-select could only rearrange, not translate as a group |
 
 ---
 
-*Last updated: 2026-09-20 (clear stale desk selection)*
+*Last updated: 2026-09-20 (lasso group Move)*

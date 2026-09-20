@@ -51,7 +51,8 @@ object HomeSpaceDeskState {
     /** Pager / All Apps tile pressed under Hold-Left — fired on pointer-up if not dragging. */
     private var pendingChrome: HomeSpaceDesk.Icon? = null
 
-    fun hasActiveGesture(): Boolean = _drag.value != null || pendingChrome != null
+    fun hasActiveGesture(): Boolean =
+        _drag.value != null || pendingChrome != null || DeskGroupMoveState.isDragging
 
     /**
      * @param hitYawDeg / [hitPitchDeg] sphere angles under the cursor at press (not icon center).
@@ -112,6 +113,10 @@ object HomeSpaceDeskState {
      * @return true when the companion must not emit a click/drag.
      */
     fun notePointerUp(cursorMoved: Boolean): Boolean {
+        if (DeskGroupMoveState.isDragging) {
+            // Group end is finalized in trackDeskDrag; consume companion click after a pull.
+            return DeskGroupMoveState.isPulling || cursorMoved
+        }
         val chrome = pendingChrome
         pendingChrome = null
         if (chrome != null && _drag.value?.pulling != true) {
@@ -148,8 +153,30 @@ object HomeSpaceDeskState {
                     AllAppsPaginationState.goToPage(it)
                 }
             }
-            else -> Unit
+            HomeSpaceDesk.Kind.GROUP_HANDLE,
+            HomeSpaceDesk.Kind.APP,
+            HomeSpaceDesk.Kind.WIDGET,
+            HomeSpaceDesk.Kind.DRAWER_BACKING,
+            -> Unit
         }
+    }
+
+    /** Apply yaw/pitch poses for a rigid group move (relative arrangement preserved). */
+    fun applyGroupPoses(poses: Map<String, Pair<Float, Float>>) {
+        if (poses.isEmpty()) return
+        var changed = false
+        val next = _placed.value.map { item ->
+            val pose = poses[item.app.componentKey] ?: return@map item
+            if (item.yawDeg == pose.first && item.pitchDeg == pose.second) return@map item
+            changed = true
+            item.copy(
+                yawDeg = pose.first,
+                pitchDeg = pose.second,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+            )
+        }
+        if (changed) _placed.value = next
     }
 
     /**
@@ -261,6 +288,7 @@ object HomeSpaceDeskState {
             density = density,
         )
         val labeledHalfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        val groupKeys = DeskGroupMoveState.armedKeys.takeIf { DeskGroupMoveState.isDragging }.orEmpty()
         val bodies = ArrayList<DeskPhysics.Body>(_placed.value.size + pinnedObstacles.size + panes.size)
         _placed.value.forEach { item ->
             val itemHalfW = item.halfWidth ?: halfW
@@ -274,7 +302,7 @@ object HomeSpaceDeskState {
                 halfYawDeg = HomeSpaceDesk.angularHalfYaw(itemHalfW, sphereScale),
                 halfPitchDeg = HomeSpaceDesk.angularHalfPitch(itemHalfH, sphereScale),
                 mass = DeskPhysics.massFor(itemHalfW, itemHalfH),
-                pinned = false,
+                pinned = item.app.componentKey in groupKeys,
             )
         }
         pinnedObstacles.forEach { icon ->
@@ -346,6 +374,7 @@ object HomeSpaceDeskState {
     fun cancel() {
         _drag.value = null
         pendingChrome = null
+        DeskGroupMoveState.cancelDrag()
     }
 
     fun clear() {
@@ -353,6 +382,7 @@ object HomeSpaceDeskState {
         _drag.value = null
         _drawerPose.value = null
         pendingChrome = null
+        DeskGroupMoveState.clear()
     }
 
     fun restore(layout: DeskLayout) {

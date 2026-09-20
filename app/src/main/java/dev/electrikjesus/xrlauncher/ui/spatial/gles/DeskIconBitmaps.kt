@@ -38,6 +38,7 @@ object DeskIconBitmaps {
             icon.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> drawChevron(canvas, width, ICON_SIZE, left = false)
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
             icon.isAppDrawer -> drawAppDrawer(canvas, width, ICON_SIZE)
+            icon.isGroupHandle -> drawGroupMoveHandle(canvas, width, ICON_SIZE)
             icon.isWidget -> drawWidgetPlaceholder(canvas, width, ICON_SIZE)
             else -> drawAppIcon(canvas, context, icon.packageName, width, ICON_SIZE)
         }
@@ -59,6 +60,7 @@ object DeskIconBitmaps {
     fun drawsLabel(icon: HomeSpaceDesk.Icon): Boolean =
         !icon.isBacking &&
             !icon.isWidget &&
+            !icon.isGroupHandle &&
             icon.kind != HomeSpaceDesk.Kind.PAGE &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
@@ -133,6 +135,36 @@ object DeskIconBitmaps {
         paint.textSize = 28f
         paint.typeface = Typeface.DEFAULT_BOLD
         canvas.drawText("Widget", width / 2f, iconSize / 2f + 10f, paint)
+    }
+
+    private fun drawGroupMoveHandle(canvas: Canvas, width: Int, iconSize: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val cx = width / 2f
+        val cy = iconSize / 2f
+        paint.color = Color.argb(210, 70, 130, 220)
+        canvas.drawCircle(cx, cy, iconSize * 0.42f, paint)
+        paint.color = Color.WHITE
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 10f
+        paint.strokeCap = Paint.Cap.ROUND
+        val arm = iconSize * 0.22f
+        canvas.drawLine(cx - arm, cy, cx + arm, cy, paint)
+        canvas.drawLine(cx, cy - arm, cx, cy + arm, paint)
+        // Arrow tips
+        paint.style = Paint.Style.FILL
+        val tip = iconSize * 0.08f
+        fun arrow(tx: Float, ty: Float, dx: Float, dy: Float) {
+            val path = android.graphics.Path()
+            path.moveTo(tx, ty)
+            path.lineTo(tx - dy * tip - dx * tip, ty + dx * tip - dy * tip)
+            path.lineTo(tx + dy * tip - dx * tip, ty - dx * tip - dy * tip)
+            path.close()
+            canvas.drawPath(path, paint)
+        }
+        arrow(cx + arm, cy, 1f, 0f)
+        arrow(cx - arm, cy, -1f, 0f)
+        arrow(cx, cy - arm, 0f, -1f)
+        arrow(cx, cy + arm, 0f, 1f)
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

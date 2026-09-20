@@ -47,6 +47,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
@@ -129,6 +130,7 @@ fun GlassesSpatialWorkspaceScreen(
     val deskPlaced by HomeSpaceDeskState.placedFlow.collectAsState()
     val deskDrag by HomeSpaceDeskState.dragFlow.collectAsState()
     val deskDrawerPose by HomeSpaceDeskState.drawerPoseFlow.collectAsState()
+    val groupMoveArmed by DeskGroupMoveState.armedKeysFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
@@ -273,6 +275,7 @@ fun GlassesSpatialWorkspaceScreen(
         deskPlaced,
         deskDrag,
         deskDrawerPose,
+        groupMoveArmed,
         viewportWidthPx,
         viewportHeightPx,
     ) {
@@ -304,11 +307,19 @@ fun GlassesSpatialWorkspaceScreen(
             drawerYawDeg = deskDrawerPose?.first,
             drawerPitchDeg = deskDrawerPose?.second ?: 0f,
         )
+        val halfW = icons.firstOrNull { it.isDesktopApp || it.isWidget }?.halfWidth
+            ?: HomeSpaceDesk.ICON_HALF_WIDTH
+        val withHandle = DeskGroupMoveState.appendHandle(
+            icons = icons,
+            placed = deskPlaced,
+            sphereScale = tuned.sphereScale,
+            halfWidth = halfW,
+        )
         // Publish poses immediately so pager/app picks work while bitmaps catch up.
-        DeskIconTextureBus.setIcons(icons)
+        DeskIconTextureBus.setIcons(withHandle)
         DeskIconTextureBus.lastDrawerPage = allAppsPage
         val existing = DeskIconTextureBus.snapshots().associateBy { it.componentKey }
-        val missing = icons.filter { it.componentKey !in existing }
+        val missing = withHandle.filter { it.componentKey !in existing }
         if (missing.isEmpty()) return@LaunchedEffect
         val created = withContext(Dispatchers.Default) {
             missing.map { icon ->
@@ -319,10 +330,10 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             }
         }
-        val merged = icons.map { icon ->
+        val merged = withHandle.map { icon ->
             existing[icon.componentKey] ?: created.first { it.componentKey == icon.componentKey }
         }
-        DeskIconTextureBus.set(icons, merged)
+        DeskIconTextureBus.set(withHandle, merged)
     }
     LaunchedEffect(hotseatApps) {
         GlassesRecentApps.seedIfEmpty(hotseatApps)

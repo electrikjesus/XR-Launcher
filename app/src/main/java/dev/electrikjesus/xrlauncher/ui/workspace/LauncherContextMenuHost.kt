@@ -18,6 +18,7 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
@@ -263,6 +264,15 @@ private fun desktopMenuItems(
                 )
             }
             if (selected.size >= 2) {
+                add(
+                    RadialMenuItem(
+                        label = context.getString(R.string.context_menu_move_group),
+                        iconRes = android.R.drawable.ic_menu_mylocation,
+                    ) {
+                        dismiss()
+                        DeskGroupMoveState.arm(selected)
+                    },
+                )
                 add(
                     RadialMenuItem(
                         label = context.getString(R.string.context_menu_create_pile),

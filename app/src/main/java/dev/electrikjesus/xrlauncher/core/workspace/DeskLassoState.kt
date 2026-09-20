@@ -101,6 +101,7 @@ object DeskLassoState {
     fun clearSelection() {
         if (_selectedKeys.value.isEmpty()) return
         _selectedKeys.value = emptySet()
+        DeskGroupMoveState.clear()
         DeskIconTextureBus.requestRender()
     }
 

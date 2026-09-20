@@ -26,6 +26,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
 import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
@@ -331,8 +332,6 @@ private fun handleRightClick(
             } else if (
                 homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null
             ) {
-                // Empty desk radial must not inherit a prior widget/lasso selection
-                // (Grow/Shrink/Remove), or it looks like the moved widget is still selected.
                 DeskLassoState.clearSelection()
                 val hit = HomeSpaceScene.sphereHit(
                     cursorX = click.x,
@@ -392,6 +391,7 @@ private fun handleLeftClick(
                 return
             }
             desk.isBacking -> return
+            desk.isGroupHandle -> return
             desk.kind == HomeSpaceDesk.Kind.PAGE_PREV -> {
                 AllAppsPaginationState.prevPage()
                 return
@@ -941,15 +941,29 @@ private fun trackDeskDrag(
             val deskIcon = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
             when {
                 deskIcon != null -> {
-                    // Dragging an item replaces any prior lasso/widget selection.
-                    DeskLassoState.clearSelection()
-                    HomeSpaceDeskState.press(
-                        icon = deskIcon,
-                        cursorX = cursorX,
-                        cursorY = cursorY,
-                        hitYawDeg = hit.yawDeg,
-                        hitPitchDeg = hit.pitchDeg,
-                    )
+                    when {
+                        DeskGroupMoveState.canBeginDrag(deskIcon.componentKey) -> {
+                            DeskGroupMoveState.beginDrag(
+                                componentKey = deskIcon.componentKey,
+                                cursorX = cursorX,
+                                cursorY = cursorY,
+                                grabYawDeg = hit.yawDeg,
+                                grabPitchDeg = hit.pitchDeg,
+                                placed = HomeSpaceDeskState.placed,
+                            )
+                        }
+                        else -> {
+                            // Dragging an item replaces any prior lasso/widget selection.
+                            DeskLassoState.clearSelection()
+                            HomeSpaceDeskState.press(
+                                icon = deskIcon,
+                                cursorX = cursorX,
+                                cursorY = cursorY,
+                                hitYawDeg = hit.yawDeg,
+                                hitPitchDeg = hit.pitchDeg,
+                            )
+                        }
+                    }
                 }
                 tryPressHomePaneApp(
                     cursorX = cursorX,
@@ -970,6 +984,8 @@ private fun trackDeskDrag(
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
                     ) -> {
+                    // Empty press dismisses an armed group move (BumpDesk).
+                    DeskGroupMoveState.clear()
                     deskLassoPending = true
                     pendingLassoCursorX = cursorX
                     pendingLassoCursorY = cursorY
@@ -990,6 +1006,11 @@ private fun trackDeskDrag(
             }
         }
         when {
+            DeskGroupMoveState.isDragging -> {
+                DeskGroupMoveState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)?.let { poses ->
+                    HomeSpaceDeskState.applyGroupPoses(poses)
+                }
+            }
             HomeSpaceDeskState.drag != null ->
                 HomeSpaceDeskState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)
             DeskLassoState.active ->
@@ -998,6 +1019,12 @@ private fun trackDeskDrag(
     } else if (deskGesturePressed) {
         if (deskLassoPending) {
             clearPendingLasso()
+        }
+        if (DeskGroupMoveState.isDragging) {
+            if (DeskGroupMoveState.endDrag()) {
+                // Successful move — drop selection highlight (BumpDesk clears groupSelectedItems).
+                DeskLassoState.clearSelection()
+            }
         }
         val iconsForLasso = DeskIconTextureBus.icons().ifEmpty {
             HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)

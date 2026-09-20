@@ -91,6 +91,7 @@
     <string name="context_menu_arrange_row">Row</string>
     <string name="context_menu_arrange_column">Column</string>
     <string name="context_menu_arrange_grid">Grid</string>
+    <string name="context_menu_move_group">Move</string>
     <string name="context_menu_selection_count">%1$d selected</string>
     <string name="context_menu_widget">Widget · %1$s</string>
     <string name="launcher_return_bubble_label">XR</string>

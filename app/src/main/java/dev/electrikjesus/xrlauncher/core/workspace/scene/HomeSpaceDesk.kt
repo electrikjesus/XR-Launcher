@@ -151,7 +151,7 @@ object HomeSpaceDesk {
     fun labeledIconHalfHeight(iconHalfWidth: Float): Float =
         iconHalfWidth * LABELED_ICON_ASPECT
 
-    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE, WIDGET }
+    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE, WIDGET, GROUP_HANDLE }
 
     data class AppRef(
         val componentKey: String,
@@ -190,6 +190,7 @@ object HomeSpaceDesk {
         val isPager: Boolean get() = kind == Kind.PAGE_PREV || kind == Kind.PAGE_NEXT || kind == Kind.PAGE
         val isDesktopApp: Boolean get() = kind == Kind.APP
         val isWidget: Boolean get() = kind == Kind.WIDGET
+        val isGroupHandle: Boolean get() = kind == Kind.GROUP_HANDLE
     }
 
     fun yawDegrees(
@@ -489,6 +490,7 @@ object HomeSpaceDesk {
 
     /** Prefer apps/pager over the large backing so pagination stays clickable. */
     private fun pickPriority(icon: Icon): Int = when (icon.kind) {
+        Kind.GROUP_HANDLE -> 0
         Kind.PAGE_PREV, Kind.PAGE_NEXT, Kind.PAGE -> 0
         Kind.APP, Kind.APP_DRAWER, Kind.WIDGET -> 1
         Kind.DRAWER_BACKING -> 3
