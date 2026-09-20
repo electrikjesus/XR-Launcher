@@ -66,14 +66,12 @@ import androidx.compose.ui.unit.dp
 import android.provider.Settings
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
-import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
 import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
-import dev.electrikjesus.xrlauncher.core.workspace.HomePanelGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
@@ -91,23 +89,14 @@ private val Accent = Color(0xFF8AB4F8)
 
 @Composable
 fun GlassesHomeSpace(
-    desktopApps: List<LaunchableApp>,
-    pinnedComponentKeys: Set<String>,
     hoveredLabel: String?,
-    pageIndex: Int,
-    onPageChange: (Int) -> Unit,
     onBoundsChanged: (String, Rect) -> Unit,
-    onLaunchApp: (LaunchableApp) -> Unit,
     onOpenRecents: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenQuickSettings: () -> Unit,
     onOpenSettings: () -> Unit,
-    onAppContextMenu: ((LaunchableApp, Rect) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(desktopApps.size) {
-        HomeAppsPaginationState.updatePageCount(desktopApps.size, pageSize = HomePanelGrid.PAGE_SIZE)
-    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -125,40 +114,9 @@ fun GlassesHomeSpace(
             onSettings = onOpenSettings,
             modifier = Modifier.padding(top = 16.dp),
         )
-        if (desktopApps.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.home_panel_empty_desktop_apps),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.72f),
-                )
-            }
-        } else {
-            PaginatedAppGrid(
-                apps = desktopApps,
-                pageIndex = pageIndex,
-                onPageChange = onPageChange,
-                hoveredLabel = hoveredLabel,
-                pinnedComponentKeys = pinnedComponentKeys,
-                onBoundsChanged = onBoundsChanged,
-                onLaunchApp = onLaunchApp,
-                onAppContextMenu = onAppContextMenu,
-                columns = HomePanelGrid.COLS,
-                rows = HomePanelGrid.ROWS,
-                showPageControls = true,
-                iconSize = 92.dp,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            )
-        }
+        // Body is empty on purpose: Desktop apps/widgets place onto this sphere face
+        // (same yaw/pitch as Home), not a mirrored Compose icon grid.
+        Spacer(Modifier.weight(1f))
     }
 }
 

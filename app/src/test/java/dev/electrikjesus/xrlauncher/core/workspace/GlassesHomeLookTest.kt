@@ -26,6 +26,13 @@ class GlassesHomeLookTest {
     }
 
     @Test
+    fun deskBlockingSlots_omitHomeSoDeskItemsCanSitOnHomeFace() {
+        assertTrue(GlassesHomeLook.acceptsDeskItems("home"))
+        assertFalse(GlassesHomeLook.acceptsDeskItems("tray"))
+        assertEquals(listOf("tray"), GlassesHomeLook.deskBlockingSlots().map { it.panelId })
+    }
+
+    @Test
     fun lookAtAllAppsDrawer_usesYawDegreesWhenProvided() {
         GlassesHomeLook.lastPaneArcDegrees = 72f
         GlassesHomeLook.lookAtAllAppsDrawer(yawDeg = -48f, pitchDeg = 4f)

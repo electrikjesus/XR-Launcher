@@ -127,6 +127,15 @@ object GlassesHomeLook {
         return slots
     }
 
+    /**
+     * Home accepts Desktop apps/widgets on its sphere face. Tray and app panes stay
+     * hard blockers so desk items do not settle behind their chrome.
+     */
+    fun acceptsDeskItems(panelId: String): Boolean = panelId == "home"
+
+    fun deskBlockingSlots(appPlanes: List<GlassesAppPlane> = this.appPlanes): List<HomeSpacePaneSlot> =
+        homeSpaceSlots(appPlanes).filterNot { acceptsDeskItems(it.panelId) }
+
     var panNorm: Float
         get() = _panNorm.value
         set(value) {

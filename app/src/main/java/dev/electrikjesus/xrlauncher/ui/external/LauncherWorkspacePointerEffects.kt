@@ -348,7 +348,8 @@ private fun handleRightClick(
                     anchorY = click.y,
                 )
             } else if (
-                homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null
+                homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+                    .let { it == null || GlassesHomeLook.acceptsDeskItems(it.slot.panelId) }
             ) {
                 DeskLassoState.clearSelection()
                 val hit = HomeSpaceScene.sphereHit(
@@ -1034,22 +1035,11 @@ private fun trackDeskDrag(
                         }
                     }
                 }
-                tryPressHomePaneApp(
-                    cursorX = cursorX,
-                    cursorY = cursorY,
-                    hitYawDeg = hit.yawDeg,
-                    hitPitchDeg = hit.pitchDeg,
-                    rootWidthPx = rootWidthPx,
-                    rootHeightPx = rootHeightPx,
-                    panelScale = panelScale,
-                    sphereScale = sphereScale,
-                    apps = apps,
-                    itemBounds = itemBounds,
-                ) -> Unit
                 // Near-misses on open All Apps pagination must not start a Desktop lasso —
                 // a one-point lasso cancels and the follow-up click dismisses the drawer.
-                // Empty desk: pending until touch-slop so long-press can open the radial.
-                homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null &&
+                // Empty desk (incl. Home face): pending until touch-slop so long-press can open the radial.
+                homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+                    .let { it == null || GlassesHomeLook.acceptsDeskItems(it.slot.panelId) } &&
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
                     ) -> {
@@ -1176,7 +1166,7 @@ private fun trackDeskDrag(
         val draggingKey = drag?.app?.componentKey
         val icons = iconsForLasso
         val pane = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-        val panes = GlassesHomeLook.homeSpaceSlots().map { slot ->
+        val panes = GlassesHomeLook.deskBlockingSlots().map { slot ->
             HomeSpaceScene.pane(
                 worldX = slot.worldX,
                 viewportWidthPx = rootWidthPx,
@@ -1189,7 +1179,7 @@ private fun trackDeskDrag(
             ?: HomeSpaceDesk.ICON_HALF_WIDTH
         val halfH = icons.firstOrNull { it.componentKey == draggingKey }?.halfHeight
             ?: HomeSpaceDesk.labeledIconHalfHeight(halfW)
-        val onDesktop = pane == null
+        val onDesktop = pane == null || GlassesHomeLook.acceptsDeskItems(pane.slot.panelId)
         HomeSpaceDeskState.release(
             onDesktop = onDesktop,
             halfWidth = halfW,
@@ -1254,48 +1244,6 @@ private fun refreshDeskGridOverlay(
             snapTarget = snapTarget,
         ),
     )
-}
-
-/** Hold-Left on a Home pane app starts a Desktop copy-drag; Home list is never mutated. */
-private fun tryPressHomePaneApp(
-    cursorX: Float,
-    cursorY: Float,
-    hitYawDeg: Float,
-    hitPitchDeg: Float,
-    rootWidthPx: Float,
-    rootHeightPx: Float,
-    panelScale: Float,
-    sphereScale: Float,
-    apps: List<LaunchableApp>,
-    itemBounds: Map<String, Rect>,
-): Boolean {
-    val pick = homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
-        ?: return false
-    if (pick.slot.panelId != "home") return false
-    val screenPoint = Offset(cursorX * rootWidthPx, cursorY * rootHeightPx)
-    val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
-    val paneBounds = paneItemBounds(itemBounds, "home")
-    val app = findAppAt(panePoint, paneBounds, apps) ?: return false
-    val icon = HomeSpaceDesk.iconOf(
-        app = HomeSpaceDesk.AppRef(
-            componentKey = app.componentKey(),
-            label = app.label,
-            packageName = app.packageName,
-        ),
-        yawDeg = hitYawDeg,
-        pitchDeg = hitPitchDeg,
-        sphereScale = sphereScale,
-        lift = 0.15f,
-    )
-    HomeSpaceDeskState.press(
-        icon = icon,
-        cursorX = cursorX,
-        cursorY = cursorY,
-        hitYawDeg = hitYawDeg,
-        hitPitchDeg = hitPitchDeg,
-        fromHome = true,
-    )
-    return true
 }
 
 private fun logClickMiss(point: Offset, itemBounds: Map<String, Rect>) {

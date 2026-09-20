@@ -40,7 +40,6 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
-import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppRepository
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import androidx.compose.runtime.rememberUpdatedState
@@ -139,7 +138,6 @@ fun GlassesSpatialWorkspaceScreen(
     val resizeWidgetKey by DeskWidgetResizeState.widgetKeyFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
-    val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
     val context = LocalContext.current
     var deskHydrated by remember { mutableStateOf(workspaceRepository == null) }
 
@@ -404,7 +402,7 @@ fun GlassesSpatialWorkspaceScreen(
                     val pinned = icons.filter {
                         (it.isAppDrawer || it.isBacking) && it.componentKey != draggingKey
                     }
-                    val panes = GlassesHomeLook.homeSpaceSlots(currentAppPlanes.value).map { slot ->
+                    val panes = GlassesHomeLook.deskBlockingSlots(currentAppPlanes.value).map { slot ->
                         HomeSpaceScene.pane(
                             worldX = slot.worldX,
                             viewportWidthPx = currentViewportW.value,
@@ -476,25 +474,13 @@ fun GlassesSpatialWorkspaceScreen(
             captureToGles = true,
             onBoundsChanged = onBoundsChanged,
             center = {
-                val byKey = remember(launchableApps) {
-                    launchableApps.associateBy { it.componentKey() }
-                }
-                val desktopApps = remember(deskPlaced, byKey) {
-                    deskPlaced.mapNotNull { byKey[it.app.componentKey] }
-                }
                 GlassesHomeSpace(
-                    desktopApps = desktopApps,
-                    pinnedComponentKeys = pinnedComponentKeys,
                     hoveredLabel = cursor.hoveredLabel,
-                    pageIndex = homePageIndex,
-                    onPageChange = { HomeAppsPaginationState.goToPage(it) },
                     onBoundsChanged = prefixBounds("home"),
-                    onLaunchApp = launchApp,
                     onOpenRecents = { GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS) },
                     onOpenNotifications = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
                     onOpenQuickSettings = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
                     onOpenSettings = onOpenSettings,
-                    onAppContextMenu = onAppContextMenu,
                     modifier = Modifier.fillMaxSize(),
                 )
             },

@@ -761,7 +761,7 @@ object HomeSpaceDeskState {
                 var yaw = item.yawDeg
                 var pitch = item.pitchDeg
 
-                // Clear Home / Tray / app panes (large AABBs that otherwise orbit icons).
+                // Clear Tray / app panes (Home accepts desk items and is omitted from paneBlocks).
                 panes.forEach { pane ->
                     if (yaw !in pane.yawMin..pane.yawMax || pitch !in pane.pitchMin..pane.pitchMax) {
                         return@forEach

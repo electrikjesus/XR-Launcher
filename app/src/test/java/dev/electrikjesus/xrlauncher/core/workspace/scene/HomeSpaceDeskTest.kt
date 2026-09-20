@@ -504,4 +504,41 @@ class HomeSpaceDeskTest {
         assertEquals(-8f, moved.pitchDeg, 0.01f)
         assertEquals(drawer.componentKey, moved.componentKey)
     }
+
+    @Test
+    fun resolveDesktopDrop_allowsHomeYawWhenHomeIsNotABlocker() {
+        val home = HomeSpaceScene.pane(
+            worldX = 0f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        val tray = HomeSpaceScene.pane(
+            worldX = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        val halfW = HomeSpaceDesk.ICON_HALF_WIDTH
+        val halfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        val onHome = HomeSpaceDesk.resolveDesktopDrop(
+            yawDeg = home.yawDeg,
+            pitchDeg = 0f,
+            halfWidth = halfW,
+            halfHeight = halfH,
+            sphereScale = 1f,
+            obstacles = emptyList(),
+            paneBlocks = listOf(tray), // Home omitted — desk-compatible face
+        )
+        assertNotNull(onHome)
+        assertEquals(home.yawDeg, onHome!!.first, 0.5f)
+        val onTray = HomeSpaceDesk.resolveDesktopDrop(
+            yawDeg = tray.yawDeg,
+            pitchDeg = 0f,
+            halfWidth = halfW,
+            halfHeight = halfH,
+            sphereScale = 1f,
+            obstacles = emptyList(),
+            paneBlocks = listOf(tray),
+        )
+        assertNull(onTray)
+    }
 }

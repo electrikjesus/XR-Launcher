@@ -119,7 +119,7 @@ class HomeSpaceDeskStateTest {
             pitchDeg = -8f,
             sphereScale = 1f,
         )
-        AllAppsPaginationState.updatePageCount(40, HomeSpaceDesk.DRAWER_PAGE_SIZE)
+        AllAppsPaginationState.updatePageCount(HomeSpaceDesk.DRAWER_PAGE_SIZE * 3, HomeSpaceDesk.DRAWER_PAGE_SIZE)
         AllAppsPaginationState.goToPage(2)
         HomeSpaceDeskState.press(prev, 0.5f, 0.5f)
         assertTrue(HomeSpaceDeskState.notePointerUp(cursorMoved = false))

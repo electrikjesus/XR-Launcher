@@ -548,7 +548,7 @@ object HomeSpaceDesk {
 
     /**
      * Push [yawDeg]/[pitchDeg] off overlapping desk icons / the open widget / All Apps tile.
-     * Returns null if the pose sits on a Home/Tray/app pane.
+     * Returns null if the pose sits on a Tray/app pane (Home accepts desk items).
      */
     fun resolveDesktopDrop(
         yawDeg: Float,
