@@ -5,9 +5,15 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.core.net.toUri
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** Curated QS / system panel launches — no SystemUI privileges. */
 object LauncherSystemPanels {
+    private val _brightnessFraction = MutableStateFlow(0.65f)
+    val brightnessFractionFlow: StateFlow<Float> = _brightnessFraction.asStateFlow()
+
     fun openWifi(context: Context) {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Intent(Settings.Panel.ACTION_WIFI)
@@ -36,9 +42,19 @@ object LauncherSystemPanels {
         start(context, intent)
     }
 
+    fun readBrightnessFraction(context: Context): Float {
+        val value = runCatching {
+            Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f
+        }.getOrDefault(_brightnessFraction.value)
+        _brightnessFraction.value = value.coerceIn(0f, 1f)
+        return _brightnessFraction.value
+    }
+
     fun setBrightnessFraction(context: Context, fraction: Float): Boolean {
+        val clamped = fraction.coerceIn(0f, 1f)
+        _brightnessFraction.value = clamped
         if (!Settings.System.canWrite(context)) return false
-        val value = (fraction.coerceIn(0f, 1f) * 255f).toInt().coerceIn(1, 255)
+        val value = (clamped * 255f).toInt().coerceIn(1, 255)
         return runCatching {
             Settings.System.putInt(
                 context.contentResolver,

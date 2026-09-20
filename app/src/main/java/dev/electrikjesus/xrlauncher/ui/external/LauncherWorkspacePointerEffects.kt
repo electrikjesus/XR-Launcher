@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.ui.external
 
+import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,6 +26,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
 import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
+import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationScrollBus
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGrid
@@ -198,6 +200,16 @@ fun LauncherWorkspacePointerEffects(
         val homeHover = homeHitKey(screenPoint, screenSpaceBounds(itemBounds))?.let {
             GlassesHomeHits.hoverLabel(it)
         } ?: homeHitKey(panePoint, paneBounds)?.let { GlassesHomeHits.hoverLabel(it) }
+        scrubTrayControls(
+            pressed = cursor.isPressed,
+            point = panePoint,
+            itemBounds = paneBounds,
+        )
+        scrubTrayControls(
+            pressed = cursor.isPressed,
+            point = screenPoint,
+            itemBounds = screenSpaceBounds(itemBounds),
+        )
         val deskIcon = deskIconAt(
             cursor.x,
             cursor.y,
@@ -559,6 +571,36 @@ private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
         ?.key
 }
 
+/**
+ * While Hold-Left / mouse-look press is held over the tray brightness slider or
+ * notification scroll handle, map cursor position onto that control.
+ */
+private fun scrubTrayControls(
+    pressed: Boolean,
+    point: Offset,
+    itemBounds: Map<String, Rect>,
+) {
+    if (!pressed) {
+        TrayNotificationScrollBus.clearScrub()
+        return
+    }
+    itemBounds[GlassesHomeHits.QS_BRIGHTNESS]?.takeIf { !it.isEmpty && it.containsWithSlop(point) }?.let { rect ->
+        if (rect.width > 0f) {
+            val fraction = ((point.x - rect.left) / rect.width).coerceIn(0f, 1f)
+            GlassesSessionState.appContext?.let { ctx ->
+                LauncherSystemPanels.setBrightnessFraction(ctx, fraction)
+            }
+        }
+        return
+    }
+    itemBounds[GlassesHomeHits.NOTIFICATIONS_SCROLL]?.takeIf { !it.isEmpty && it.containsWithSlop(point) }?.let { rect ->
+        if (rect.height > 0f) {
+            val fraction = ((point.y - rect.top) / rect.height).coerceIn(0f, 1f)
+            TrayNotificationScrollBus.scrubTo(fraction)
+        }
+    }
+}
+
 private fun handleHomeSpaceClick(
     point: Offset,
     itemBounds: Map<String, Rect>,
@@ -622,8 +664,30 @@ private fun handleHomeSpaceClick(
             GlassesSessionState.appContext?.let { LauncherSystemPanels.openWifi(it) }
         GlassesHomeHits.QS_BLUETOOTH ->
             GlassesSessionState.appContext?.let { LauncherSystemPanels.openBluetooth(it) }
-        GlassesHomeHits.QS_BRIGHTNESS ->
-            GlassesSessionState.appContext?.let { LauncherSystemPanels.openDisplay(it) }
+        GlassesHomeHits.QS_BRIGHTNESS -> {
+            val rect = itemBounds[GlassesHomeHits.QS_BRIGHTNESS] ?: return true
+            if (rect.width <= 0f) return true
+            val fraction = ((point.x - rect.left) / rect.width).coerceIn(0f, 1f)
+            GlassesSessionState.appContext?.let { ctx ->
+                if (!LauncherSystemPanels.setBrightnessFraction(ctx, fraction)) {
+                    LauncherSystemPanels.requestWriteSettings(ctx)
+                }
+            }
+        }
+        GlassesHomeHits.QS_BRIGHTNESS_TILE ->
+            GlassesSessionState.appContext?.let { ctx ->
+                if (!Settings.System.canWrite(ctx)) {
+                    LauncherSystemPanels.requestWriteSettings(ctx)
+                } else {
+                    LauncherSystemPanels.openDisplay(ctx)
+                }
+            }
+        GlassesHomeHits.NOTIFICATIONS_SCROLL -> {
+            val rect = itemBounds[GlassesHomeHits.NOTIFICATIONS_SCROLL] ?: return true
+            if (rect.height <= 0f) return true
+            val fraction = ((point.y - rect.top) / rect.height).coerceIn(0f, 1f)
+            TrayNotificationScrollBus.scrubTo(fraction)
+        }
         GlassesHomeHits.QS_NOTIFICATIONS, GlassesHomeHits.NOTIFICATION_LISTENER ->
             GlassesSessionState.appContext?.let {
                 LauncherSystemPanels.openNotificationListenerSettings(it)

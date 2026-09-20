@@ -637,6 +637,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c13. **Companion Apps toggle + notification dismiss X** — ☑ Toolbar Apps icon toggles All Apps; each tray notification has a pointer-hit X dismiss.
 0c14. **Companion toolbar icon contrast** — ☑ Explicit `onBackground` / teal selected tints on every top-bar icon.
 0c15. **Companion 2/3-finger gestures** — ☑ 2-finger scroll (a11y swipe) / pinch-zoom sphere; 3-finger look; 2-finger tap = right-click.
+0c16. **Tray QS + notif scroll handle** — ☑ Deduped QS chrome; brightness scrub for pointer; notification grab-scroll handle.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -900,7 +901,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Companion Apps icon + notif X:** toolbar toggles All Apps; per-notification dismiss hits | Close-all-apps button ate touchpad space; FPS could not dismiss tray items |
 | 2026-09-20 | **Companion toolbar contrast:** every top icon uses onBackground; selected = teal secondary | Some toolbar icons had no tint and washed out on the dark chrome |
 | 2026-09-20 | **Companion multitouch:** 2-finger scroll/pinch-zoom, 3-finger look, 2-finger tap right-click | Touchpad lacked scroll/zoom; laptop-trackpad expectations |
+| 2026-09-20 | **Tray QS + notif scroll:** dedupe controls; pointer brightness scrub; grab scroll handle | Parent clickable ate slider; FPS could not scroll notifications |
 
 ---
 
-*Last updated: 2026-09-20 (companion multitouch)*
+*Last updated: 2026-09-20 (tray QS + notif scroll)*

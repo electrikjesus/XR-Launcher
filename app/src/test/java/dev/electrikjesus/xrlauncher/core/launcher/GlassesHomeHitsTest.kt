@@ -24,6 +24,10 @@ class GlassesHomeHitsTest {
         assertEquals("Desktop items", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_PAGE_DESKTOP))
         assertEquals("Piles", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_DESK_PILES))
         assertEquals("FPS look", GlassesHomeHits.hoverLabel(GlassesHomeHits.EDIT_LOOK_FPS))
+        assertEquals(
+            "Scroll notifications",
+            GlassesHomeHits.hoverLabel(GlassesHomeHits.NOTIFICATIONS_SCROLL),
+        )
     }
 
     @Test

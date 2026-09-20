@@ -10,6 +10,7 @@ object GlassesHomeHits {
     const val SETTINGS = "__xr_settings_pill__"
     const val RECENTS_CLEAR = "__xr_recents_clear__"
     const val NOTIFICATIONS_CLEAR = "__xr_notifications_clear__"
+    const val NOTIFICATIONS_SCROLL = "__xr_notifications_scroll__"
     const val OVERLAY_CLOSE = "__xr_overlay_close__"
     const val APP_CLOSE_PREFIX = "__xr_app_close_"
     const val EDIT_TOGGLE = "__xr_edit_toggle__"
@@ -39,6 +40,8 @@ object GlassesHomeHits {
     const val QS_WIFI = "__xr_qs_wifi__"
     const val QS_BLUETOOTH = "__xr_qs_bluetooth__"
     const val QS_BRIGHTNESS = "__xr_qs_brightness__"
+    /** Brightness tile (opens Display / write-settings) — separate from the slider track. */
+    const val QS_BRIGHTNESS_TILE = "__xr_qs_brightness_tile__"
     const val QS_NOTIFICATIONS = "__xr_qs_notifications__"
     const val NOTIFICATION_LISTENER = "__xr_notification_listener__"
     const val NOTIFICATION_ITEM_PREFIX = "__xr_notif_item_"
@@ -69,6 +72,7 @@ object GlassesHomeHits {
     const val QUICK_SETTINGS_LABEL = "Quick settings"
     const val SETTINGS_LABEL = "Settings"
     const val CLEAR_ALL_LABEL = "Clear all"
+    const val NOTIFICATIONS_SCROLL_LABEL = "Scroll notifications"
     const val CLOSE_LABEL = "Close"
     const val DISMISS_LABEL = "Dismiss"
     const val EDIT_LABEL = "Edit space"
@@ -127,6 +131,7 @@ object GlassesHomeHits {
             QUICK_SETTINGS -> QUICK_SETTINGS_LABEL
             SETTINGS -> SETTINGS_LABEL
             RECENTS_CLEAR, NOTIFICATIONS_CLEAR -> CLEAR_ALL_LABEL
+            NOTIFICATIONS_SCROLL -> NOTIFICATIONS_SCROLL_LABEL
             OVERLAY_CLOSE -> CLOSE_LABEL
             EDIT_TOGGLE -> EDIT_LABEL
             EDIT_CLOSE -> CLOSE_LABEL
@@ -154,7 +159,7 @@ object GlassesHomeHits {
             HUD_SETTINGS -> HUD_SETTINGS_LABEL
             QS_WIFI -> QS_WIFI_LABEL
             QS_BLUETOOTH -> QS_BLUETOOTH_LABEL
-            QS_BRIGHTNESS -> QS_BRIGHTNESS_LABEL
+            QS_BRIGHTNESS, QS_BRIGHTNESS_TILE -> QS_BRIGHTNESS_LABEL
             QS_NOTIFICATIONS -> QS_NOTIFICATIONS_LABEL
             NOTIFICATION_LISTENER -> NOTIFICATION_LISTENER_LABEL
             else -> null
@@ -189,8 +194,10 @@ object GlassesHomeHits {
         QS_WIFI,
         QS_BLUETOOTH,
         QS_BRIGHTNESS,
+        QS_BRIGHTNESS_TILE,
         QS_NOTIFICATIONS,
         NOTIFICATION_LISTENER,
+        NOTIFICATIONS_SCROLL,
         OVERLAY_CLOSE,
         RECENTS_CLEAR,
         NOTIFICATIONS_CLEAR,
