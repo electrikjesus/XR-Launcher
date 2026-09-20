@@ -75,6 +75,21 @@ fun WorkspaceGlesBackdrop(
         wallpaperGeneration++
     }
 
+    // Re-load after returning from All-files settings (SYSTEM needs MANAGE_EXTERNAL_STORAGE).
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, wallpaperChoice) {
+        if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
+            return@DisposableEffect onDispose { }
+        }
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                wallpaperGeneration++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     DisposableEffect(context, wallpaperChoice) {
         if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
             return@DisposableEffect onDispose { }

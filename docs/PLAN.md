@@ -632,6 +632,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c8. **PIP / foreign-window pointer inject** — ☑ When launcher is still resumed under PIP, inject `dispatchGesture` if the cursor hits a PIP or other-app window (Compose cannot).
 0c9. **Wallpaper choice switch + snap default** — ☑ SYSTEM re-uploads after gradient (no stale GLES texture); `deskSnapToGrid` defaults **on**.
 0c10. **Radial world-lock in mouse-look** — ☑ Menu pins to enactment sphere pose; FPS crosshair aims wedges via `updatePointer`; left-click activates via `RadialMenuPointerBridge`.
+0c11. **Phone wallpaper on XR room** — ☑ Declare `MANAGE_EXTERNAL_STORAGE` (Android 14+ `WallpaperManager` lock); Settings grant CTA; `WallpaperColors` approx when denied; resume reloads SYSTEM.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -889,7 +890,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **PIP pointer inject:** inject when cursor over PIP/foreign window even if launcher resumed | Inject was gated only on `launcherBackgrounded`; PIP left Compose-dead |
 | 2026-09-20 | **Wallpaper SYSTEM switch + snap default:** clear/re-upload on choice change; deskSnapToGrid default true | Stale gradient stuck under SYSTEM gen; snap was off by default |
 | 2026-09-20 | **Radial world-lock (FPS):** pin menu to enactment sphere pose; aim wedges with crosshair; left-click activates | Menu used screen anchors at cursor center and stuck to mouse-look |
+| 2026-09-20 | **Phone wallpaper on XR:** MANAGE_EXTERNAL_STORAGE + grant CTA; WallpaperColors approx without access | API 36 getDrawable always failed → silent twilight fallback |
 
 ---
 
-*Last updated: 2026-09-20 (radial world-lock FPS)*
+*Last updated: 2026-09-20 (phone wallpaper XR access)*
