@@ -6,6 +6,8 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGrid
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGridOverlay
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
@@ -237,6 +239,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             drawHomeSpacePanes()
             drawDesk()
             drawLasso()
+            drawDeskGrid()
             drawViewLockedDialogs()
             drawSphereCursor()
         }
@@ -494,6 +497,43 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, buffer)
         GLES20.glUniform4f(lineColorHandle, 0.45f, 0.86f, 1f, 0.9f)
         GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, count)
+        GLES20.glDisableVertexAttribArray(linePositionHandle)
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+    }
+
+    /** Angular desk grid while moving / resizing (Settings: show grid on move). */
+    private fun drawDeskGrid() {
+        val cfg = DeskGridOverlay.config
+        if (!cfg.visible) return
+        val lines = DeskGrid.overlayLines(
+            centerYawDeg = cfg.centerYawDeg,
+            centerPitchDeg = cfg.centerPitchDeg,
+            iconHalfWidth = cfg.iconHalfWidth,
+            gridScale = cfg.gridScale,
+            sphereScale = cfg.sphereScale,
+        )
+        if (lines.isEmpty()) return
+        val radius = HomeSpaceScene.sphereRadius(homeSpaceSphereScale) * 0.994f
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        GLES20.glUseProgram(lineProgram)
+        GLES20.glUniformMatrix4fv(lineMvpHandle, 1, false, mvpMatrix, 0)
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+        GLES20.glLineWidth(1.5f)
+        GLES20.glEnableVertexAttribArray(linePositionHandle)
+        GLES20.glUniform4f(lineColorHandle, 0.55f, 0.78f, 1f, 0.28f)
+        lines.forEach { line ->
+            if (line.size < 2) return@forEach
+            val verts = FloatArray(line.size * 3)
+            for (i in line.indices) {
+                val p = HomeSpaceScene.spherePoint(line[i].first, line[i].second, radius)
+                verts[i * 3] = p.x
+                verts[i * 3 + 1] = p.y
+                verts[i * 3 + 2] = p.z
+            }
+            val buffer = verts.toFloatBuffer()
+            GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, buffer)
+            GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, line.size)
+        }
         GLES20.glDisableVertexAttribArray(linePositionHandle)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
     }

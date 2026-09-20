@@ -48,10 +48,12 @@ import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGridOverlay
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconSnapshot
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileLayout
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileOps
+import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetResizeState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
@@ -134,6 +136,7 @@ fun GlassesSpatialWorkspaceScreen(
     val deskDrawerPose by HomeSpaceDeskState.drawerPoseFlow.collectAsState()
     val deskPiles by HomeSpaceDeskState.pilesFlow.collectAsState()
     val groupMoveArmed by DeskGroupMoveState.armedKeysFlow.collectAsState()
+    val resizeWidgetKey by DeskWidgetResizeState.widgetKeyFlow.collectAsState()
     val appPlanes by GlassesHomeLook.appPlanesFlow.collectAsState()
     val showLayoutPresets by GlassesSessionState.layoutPresetsVisibleFlow.collectAsState()
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
@@ -280,6 +283,7 @@ fun GlassesSpatialWorkspaceScreen(
         deskDrawerPose,
         deskPiles,
         groupMoveArmed,
+        resizeWidgetKey,
         viewportWidthPx,
         viewportHeightPx,
     ) {
@@ -316,6 +320,21 @@ fun GlassesSpatialWorkspaceScreen(
             ?: icons.firstOrNull { it.isAppDrawer }?.let { it.halfWidth / HomeSpaceDesk.DRAWER_SCALE }
             ?: HomeSpaceDesk.ICON_HALF_WIDTH
         val halfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        DeskGridOverlay.update(
+            DeskGridOverlay.config.copy(
+                iconHalfWidth = halfW,
+                gridScale = tuned.deskGridScale,
+                sphereScale = tuned.sphereScale,
+                snapToGrid = tuned.deskSnapToGrid,
+                showGridOnMove = tuned.deskShowGridOnMove,
+            ),
+        )
+        DeskWidgetResizeState.configure(
+            iconHalfWidth = halfW,
+            gridScale = tuned.deskGridScale,
+            sphereScale = tuned.sphereScale,
+            snapToGrid = tuned.deskSnapToGrid,
+        )
         val withPiles = DeskPileLayout.appendIcons(
             icons = icons,
             piles = deskPiles,
@@ -332,11 +351,17 @@ fun GlassesSpatialWorkspaceScreen(
             sphereScale = tuned.sphereScale,
             halfWidth = halfW,
         )
+        val withResize = DeskWidgetResizeState.appendHandles(
+            icons = withHandle,
+            placed = deskPlaced,
+            sphereScale = tuned.sphereScale,
+            handleHalf = halfW * 0.35f,
+        )
         // Publish poses immediately so pager/app picks work while bitmaps catch up.
-        DeskIconTextureBus.setIcons(withHandle)
+        DeskIconTextureBus.setIcons(withResize)
         DeskIconTextureBus.lastDrawerPage = allAppsPage
         val existing = DeskIconTextureBus.snapshots().associateBy { it.componentKey }
-        val missing = withHandle.filter { it.componentKey !in existing }
+        val missing = withResize.filter { it.componentKey !in existing }
         if (missing.isEmpty()) return@LaunchedEffect
         val created = withContext(Dispatchers.Default) {
             missing.map { icon ->
@@ -347,10 +372,10 @@ fun GlassesSpatialWorkspaceScreen(
                 )
             }
         }
-        val merged = withHandle.map { icon ->
+        val merged = withResize.map { icon ->
             existing[icon.componentKey] ?: created.first { it.componentKey == icon.componentKey }
         }
-        DeskIconTextureBus.set(withHandle, merged)
+        DeskIconTextureBus.set(withResize, merged)
     }
     LaunchedEffect(hotseatApps) {
         GlassesRecentApps.seedIfEmpty(hotseatApps)

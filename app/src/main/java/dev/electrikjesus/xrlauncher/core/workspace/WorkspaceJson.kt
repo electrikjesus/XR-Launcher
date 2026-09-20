@@ -68,6 +68,9 @@ object WorkspaceJson {
             clamped.lookMode.name.lowercase(),
             clamped.lookDeadzoneX.toCompactString(),
             clamped.lookDeadzoneY.toCompactString(),
+            if (clamped.deskSnapToGrid) "1" else "0",
+            if (clamped.deskShowGridOnMove) "1" else "0",
+            clamped.deskGridScale.toCompactString(),
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -96,6 +99,10 @@ object WorkspaceJson {
             lookMode = GlassesLookMode.fromPersisted(fields.getOrNull(14)),
             lookDeadzoneX = fields.getOrNull(15)?.toFloatOrNull() ?: 0f,
             lookDeadzoneY = fields.getOrNull(16)?.toFloatOrNull() ?: 0f,
+            deskSnapToGrid = fields.getOrNull(17) == "1",
+            deskShowGridOnMove = fields.getOrNull(18)?.let { it != "0" } ?: true,
+            deskGridScale = fields.getOrNull(19)?.toFloatOrNull()
+                ?: DeskGrid.DEFAULT_GRID_SCALE,
         ).clamped()
     }
 

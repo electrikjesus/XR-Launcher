@@ -8,6 +8,8 @@ enum class HomeSpaceTuneAxis {
     DESK_PILES,
     DESK_TILES,
     DESK_WIDGETS,
+    DESK_SNAP,
+    DESK_SHOW_GRID,
     LOOK_FPS,
     LOOK_GESTURE,
 }
@@ -33,6 +35,9 @@ object HomeSpaceTune {
         HomeSpaceTuneAxis.DESK_PILES -> appearance.copy(desktopPiles = !appearance.desktopPiles)
         HomeSpaceTuneAxis.DESK_TILES -> appearance.copy(desktopTiles = !appearance.desktopTiles)
         HomeSpaceTuneAxis.DESK_WIDGETS -> appearance.copy(desktopWidgets = !appearance.desktopWidgets)
+        HomeSpaceTuneAxis.DESK_SNAP -> appearance.copy(deskSnapToGrid = !appearance.deskSnapToGrid)
+        HomeSpaceTuneAxis.DESK_SHOW_GRID ->
+            appearance.copy(deskShowGridOnMove = !appearance.deskShowGridOnMove)
         // delta > 0 → force FPS; delta < 0 → force GRADIENT; 0 → toggle (Edit Look button).
         HomeSpaceTuneAxis.LOOK_FPS -> appearance.copy(
             lookMode = when {
@@ -53,6 +58,8 @@ object HomeSpaceTune {
         HomeSpaceTuneAxis.DESK_PILES -> appearance.desktopPiles
         HomeSpaceTuneAxis.DESK_TILES -> appearance.desktopTiles
         HomeSpaceTuneAxis.DESK_WIDGETS -> appearance.desktopWidgets
+        HomeSpaceTuneAxis.DESK_SNAP -> appearance.deskSnapToGrid
+        HomeSpaceTuneAxis.DESK_SHOW_GRID -> appearance.deskShowGridOnMove
         HomeSpaceTuneAxis.LOOK_FPS -> appearance.lookMode == GlassesLookMode.FPS
         else -> true
     }

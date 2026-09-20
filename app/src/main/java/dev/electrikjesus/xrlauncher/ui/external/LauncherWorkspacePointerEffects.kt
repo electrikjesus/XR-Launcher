@@ -27,8 +27,11 @@ import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
 import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGrid
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGridOverlay
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetResizeState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileLayout
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
@@ -606,6 +609,8 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.EDIT_DESK_PILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_PILES, 0f)
         GlassesHomeHits.EDIT_DESK_TILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_TILES, 0f)
         GlassesHomeHits.EDIT_DESK_WIDGETS -> onTuneAppearance(HomeSpaceTuneAxis.DESK_WIDGETS, 0f)
+        GlassesHomeHits.EDIT_DESK_SNAP -> onTuneAppearance(HomeSpaceTuneAxis.DESK_SNAP, 0f)
+        GlassesHomeHits.EDIT_DESK_SHOW_GRID -> onTuneAppearance(HomeSpaceTuneAxis.DESK_SHOW_GRID, 0f)
         GlassesHomeHits.EDIT_LOOK_FPS -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
         else -> {
             GlassesHomeHits.notificationKeyFromHit(key)?.let { notifKey ->
@@ -918,8 +923,10 @@ fun clearDeskLeftButtonGrab() {
 fun abortDeskPointerGesture() {
     DeskLassoState.cancel()
     HomeSpaceDeskState.cancel()
+    DeskWidgetResizeState.cancelDrag()
     deskGesturePressed = false
     clearPendingLasso()
+    refreshDeskGridOverlay(moving = false)
 }
 
 private fun clearPendingLasso() {
@@ -968,6 +975,29 @@ private fun trackDeskDrag(
             when {
                 deskIcon != null -> {
                     when {
+                        DeskWidgetResizeState.isHandle(deskIcon.componentKey) -> {
+                            val widgetKey = DeskWidgetResizeState.parseHandle(deskIcon.componentKey)?.first
+                            val placed = HomeSpaceDeskState.placed.firstOrNull {
+                                it.app.componentKey == widgetKey
+                            }
+                            if (placed != null) {
+                                val cfg = DeskGridOverlay.config
+                                DeskWidgetResizeState.configure(
+                                    iconHalfWidth = cfg.iconHalfWidth,
+                                    gridScale = cfg.gridScale,
+                                    sphereScale = sphereScale,
+                                    snapToGrid = cfg.snapToGrid,
+                                )
+                                DeskWidgetResizeState.beginDrag(
+                                    componentKey = deskIcon.componentKey,
+                                    cursorX = cursorX,
+                                    cursorY = cursorY,
+                                    grabYawDeg = hit.yawDeg,
+                                    grabPitchDeg = hit.pitchDeg,
+                                    placed = placed,
+                                )
+                            }
+                        }
                         DeskGroupMoveState.canBeginDrag(deskIcon.componentKey) -> {
                             DeskGroupMoveState.beginDrag(
                                 componentKey = deskIcon.componentKey,
@@ -981,6 +1011,7 @@ private fun trackDeskDrag(
                         else -> {
                             // Dragging an item replaces any prior lasso/widget selection.
                             DeskLassoState.clearSelection()
+                            DeskWidgetResizeState.clear()
                             HomeSpaceDeskState.press(
                                 icon = deskIcon,
                                 cursorX = cursorX,
@@ -1010,8 +1041,9 @@ private fun trackDeskDrag(
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
                     ) -> {
-                    // Empty press dismisses an armed group move / open pile (BumpDesk).
+                    // Empty press dismisses an armed group move / resize / open pile (BumpDesk).
                     DeskGroupMoveState.clear()
+                    DeskWidgetResizeState.clear()
                     HomeSpaceDeskState.collapseOpenPiles()
                     deskLassoPending = true
                     pendingLassoCursorX = cursorX
@@ -1033,6 +1065,19 @@ private fun trackDeskDrag(
             }
         }
         when {
+            DeskWidgetResizeState.isDragging -> {
+                DeskWidgetResizeState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)?.let { result ->
+                    val key = DeskWidgetResizeState.widgetKey ?: return@let
+                    HomeSpaceDeskState.applyWidgetResize(
+                        key = key,
+                        yawDeg = result.yawDeg,
+                        pitchDeg = result.pitchDeg,
+                        halfWidth = result.halfWidth,
+                        halfHeight = result.halfHeight,
+                        recapture = false,
+                    )
+                }
+            }
             DeskGroupMoveState.isDragging -> {
                 DeskGroupMoveState.move(cursorX, cursorY, hit.yawDeg, hit.pitchDeg)?.let { poses ->
                     HomeSpaceDeskState.applyGroupPoses(poses)
@@ -1043,9 +1088,51 @@ private fun trackDeskDrag(
             DeskLassoState.active ->
                 DeskLassoState.extend(hit.yawDeg, hit.pitchDeg)
         }
+        refreshDeskGridOverlay(
+            moving = HomeSpaceDeskState.drag?.pulling == true ||
+                DeskGroupMoveState.isPulling ||
+                DeskWidgetResizeState.isDragging ||
+                DeskWidgetResizeState.isArmed,
+            centerYaw = hit.yawDeg,
+            centerPitch = hit.pitchDeg,
+            sphereScale = sphereScale,
+        )
     } else if (deskGesturePressed) {
         if (deskLassoPending) {
             clearPendingLasso()
+        }
+        if (DeskWidgetResizeState.isDragging) {
+            val key = DeskWidgetResizeState.widgetKey
+            if (DeskWidgetResizeState.endDrag() && key != null) {
+                val item = HomeSpaceDeskState.placed.firstOrNull { it.app.componentKey == key }
+                if (item != null) {
+                    val cfg = DeskGridOverlay.config
+                    var yaw = item.yawDeg
+                    var pitch = item.pitchDeg
+                    var halfW = item.halfWidth ?: (HomeSpaceDesk.ICON_HALF_WIDTH * 3.2f)
+                    var halfH = item.halfHeight ?: halfW
+                    if (cfg.snapToGrid) {
+                        val extents = DeskGrid.snapHalfExtents(
+                            halfW, halfH, cfg.iconHalfWidth, cfg.gridScale,
+                        )
+                        halfW = extents.first
+                        halfH = extents.second
+                        val pose = DeskGrid.snapPose(
+                            yaw, pitch, cfg.iconHalfWidth, cfg.gridScale, sphereScale,
+                        )
+                        yaw = pose.first
+                        pitch = pose.second
+                    }
+                    HomeSpaceDeskState.applyWidgetResize(
+                        key = key,
+                        yawDeg = yaw,
+                        pitchDeg = pitch,
+                        halfWidth = halfW,
+                        halfHeight = halfH,
+                        recapture = true,
+                    )
+                }
+            }
         }
         if (DeskGroupMoveState.isDragging) {
             if (DeskGroupMoveState.endDrag()) {
@@ -1099,8 +1186,27 @@ private fun trackDeskDrag(
             obstacles = icons.filter { it.componentKey != draggingKey },
             panes = panes,
         )
+        refreshDeskGridOverlay(moving = DeskWidgetResizeState.isArmed, sphereScale = sphereScale)
     }
     deskGesturePressed = pressed
+}
+
+private fun refreshDeskGridOverlay(
+    moving: Boolean,
+    centerYaw: Float = DeskGridOverlay.config.centerYawDeg,
+    centerPitch: Float = DeskGridOverlay.config.centerPitchDeg,
+    sphereScale: Float = DeskGridOverlay.config.sphereScale,
+) {
+    val prev = DeskGridOverlay.config
+    val visible = prev.showGridOnMove && (moving || DeskWidgetResizeState.isArmed)
+    DeskGridOverlay.update(
+        prev.copy(
+            visible = visible,
+            centerYawDeg = centerYaw,
+            centerPitchDeg = centerPitch,
+            sphereScale = sphereScale,
+        ),
+    )
 }
 
 /** Hold-Left on a Home pane app starts a Desktop copy-drag; Home list is never mutated. */

@@ -40,6 +40,7 @@ object DeskIconBitmaps {
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
             icon.isAppDrawer -> drawAppDrawer(canvas, width, ICON_SIZE)
             icon.isGroupHandle -> drawGroupMoveHandle(canvas, width, ICON_SIZE)
+            icon.isResizeHandle -> drawResizeHandle(canvas, width, ICON_SIZE)
             icon.isPileBacking -> Unit
             icon.kind == HomeSpaceDesk.Kind.PILE_FOLDER ->
                 drawFolderPile(canvas, context, icon, width, ICON_SIZE)
@@ -67,6 +68,7 @@ object DeskIconBitmaps {
         !icon.isBacking &&
             !icon.isWidget &&
             !icon.isGroupHandle &&
+            !icon.isResizeHandle &&
             !icon.isPileBacking &&
             !icon.isPileFace &&
             icon.kind != HomeSpaceDesk.Kind.PAGE &&
@@ -253,8 +255,23 @@ object DeskIconBitmaps {
         }
         arrow(cx + arm, cy, 1f, 0f)
         arrow(cx - arm, cy, -1f, 0f)
-        arrow(cx, cy - arm, 0f, -1f)
         arrow(cx, cy + arm, 0f, 1f)
+        arrow(cx, cy - arm, 0f, -1f)
+    }
+
+    private fun drawResizeHandle(canvas: Canvas, width: Int, iconSize: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val cx = width / 2f
+        val cy = iconSize / 2f
+        val r = iconSize * 0.28f
+        paint.color = Color.argb(230, 255, 255, 255)
+        canvas.drawCircle(cx, cy, r, paint)
+        paint.color = Color.argb(220, 40, 110, 200)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 8f
+        canvas.drawCircle(cx, cy, r * 0.72f, paint)
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(cx, cy, r * 0.35f, paint)
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

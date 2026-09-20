@@ -127,6 +127,35 @@ fun SettingsScreen(
                     onReset = { AllAppsGridConfigStore.resetToDefaults(context) },
                 )
             }
+            item {
+                SettingsSectionTitle(stringResource(R.string.settings_desk_grid_section))
+                DeskGridSettingsSection(
+                    snapToGrid = appearance.deskSnapToGrid,
+                    showGridOnMove = appearance.deskShowGridOnMove,
+                    gridScale = appearance.deskGridScale,
+                    onSnapToGridChange = { enabled ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(
+                                appearance.copy(deskSnapToGrid = enabled),
+                            )
+                        }
+                    },
+                    onShowGridOnMoveChange = { enabled ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(
+                                appearance.copy(deskShowGridOnMove = enabled),
+                            )
+                        }
+                    },
+                    onGridScaleChange = { scale ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(
+                                appearance.copy(deskGridScale = scale),
+                            )
+                        }
+                    },
+                )
+            }
             if (homeSpaceOnly) {
                 item {
                     SettingsSectionTitle(stringResource(R.string.settings_look_section))

@@ -26,6 +26,8 @@ object GlassesHomeHits {
     const val EDIT_DESK_PILES = "__xr_edit_desk_piles__"
     const val EDIT_DESK_TILES = "__xr_edit_desk_tiles__"
     const val EDIT_DESK_WIDGETS = "__xr_edit_desk_widgets__"
+    const val EDIT_DESK_SNAP = "__xr_edit_desk_snap__"
+    const val EDIT_DESK_SHOW_GRID = "__xr_edit_desk_show_grid__"
     const val EDIT_LOOK_FPS = "__xr_edit_look_fps__"
     const val HUD_INPUT_TOUCHPAD = "__xr_hud_input_touchpad__"
     const val HUD_INPUT_HEAD = "__xr_hud_input_head__"
@@ -121,6 +123,8 @@ object GlassesHomeHits {
             EDIT_DESK_PILES -> DESK_PILES_LABEL
             EDIT_DESK_TILES -> DESK_TILES_LABEL
             EDIT_DESK_WIDGETS -> DESK_WIDGETS_LABEL
+            EDIT_DESK_SNAP -> "Snap"
+            EDIT_DESK_SHOW_GRID -> "Grid"
             EDIT_LOOK_FPS -> LOOK_FPS_LABEL
             HUD_INPUT_TOUCHPAD -> HUD_INPUT_TOUCHPAD_LABEL
             HUD_INPUT_HEAD -> HUD_INPUT_HEAD_LABEL
@@ -146,6 +150,8 @@ object GlassesHomeHits {
         EDIT_DESK_PILES,
         EDIT_DESK_TILES,
         EDIT_DESK_WIDGETS,
+        EDIT_DESK_SNAP,
+        EDIT_DESK_SHOW_GRID,
         EDIT_LOOK_FPS,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,
@@ -209,6 +215,8 @@ object GlassesHomeHits {
         EDIT_DESK_PILES,
         EDIT_DESK_TILES,
         EDIT_DESK_WIDGETS,
+        EDIT_DESK_SNAP,
+        EDIT_DESK_SHOW_GRID,
         EDIT_LOOK_FPS,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,
@@ -228,6 +236,8 @@ object GlassesHomeHits {
         EDIT_DESK_PILES,
         EDIT_DESK_TILES,
         EDIT_DESK_WIDGETS,
+        EDIT_DESK_SNAP,
+        EDIT_DESK_SHOW_GRID,
         EDIT_LOOK_FPS,
         EDIT_PANEL_MINUS,
         EDIT_PANEL_PLUS,

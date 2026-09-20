@@ -157,6 +157,16 @@ fun BoxScope.HostEditDialogLayer(
                         enabled = tuned.desktopWidgets,
                         onToggle = { onNudge(HomeSpaceTuneAxis.DESK_WIDGETS, 0f) },
                     )
+                    HostDeskToggleRow(
+                        label = stringResource(R.string.xr_edit_desk_snap),
+                        enabled = tuned.deskSnapToGrid,
+                        onToggle = { onNudge(HomeSpaceTuneAxis.DESK_SNAP, 0f) },
+                    )
+                    HostDeskToggleRow(
+                        label = stringResource(R.string.xr_edit_desk_show_grid),
+                        enabled = tuned.deskShowGridOnMove,
+                        onToggle = { onNudge(HomeSpaceTuneAxis.DESK_SHOW_GRID, 0f) },
+                    )
                 }
             }
         }

@@ -584,7 +584,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + radial + AppWidgetHost + DeskPile Folder/Stack; pile polish / leaf still open |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + radial + AppWidgetHost + DeskPile + desk grid snap/resize |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** via pane-matched half-extents (same 92.dp Home face). Min uiScale 0.5. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -620,8 +620,9 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **Do this next. One concern per change.**
 
 **Launcher surface / BumpDesk widgets:**
-0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Grow / Shrink** (1.25×) for selected widgets. Still open: touch-through / drag resize handles.
+0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Resize** with corner handles on grid (Grow/Shrink removed). Still open: touch-through.
 0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** / **Stack**; Fan Out; **Break Apart** settles with angular spacing + pane clear (no sphere-orbit runaway); leaf / rename still open.
+0c. **Desktop grid** — ☑ Snap to grid + show-grid-on-move + cell scale in Settings / Edit Desktop; GLES overlay while moving/resizing.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -865,7 +866,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Pile polish:** icon-sized faces (not widget extents); hide face when open; radial Fan Out / Break Apart | Piles read ~4× large; collapsed face stayed under fan; no undo/fan menu |
 | 2026-09-20 | **Break Apart anti-orbit:** sized yaw spacing, static settle vs panes/obstacles, physics max-separation + rest-on-pinned | Top pile member ran left forever around the sphere after break |
 | 2026-09-20 | **Onboarding:** do not re-show when the only missing grant is default Home | Users often keep another launcher as Home; Home-only nag blocked the workspace |
+| 2026-09-20 | **Desk grid + widget drag-resize:** Settings snap/show-grid/cell scale; radial Resize corner handles; GLES overlay on move | Grow/Shrink broke aspect at clamps; no launcher-style frame resize |
 
 ---
 
-*Last updated: 2026-09-20 (onboarding Home-only no re-show)*
+*Last updated: 2026-09-20 (desk grid + widget resize)*

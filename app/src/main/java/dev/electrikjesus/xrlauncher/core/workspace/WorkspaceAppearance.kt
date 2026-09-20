@@ -27,6 +27,12 @@ data class WorkspaceAppearance(
     val desktopPiles: Boolean = true,
     val desktopTiles: Boolean = true,
     val desktopWidgets: Boolean = true,
+    /** Snap apps / widgets to the angular desk grid on drop and resize. */
+    val deskSnapToGrid: Boolean = false,
+    /** Draw the desk grid while moving or resizing an item. */
+    val deskShowGridOnMove: Boolean = true,
+    /** Multiplies icon-sized grid cells (0.75–1.5). */
+    val deskGridScale: Float = DeskGrid.DEFAULT_GRID_SCALE,
     /** Persisted Home Space look: gradient mouse-look vs FPS capture. */
     val lookMode: GlassesLookMode = GlassesLookMode.GRADIENT,
     /**
@@ -52,6 +58,9 @@ data class WorkspaceAppearance(
         desktopPiles = desktopPiles,
         desktopTiles = desktopTiles,
         desktopWidgets = desktopWidgets,
+        deskSnapToGrid = deskSnapToGrid,
+        deskShowGridOnMove = deskShowGridOnMove,
+        deskGridScale = deskGridScale.coerceIn(DeskGrid.MIN_GRID_SCALE, DeskGrid.MAX_GRID_SCALE),
         lookMode = lookMode,
         lookDeadzoneX = lookDeadzoneX.coerceIn(MIN_LOOK_DEADZONE, MAX_LOOK_DEADZONE),
         lookDeadzoneY = lookDeadzoneY.coerceIn(MIN_LOOK_DEADZONE, MAX_LOOK_DEADZONE),

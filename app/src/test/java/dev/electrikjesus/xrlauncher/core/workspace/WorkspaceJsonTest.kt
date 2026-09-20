@@ -100,6 +100,32 @@ class WorkspaceJsonTest {
     }
 
     @Test
+    fun encodeDecode_preservesDeskGridSettings() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(
+                deskSnapToGrid = true,
+                deskShowGridOnMove = false,
+                deskGridScale = 1.25f,
+            ),
+        )
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(true, decoded.appearance.deskSnapToGrid)
+        assertEquals(false, decoded.appearance.deskShowGridOnMove)
+        assertEquals(1.25f, decoded.appearance.deskGridScale, 0.001f)
+    }
+
+    @Test
+    fun decodeAppearance_defaultsDeskGridWhenMissing() {
+        val legacy = WorkspaceJson.decode(
+            "default||widget_clock~WIDGET~true~0~0~0.5~0.25|" +
+                "0|1.2~12~0.35~1~0.7~0~0~SYSTEM~0.7~1~1~1~1~1~gradient~0~0",
+        )
+        assertEquals(false, legacy.appearance.deskSnapToGrid)
+        assertEquals(true, legacy.appearance.deskShowGridOnMove)
+        assertEquals(DeskGrid.DEFAULT_GRID_SCALE, legacy.appearance.deskGridScale, 0.001f)
+    }
+
+    @Test
     fun encodeDecode_preservesPanelAndSphereScale() {
         val workspace = Workspace(
             appearance = WorkspaceAppearance(panelScale = 1.15f, sphereScale = 1.4f),

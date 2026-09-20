@@ -195,6 +195,22 @@ fun BoxScope.GlassesHomeTuneOverlay(
                                 onBoundsChanged = onBoundsChanged,
                                 onToggle = { onNudge(HomeSpaceTuneAxis.DESK_WIDGETS, 0f) },
                             )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_snap),
+                                enabled = tuned.deskSnapToGrid,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_SNAP,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_SNAP, 0f) },
+                            )
+                            DeskToggleRow(
+                                label = stringResource(R.string.xr_edit_desk_show_grid),
+                                enabled = tuned.deskShowGridOnMove,
+                                boundsKey = GlassesHomeHits.EDIT_DESK_SHOW_GRID,
+                                hoveredLabel = hoveredLabel,
+                                onBoundsChanged = onBoundsChanged,
+                                onToggle = { onNudge(HomeSpaceTuneAxis.DESK_SHOW_GRID, 0f) },
+                            )
                         }
                     }
                 }

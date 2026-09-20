@@ -137,7 +137,7 @@ class HomeSpaceDeskPersistTest {
     }
 
     @Test
-    fun scaleWidgets_growAndShrink() {
+    fun applyWidgetResize_updatesExtentsIndependently() {
         HomeSpaceDeskState.placeWidget(
             appWidgetId = 5,
             label = "Clock",
@@ -147,14 +147,20 @@ class HomeSpaceDeskPersistTest {
             halfWidth = 0.8f,
             halfHeight = 0.4f,
         )
-        assertTrue(HomeSpaceDeskState.scaleWidgets(setOf("widget_5"), DeskWidgetUtils.SIZE_STEP))
-        val grown = HomeSpaceDeskState.placed.first()
-        assertEquals(0.8f * DeskWidgetUtils.SIZE_STEP, grown.halfWidth!!, 0.01f)
-        assertEquals(0.4f * DeskWidgetUtils.SIZE_STEP, grown.halfHeight!!, 0.01f)
-        assertTrue(HomeSpaceDeskState.scaleWidgets(setOf("widget_5"), 1f / DeskWidgetUtils.SIZE_STEP))
-        val shrunk = HomeSpaceDeskState.placed.first()
-        assertEquals(0.8f, shrunk.halfWidth!!, 0.01f)
-        assertEquals(0.4f, shrunk.halfHeight!!, 0.01f)
+        assertTrue(
+            HomeSpaceDeskState.applyWidgetResize(
+                key = "widget_5",
+                yawDeg = 2f,
+                pitchDeg = -1f,
+                halfWidth = 1.0f,
+                halfHeight = 0.35f,
+            ),
+        )
+        val resized = HomeSpaceDeskState.placed.first()
+        assertEquals(2f, resized.yawDeg, 0.01f)
+        assertEquals(-1f, resized.pitchDeg, 0.01f)
+        assertEquals(1.0f, resized.halfWidth!!, 0.01f)
+        assertEquals(0.35f, resized.halfHeight!!, 0.01f)
     }
 }
 

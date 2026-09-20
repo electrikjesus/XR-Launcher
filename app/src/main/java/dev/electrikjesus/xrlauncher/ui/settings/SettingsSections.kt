@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsGridConfig
+import dev.electrikjesus.xrlauncher.core.workspace.DeskGrid
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
@@ -244,6 +245,70 @@ fun AllAppsGridSettingsSection(
         ) {
             Text(stringResource(R.string.settings_all_apps_reset))
         }
+    }
+}
+
+@Composable
+fun DeskGridSettingsSection(
+    snapToGrid: Boolean,
+    showGridOnMove: Boolean,
+    gridScale: Float,
+    onSnapToGridChange: (Boolean) -> Unit,
+    onShowGridOnMoveChange: (Boolean) -> Unit,
+    onGridScaleChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_desk_grid_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { onSnapToGridChange(!snapToGrid) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(
+                stringResource(
+                    if (snapToGrid) {
+                        R.string.settings_desk_snap_to_grid_on
+                    } else {
+                        R.string.settings_desk_snap_to_grid_off
+                    },
+                ),
+            )
+        }
+        OutlinedButton(
+            onClick = { onShowGridOnMoveChange(!showGridOnMove) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(
+                stringResource(
+                    if (showGridOnMove) {
+                        R.string.settings_desk_show_grid_on_move_on
+                    } else {
+                        R.string.settings_desk_show_grid_on_move_off
+                    },
+                ),
+            )
+        }
+        Text(
+            text = stringResource(
+                R.string.settings_desk_grid_scale,
+                (gridScale * 100f).toInt(),
+            ),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Slider(
+            value = gridScale,
+            onValueChange = onGridScaleChange,
+            valueRange = DeskGrid.MIN_GRID_SCALE..DeskGrid.MAX_GRID_SCALE,
+        )
     }
 }
 

@@ -160,6 +160,8 @@ object HomeSpaceDesk {
         PAGE,
         WIDGET,
         GROUP_HANDLE,
+        /** Corner handle while resizing a desk widget. */
+        RESIZE_HANDLE,
         /** Collapsed BumpDesk stack pile face. */
         PILE_STACK,
         /** Collapsed BumpDesk folder pile face (2×2 preview). */
@@ -206,6 +208,7 @@ object HomeSpaceDesk {
         val isDesktopApp: Boolean get() = kind == Kind.APP
         val isWidget: Boolean get() = kind == Kind.WIDGET
         val isGroupHandle: Boolean get() = kind == Kind.GROUP_HANDLE
+        val isResizeHandle: Boolean get() = kind == Kind.RESIZE_HANDLE
         val isPileFace: Boolean get() = kind == Kind.PILE_STACK || kind == Kind.PILE_FOLDER
         val isPileBacking: Boolean get() = kind == Kind.PILE_BACKING
     }
@@ -507,7 +510,7 @@ object HomeSpaceDesk {
 
     /** Prefer apps/pager over the large backing so pagination stays clickable. */
     private fun pickPriority(icon: Icon): Int = when (icon.kind) {
-        Kind.GROUP_HANDLE -> 0
+        Kind.GROUP_HANDLE, Kind.RESIZE_HANDLE -> 0
         Kind.PAGE_PREV, Kind.PAGE_NEXT, Kind.PAGE -> 0
         Kind.APP, Kind.APP_DRAWER, Kind.WIDGET, Kind.PILE_STACK, Kind.PILE_FOLDER -> 1
         Kind.PILE_BACKING -> 2

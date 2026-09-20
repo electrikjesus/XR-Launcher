@@ -24,7 +24,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPile
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
-import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetUtils
+import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetResizeState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
@@ -250,23 +250,18 @@ private fun desktopMenuItems(
         val selectedWidgets = HomeSpaceDeskState.placed.filter {
             it.app.componentKey in selected && it.app.kind == HomeSpaceDesk.Kind.WIDGET
         }
-        fun scaleWidgets(factor: Float) {
-            dismiss()
-            HomeSpaceDeskState.scaleWidgets(selected, factor)
-        }
         return buildList {
-            if (selectedWidgets.isNotEmpty()) {
+            if (selectedWidgets.size == 1) {
+                val widgetKey = selectedWidgets.first().app.componentKey
                 add(
                     RadialMenuItem(
-                        label = context.getString(R.string.context_menu_grow_widget),
-                        iconRes = android.R.drawable.ic_menu_zoom,
-                    ) { scaleWidgets(DeskWidgetUtils.SIZE_STEP) },
-                )
-                add(
-                    RadialMenuItem(
-                        label = context.getString(R.string.context_menu_shrink_widget),
-                        iconRes = android.R.drawable.ic_menu_zoom,
-                    ) { scaleWidgets(1f / DeskWidgetUtils.SIZE_STEP) },
+                        label = context.getString(R.string.context_menu_resize_widget),
+                        iconRes = android.R.drawable.ic_menu_crop,
+                    ) {
+                        dismiss()
+                        DeskWidgetResizeState.arm(widgetKey)
+                        DeskLassoState.clearSelection()
+                    },
                 )
             }
             if (selected.size >= 2) {

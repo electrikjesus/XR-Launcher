@@ -62,7 +62,10 @@ object HomeSpaceDeskState {
     private var pendingChrome: HomeSpaceDesk.Icon? = null
 
     fun hasActiveGesture(): Boolean =
-        _drag.value != null || pendingChrome != null || DeskGroupMoveState.isDragging
+        _drag.value != null ||
+            pendingChrome != null ||
+            DeskGroupMoveState.isDragging ||
+            DeskWidgetResizeState.isDragging
 
     /**
      * @param hitYawDeg / [hitPitchDeg] sphere angles under the cursor at press (not icon center).
@@ -164,6 +167,7 @@ object HomeSpaceDeskState {
                 }
             }
             HomeSpaceDesk.Kind.GROUP_HANDLE,
+            HomeSpaceDesk.Kind.RESIZE_HANDLE,
             HomeSpaceDesk.Kind.APP,
             HomeSpaceDesk.Kind.WIDGET,
             HomeSpaceDesk.Kind.DRAWER_BACKING,
@@ -177,14 +181,28 @@ object HomeSpaceDeskState {
     /** Apply yaw/pitch poses for a rigid group move (relative arrangement preserved). */
     fun applyGroupPoses(poses: Map<String, Pair<Float, Float>>) {
         if (poses.isEmpty()) return
+        val grid = DeskGridOverlay.config
         var changed = false
         val next = _placed.value.map { item ->
             val pose = poses[item.app.componentKey] ?: return@map item
-            if (item.yawDeg == pose.first && item.pitchDeg == pose.second) return@map item
+            var yaw = pose.first
+            var pitch = pose.second
+            if (grid.snapToGrid) {
+                val snapped = DeskGrid.snapPose(
+                    yawDeg = yaw,
+                    pitchDeg = pitch,
+                    iconHalfWidth = grid.iconHalfWidth,
+                    gridScale = grid.gridScale,
+                    sphereScale = grid.sphereScale,
+                )
+                yaw = snapped.first
+                pitch = snapped.second
+            }
+            if (item.yawDeg == yaw && item.pitchDeg == pitch) return@map item
             changed = true
             item.copy(
-                yawDeg = pose.first,
-                pitchDeg = pose.second,
+                yawDeg = yaw,
+                pitchDeg = pitch,
                 velYawDeg = 0f,
                 velPitchDeg = 0f,
             )
@@ -288,12 +306,26 @@ object HomeSpaceDeskState {
             paneBlocks = panes,
             excludeKey = current.app.componentKey,
         ) ?: return true
+        var placeYaw = resolved.first
+        var placePitch = resolved.second
+        val grid = DeskGridOverlay.config
+        if (grid.snapToGrid) {
+            val snapped = DeskGrid.snapPose(
+                yawDeg = placeYaw,
+                pitchDeg = placePitch,
+                iconHalfWidth = grid.iconHalfWidth,
+                gridScale = grid.gridScale,
+                sphereScale = sphereScale,
+            )
+            placeYaw = snapped.first
+            placePitch = snapped.second
+        }
         // Place at rest — release impulse caused icons to jump after a grab.
         val next = _placed.value.filter { it.app.componentKey != current.app.componentKey } +
             HomeSpaceDesk.Placed(
                 app = current.app,
-                yawDeg = resolved.first,
-                pitchDeg = resolved.second,
+                yawDeg = placeYaw,
+                pitchDeg = placePitch,
                 velYawDeg = 0f,
                 velPitchDeg = 0f,
                 halfWidth = existing?.halfWidth,
@@ -418,6 +450,7 @@ object HomeSpaceDeskState {
         _drag.value = null
         pendingChrome = null
         DeskGroupMoveState.cancelDrag()
+        DeskWidgetResizeState.cancelDrag()
     }
 
     fun clear() {
@@ -431,6 +464,8 @@ object HomeSpaceDeskState {
         lastPanes = emptyList()
         lastPinnedObstacles = emptyList()
         DeskGroupMoveState.clear()
+        DeskWidgetResizeState.clear()
+        DeskGridOverlay.hide()
     }
 
     fun restore(layout: DeskLayout) {
@@ -576,27 +611,42 @@ object HomeSpaceDeskState {
     }
 
     /**
-     * Grow or shrink selected desk widgets by [factor] (e.g. [DeskWidgetUtils.SIZE_STEP]).
-     * Marks host views dirty so capture re-bakes at the new size.
+     * Apply live widget resize from a corner drag (independent width/height).
      */
-    fun scaleWidgets(keys: Set<String>, factor: Float): Boolean {
-        if (keys.isEmpty() || factor <= 0f) return false
+    fun applyWidgetResize(
+        key: String,
+        yawDeg: Float,
+        pitchDeg: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+        recapture: Boolean = false,
+    ): Boolean {
         var changed = false
         val next = _placed.value.map { item ->
-            if (item.app.componentKey !in keys || item.app.kind != HomeSpaceDesk.Kind.WIDGET) {
+            if (item.app.componentKey != key || item.app.kind != HomeSpaceDesk.Kind.WIDGET) {
                 return@map item
             }
-            val halfW = item.halfWidth ?: (HomeSpaceDesk.ICON_HALF_WIDTH * 3.2f)
-            val halfH = item.halfHeight ?: halfW
-            val scaled = DeskWidgetUtils.scaledHalfExtents(halfW, halfH, factor) ?: return@map item
-            changed = true
-            DeskWidgetUtils.parseWidgetId(item.app.componentKey)?.let { id ->
-                DeskWidgetController.requestRecapture(id)
+            val clamped = DeskWidgetUtils.clampHalfExtents(halfWidth, halfHeight)
+            if (item.yawDeg == yawDeg && item.pitchDeg == pitchDeg &&
+                item.halfWidth == clamped.first && item.halfHeight == clamped.second
+            ) {
+                return@map item
             }
-            item.copy(halfWidth = scaled.first, halfHeight = scaled.second)
+            changed = true
+            item.copy(
+                yawDeg = yawDeg,
+                pitchDeg = pitchDeg,
+                halfWidth = clamped.first,
+                halfHeight = clamped.second,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
+            )
         }
         if (!changed) return false
         _placed.value = next
+        if (recapture) {
+            DeskWidgetUtils.parseWidgetId(key)?.let { DeskWidgetController.requestRecapture(it) }
+        }
         return true
     }
 
