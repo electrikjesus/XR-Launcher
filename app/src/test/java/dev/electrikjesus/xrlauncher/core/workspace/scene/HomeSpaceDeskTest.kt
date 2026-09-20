@@ -144,7 +144,7 @@ class HomeSpaceDeskTest {
     }
 
     @Test
-    fun layout_opensABumpDeskFourByFourDrawer() {
+    fun layout_opensABumpDeskFiveByFourDrawer() {
         val closed = HomeSpaceDesk.layout(
             placed = emptyList(),
             sphereScale = 1f,
@@ -154,7 +154,7 @@ class HomeSpaceDeskTest {
             drawerApps = apps,
         )
         assertEquals(1, closed.size)
-        val many = (0 until 20).map { i ->
+        val many = (0 until 25).map { i ->
             HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
         }
         val open = HomeSpaceDesk.layout(
@@ -174,7 +174,7 @@ class HomeSpaceDeskTest {
         assertTrue(open.first().isBacking)
         assertEquals(HomeSpaceDesk.DRAWER_PAGE_SIZE, appsOnPage.size)
         assertEquals(many[0].componentKey, appsOnPage.first().componentKey)
-        assertEquals(2 + 2, pager.size) // prev + next + 2 page dots for 20 apps
+        assertEquals(2 + 2, pager.size) // prev + next + 2 page dots for 25 apps
         assertTrue(appsOnPage.first().center.length() < backing.center.length())
         assertTrue(
             "open drawer icons stay readable (may FOV-fit below full desk face)",
@@ -189,8 +189,8 @@ class HomeSpaceDeskTest {
                 ) * 0.35f,
         )
         assertTrue(
-            "backing should cover the 4-wide icon grid",
-            backing.halfWidth > appsOnPage.first().halfWidth * 3.2f,
+            "backing should cover the 5-wide icon grid",
+            backing.halfWidth > appsOnPage.first().halfWidth * 4.0f,
         )
         val leftPager = pager.first { it.kind == HomeSpaceDesk.Kind.PAGE_PREV }
         val pagerOuter = abs(leftPager.yawDeg - backing.yawDeg) +
@@ -233,8 +233,8 @@ class HomeSpaceDeskTest {
             drawerApps = many,
             drawerPage = 1,
         )
-        assertEquals(4, page1.filter { it.isDesktopApp }.size)
-        assertEquals(many[16].componentKey, page1.first { it.isDesktopApp }.componentKey)
+        assertEquals(5, page1.filter { it.isDesktopApp }.size)
+        assertEquals(many[20].componentKey, page1.first { it.isDesktopApp }.componentKey)
     }
 
     @Test

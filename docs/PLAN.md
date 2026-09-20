@@ -584,7 +584,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + radial + AppWidgetHost + DeskPile + desk grid snap/resize |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. Home pane mirrors Desktop-placed apps (no All Apps pill). | ☑ Partial — desk DND + physics + persist + GLES lasso + radial + AppWidgetHost + DeskPile + desk grid snap/resize; Home = desk-placed grid |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** via pane-matched half-extents (same 92.dp Home face). Min uiScale 0.5. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -626,6 +626,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c2. **All Apps open drawer plate** — ☑ Frosted backing hugs icon/chevron span; outside-click dismiss matches the visible plate edge (no extra hit slop).
 0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
 0c4. **Host + glasses attach** — ☑ Prompt **XR Glasses UI** vs **Android Desktop** (+ companion); USB-only (no DisplayManager secondary) disables XR option with explanation; drop Companion USB chooser duplicate.
+0c5. **Home = Desktop apps** — ☑ Drop Home All Apps pill; Home pane shows desk-placed apps on its own 4×3 grid; All Apps drawer widened to **5×4**.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -876,7 +877,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **All Apps tile snap + Home focus:** snap drawer pose on release; host Home shortcut looks at drawer | Grid highlight moved but tile ignored snap; Home open left the expanded widget off-screen |
 | 2026-09-20 | **Host glasses attach prompt:** XR Glasses UI vs Android Desktop (+ companion on tablet); remove Companion USB filter | Plug-in showed two identical chooser entries; glasses stayed blank |
 | 2026-09-20 | **Host glasses USB-only:** prompt on RayNeo USB even without secondary display; disable XR UI until DisplayManager has a target | onn tablet exposes RayNeo as USB HID only — openGlassesSession had nowhere to launch |
+| 2026-09-20 | **Home = Desktop apps:** remove Home All Apps pill; mirror desk-placed icons on Home 4×3; widen sphere drawer to 5×4 | Home duplicated All Apps; drawer had spare FOV width |
 
 ---
 
-*Last updated: 2026-09-20 (host glasses USB-only prompt)*
+*Last updated: 2026-09-20 (Home Desktop apps grid + 5×4 drawer)*

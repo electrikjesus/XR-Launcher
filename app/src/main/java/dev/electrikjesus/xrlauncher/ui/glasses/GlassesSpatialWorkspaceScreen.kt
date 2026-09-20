@@ -476,16 +476,20 @@ fun GlassesSpatialWorkspaceScreen(
             captureToGles = true,
             onBoundsChanged = onBoundsChanged,
             center = {
+                val byKey = remember(launchableApps) {
+                    launchableApps.associateBy { it.componentKey() }
+                }
+                val desktopApps = remember(deskPlaced, byKey) {
+                    deskPlaced.mapNotNull { byKey[it.app.componentKey] }
+                }
                 GlassesHomeSpace(
-                    launchableApps = launchableApps,
-                    hotseatApps = hotseatApps,
+                    desktopApps = desktopApps,
                     pinnedComponentKeys = pinnedComponentKeys,
                     hoveredLabel = cursor.hoveredLabel,
                     pageIndex = homePageIndex,
                     onPageChange = { HomeAppsPaginationState.goToPage(it) },
                     onBoundsChanged = prefixBounds("home"),
                     onLaunchApp = launchApp,
-                    onOpenAllApps = openAllApps,
                     onOpenRecents = { GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS) },
                     onOpenNotifications = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
                     onOpenQuickSettings = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },

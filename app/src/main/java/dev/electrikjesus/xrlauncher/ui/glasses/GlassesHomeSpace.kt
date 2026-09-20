@@ -73,6 +73,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
+import dev.electrikjesus.xrlauncher.core.workspace.HomePanelGrid
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
@@ -90,15 +91,13 @@ private val Accent = Color(0xFF8AB4F8)
 
 @Composable
 fun GlassesHomeSpace(
-    launchableApps: List<LaunchableApp>,
-    hotseatApps: List<LaunchableApp>,
+    desktopApps: List<LaunchableApp>,
     pinnedComponentKeys: Set<String>,
     hoveredLabel: String?,
     pageIndex: Int,
     onPageChange: (Int) -> Unit,
     onBoundsChanged: (String, Rect) -> Unit,
     onLaunchApp: (LaunchableApp) -> Unit,
-    onOpenAllApps: () -> Unit,
     onOpenRecents: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenQuickSettings: () -> Unit,
@@ -106,11 +105,8 @@ fun GlassesHomeSpace(
     onAppContextMenu: ((LaunchableApp, Rect) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val homeApps = remember(launchableApps, hotseatApps) {
-        (hotseatApps + launchableApps).distinctBy { it.packageName }
-    }
-    LaunchedEffect(homeApps.size) {
-        HomeAppsPaginationState.updatePageCount(homeApps.size, pageSize = 10)
+    LaunchedEffect(desktopApps.size) {
+        HomeAppsPaginationState.updatePageCount(desktopApps.size, pageSize = HomePanelGrid.PAGE_SIZE)
     }
     Column(
         modifier = modifier
@@ -123,31 +119,46 @@ fun GlassesHomeSpace(
             hoveredLabel = hoveredLabel,
             onBoundsChanged = onBoundsChanged,
             onHome = { GlassesHomeLook.lookAt(GlassesHomeLook.PANE_HOME) },
-            onAllApps = onOpenAllApps,
             onRecents = onOpenRecents,
             onNotifications = onOpenNotifications,
             onQuickSettings = onOpenQuickSettings,
             onSettings = onOpenSettings,
             modifier = Modifier.padding(top = 16.dp),
         )
-        PaginatedAppGrid(
-            apps = homeApps,
-            pageIndex = pageIndex,
-            onPageChange = onPageChange,
-            hoveredLabel = hoveredLabel,
-            pinnedComponentKeys = pinnedComponentKeys,
-            onBoundsChanged = onBoundsChanged,
-            onLaunchApp = onLaunchApp,
-            onAppContextMenu = onAppContextMenu,
-            columns = 5,
-            rows = 2,
-            showPageControls = true,
-            iconSize = 92.dp,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-        )
+        if (desktopApps.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.home_panel_empty_desktop_apps),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.72f),
+                )
+            }
+        } else {
+            PaginatedAppGrid(
+                apps = desktopApps,
+                pageIndex = pageIndex,
+                onPageChange = onPageChange,
+                hoveredLabel = hoveredLabel,
+                pinnedComponentKeys = pinnedComponentKeys,
+                onBoundsChanged = onBoundsChanged,
+                onLaunchApp = onLaunchApp,
+                onAppContextMenu = onAppContextMenu,
+                columns = HomePanelGrid.COLS,
+                rows = HomePanelGrid.ROWS,
+                showPageControls = true,
+                iconSize = 92.dp,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            )
+        }
     }
 }
 
@@ -493,7 +504,6 @@ private fun GlassesHomeActionPills(
     hoveredLabel: String?,
     onBoundsChanged: (String, Rect) -> Unit,
     onHome: () -> Unit,
-    onAllApps: () -> Unit,
     onRecents: () -> Unit,
     onNotifications: () -> Unit,
     onQuickSettings: () -> Unit,
@@ -512,14 +522,6 @@ private fun GlassesHomeActionPills(
             hovered = hoveredLabel == GlassesHomeHits.HOME_LABEL,
             onBoundsChanged = onBoundsChanged,
             onClick = onHome,
-        )
-        GlassesCircleButton(
-            icon = Icons.Default.Apps,
-            contentDescription = stringResource(R.string.all_apps),
-            boundsKey = GlassesHomeHits.ALL_APPS,
-            hovered = hoveredLabel == GlassesHomeHits.ALL_APPS_LABEL,
-            onBoundsChanged = onBoundsChanged,
-            onClick = onAllApps,
         )
         GlassesCircleButton(
             icon = Icons.Default.Menu,

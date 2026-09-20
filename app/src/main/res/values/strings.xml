@@ -3,6 +3,7 @@
     <string name="app_name">XR Launcher</string>
     <string name="search_apps">Search apps</string>
     <string name="control_glasses">Control glasses</string>
+    <string name="home_panel_empty_desktop_apps">Place apps from All Apps onto the Desktop — they show up here too.</string>
     <string name="host_glasses_attach_title">Glasses connected</string>
     <string name="host_glasses_attach_body">Choose what to use on the glasses display.</string>
     <string name="host_glasses_attach_body_no_display">Glasses USB is connected, but Android is not exposing a second display yet. XR Glasses UI needs Desktop Mode (or DisplayPort) to present a display we can launch onto.</string>

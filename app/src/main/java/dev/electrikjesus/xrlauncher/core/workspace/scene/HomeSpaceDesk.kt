@@ -34,7 +34,7 @@ object HomeSpaceDesk {
      * (BumpDesk APP heightMult ≈ 1.25) or round icons read as vertical ovals.
      */
     const val LABELED_ICON_ASPECT = 1.25f
-    const val DRAWER_COLS = 4
+    const val DRAWER_COLS = 5
     const val DRAWER_ROWS = 4
     const val DRAWER_PAGE_SIZE = DRAWER_COLS * DRAWER_ROWS
     const val BACKING_KEY = "__desk_all_apps_widget__"
