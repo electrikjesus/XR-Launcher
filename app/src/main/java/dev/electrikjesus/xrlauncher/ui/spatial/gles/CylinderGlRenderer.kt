@@ -1211,7 +1211,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             uniform sampler2D uTexture;
             varying vec2 vTexCoord;
             void main() {
-                vec4 color = texture2D(uTexture, vTexCoord);
+                // GLUtils.texImage2D maps bitmap top → texture v=0; mesh v grows with world Y.
+                vec4 color = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
                 float vertical = smoothstep(0.0, 0.12, vTexCoord.y) *
                     smoothstep(1.0, 0.88, vTexCoord.y);
                 color.rgb *= mix(0.72, 1.0, vertical);
