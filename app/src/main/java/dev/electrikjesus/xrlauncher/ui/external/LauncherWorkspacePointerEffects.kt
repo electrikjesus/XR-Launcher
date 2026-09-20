@@ -854,6 +854,13 @@ fun clearDeskLeftButtonGrab() {
     CompanionPointerBus.onPointerGestureFinalize = null
 }
 
+/** Second finger / pinch: drop lasso and desk hold without completing a selection. */
+fun abortDeskPointerGesture() {
+    DeskLassoState.cancel()
+    HomeSpaceDeskState.cancel()
+    deskGesturePressed = false
+}
+
 private fun trackDeskDrag(
     cursorX: Float,
     cursorY: Float,

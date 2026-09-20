@@ -15,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HostSpaceZoom
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.ui.external.abortDeskPointerGesture
 import dev.electrikjesus.xrlauncher.ui.external.isHostScreenChromeAt
 import kotlin.math.hypot
 
@@ -69,7 +70,7 @@ object HostBumpDeskMotionBridge {
                 if (event.pointerCount >= 2) {
                     val dist = pinchDistance(event)
                     val mid = pinchMid(event)
-                    if (gesture.deskDragArmed) CompanionPointerBus.endLeftButton()
+                    // CancelDeskHold from onPinchBegin aborts one-finger desk/lasso.
                     apply(listOf(gesture.onPinchBegin(dist, mid.first, mid.second)))
                 } else {
                     apply(
@@ -84,7 +85,6 @@ object HostBumpDeskMotionBridge {
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount >= 2) {
-                    if (gesture.deskDragArmed) CompanionPointerBus.endLeftButton()
                     val dist = pinchDistance(event)
                     val mid = pinchMid(event)
                     apply(listOf(gesture.onPinchBegin(dist, mid.first, mid.second)))
@@ -92,9 +92,12 @@ object HostBumpDeskMotionBridge {
             }
             MotionEvent.ACTION_MOVE -> {
                 when {
-                    gesture.pinching && event.pointerCount >= 2 -> {
+                    event.pointerCount >= 2 -> {
                         val dist = pinchDistance(event)
                         val mid = pinchMid(event)
+                        if (!gesture.pinching) {
+                            apply(listOf(gesture.onPinchBegin(dist, mid.first, mid.second)))
+                        }
                         apply(gesture.onPinchMove(dist, mid.first, mid.second, gestureLook = gestureLook))
                     }
                     gesture.middleDragging ->
@@ -187,9 +190,9 @@ object HostBumpDeskMotionBridge {
             BumpDeskHostAction.DeskMoveWhilePressed ->
                 CompanionPointerBus.onPointerMoveWhilePressed?.invoke()
             BumpDeskHostAction.CancelDeskHold -> {
-                if (CompanionPointerBus.cursor.value.isPressed) {
-                    CompanionPointerBus.endLeftButton()
-                }
+                // Second finger / pinch: abandon one-finger desk work without selecting.
+                abortDeskPointerGesture()
+                CompanionPointerBus.abortLeftButton()
             }
             is BumpDeskHostAction.LeftClick -> {
                 val nx = (action.x / viewportW).coerceIn(0f, 1f)
@@ -204,7 +207,9 @@ object HostBumpDeskMotionBridge {
                 CompanionPointerBus.click(PointerButton.RIGHT)
             }
             is BumpDeskHostAction.LookPan -> {
-                val grabbing = HomeSpaceDeskState.hasActiveGesture() || DeskLassoState.active
+                // While pinching, always allow look — do not let a stale lasso block pan.
+                val grabbing = !gesture.pinching &&
+                    (HomeSpaceDeskState.hasActiveGesture() || DeskLassoState.active)
                 val mode = GlassesLookMode.effective()
                 if (mode == GlassesLookMode.GESTURE && grabbing) {
                     Unit
@@ -267,7 +272,6 @@ object HostBumpDeskMotionBridge {
             MotionEvent.ACTION_DOWN -> {
                 if (pointerCount >= 2) {
                     val dist = hypot(x - secondX, y - secondY)
-                    if (gesture.deskDragArmed) CompanionPointerBus.endLeftButton()
                     apply(
                         listOf(
                             gesture.onPinchBegin(
@@ -282,13 +286,18 @@ object HostBumpDeskMotionBridge {
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (gesture.pinching && pointerCount >= 2) {
+                if (pointerCount >= 2) {
                     val dist = hypot(x - secondX, y - secondY)
+                    val midX = (x + secondX) * 0.5f
+                    val midY = (y + secondY) * 0.5f
+                    if (!gesture.pinching) {
+                        apply(listOf(gesture.onPinchBegin(dist, midX, midY)))
+                    }
                     apply(
                         gesture.onPinchMove(
                             dist,
-                            (x + secondX) * 0.5f,
-                            (y + secondY) * 0.5f,
+                            midX,
+                            midY,
                             gestureLook = gestureLook,
                         ),
                     )

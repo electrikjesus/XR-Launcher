@@ -851,7 +851,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Launcher surface Play path:** `FLAG_SHOW_WALLPAPER`; `NotificationListenerService` tray; curated QS intents; launcher-owned recents; onboarding for notification access; AppWidgetHost deferred | Tray was stub empty cards; no privileged wallpaper APIs |
 | 2026-09-19 | **Desk/Home icon glue:** Desktop GLES half-extents from Home 92.dp + live pane geometry/density; Icons & elements min 0.5 | Desk faces ~½ Home icons and drifted vs sphere/panel scale |
 | 2026-09-19 | **Home pane icon gamma:** pane lit shader uses desk-flat ambient/diffuse (0.92 / 0.12) | Strong pane diffuse (0.28 / 1.35) made Home icons look higher-contrast than Desktop |
+| 2026-09-19 | **Pinch aborts lasso:** second finger cancels desk hold/lasso without finalize; 2-finger MOVE always enters pinch | One-finger slop started lasso before POINTER_DOWN; endLeftButton finalized stroke |
 
 ---
 
-*Last updated: 2026-09-19 (Home pane icon gamma)*
+*Last updated: 2026-09-19 (pinch aborts lasso)*

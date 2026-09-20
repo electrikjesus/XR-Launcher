@@ -328,6 +328,20 @@ object CompanionPointerBus {
 
     fun endLeftButton() = finishPointerGesture(fromTouchpad = false)
 
+    /**
+     * Drop an in-progress Hold-Left without finalizing desk drag, lasso, or emitting a click.
+     * Used when a second finger starts a pinch/pan so one-finger desk work is abandoned.
+     */
+    fun abortLeftButton() {
+        if (gesturePressCount <= 0 && !_cursor.value.isPressed) return
+        gesturePressCount = 0
+        leftButtonInGesture = false
+        touchpadInGesture = false
+        gestureAnchorX = null
+        gestureAnchorY = null
+        _cursor.value = fpsReleaseCursor(_cursor.value.copy(isPressed = false))
+    }
+
     /** Second tap of a double-tap-and-hold — anchors click-drag on the glasses display. */
     fun beginTouchpadDragGesture() {
         touchpadInGesture = true

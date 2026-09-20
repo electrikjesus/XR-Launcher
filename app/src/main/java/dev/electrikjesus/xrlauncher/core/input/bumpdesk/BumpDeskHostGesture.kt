@@ -116,12 +116,10 @@ class BumpDeskHostGesture(
     }
 
     fun onPinchBegin(distance: Float, midX: Float, midY: Float): BumpDeskHostAction {
-        if (deskDragArmed) {
-            // Caller must end any active desk hold before pinch.
-        }
         pinching = true
         primaryDown = false
         deskDragArmed = false
+        deskGrabAllowed = false
         middleDragging = false
         pinchLock = PinchLock.NONE
         pinchDistance = distance

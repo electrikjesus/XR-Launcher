@@ -175,6 +175,18 @@ class BumpDeskHostGestureTest {
     }
 
     @Test
+    fun onPinchBegin_cancelsArmedDeskHold() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
+        assertTrue(gesture.deskDragArmed)
+        assertTrue(gesture.primaryDown)
+        val action = gesture.onPinchBegin(120f, 150f, 160f)
+        assertEquals(BumpDeskHostAction.CancelDeskHold, action)
+        assertTrue(gesture.pinching)
+        assertFalse(gesture.deskDragArmed)
+        assertFalse(gesture.primaryDown)
+    }
+
+    @Test
     fun pinchMove_emitsLookPanAndZoom() {
         gesture.onPinchBegin(100f, 200f, 300f)
         val actions = gesture.onPinchMove(120f, 230f, 310f)
