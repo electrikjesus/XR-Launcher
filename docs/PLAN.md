@@ -625,7 +625,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c. **Desktop grid** — ☑ Snap to grid + show-grid-on-move + cell scale in Settings / Edit Desktop; GLES overlay while moving/resizing; live landing-cell highlight on drag.
 0c2. **All Apps open drawer plate** — ☑ Frosted backing hugs icon/chevron span; outside-click dismiss matches the visible plate edge (no extra hit slop).
 0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
-0c4. **Host + glasses attach** — ☑ Detect secondary display while Expanded Home Space is up; prompt **XR Glasses UI** vs **Android Desktop** (+ companion on tablet); drop Companion USB chooser duplicate.
+0c4. **Host + glasses attach** — ☑ Prompt **XR Glasses UI** vs **Android Desktop** (+ companion); USB-only (no DisplayManager secondary) disables XR option with explanation; drop Companion USB chooser duplicate.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -875,7 +875,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **All Apps plate fit:** chevrons flush to grid edge; thin width pad; backing hit/dismiss slop = 1.0 | Plate wider than icons/arrows; outside-click had to go past the frosted edge |
 | 2026-09-20 | **All Apps tile snap + Home focus:** snap drawer pose on release; host Home shortcut looks at drawer | Grid highlight moved but tile ignored snap; Home open left the expanded widget off-screen |
 | 2026-09-20 | **Host glasses attach prompt:** XR Glasses UI vs Android Desktop (+ companion on tablet); remove Companion USB filter | Plug-in showed two identical chooser entries; glasses stayed blank |
+| 2026-09-20 | **Host glasses USB-only:** prompt on RayNeo USB even without secondary display; disable XR UI until DisplayManager has a target | onn tablet exposes RayNeo as USB HID only — openGlassesSession had nowhere to launch |
 
 ---
 
-*Last updated: 2026-09-20 (host glasses attach: XR vs Desktop)*
+*Last updated: 2026-09-20 (host glasses USB-only prompt)*

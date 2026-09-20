@@ -67,10 +67,42 @@ class HostGlassesAttachLogicTest {
     }
 
     @Test
-    fun pruneDismissed_clearsWhenNoSecondary() {
+    fun shouldPrompt_whenRayNeoUsbWithoutSecondaryDisplay() {
+        assertTrue(
+            HostGlassesAttachLogic.shouldPrompt(
+                hostImmersive = true,
+                secondaryDisplayIds = emptyList(),
+                dismissedDisplayIds = emptySet(),
+                externalWorkspaceActive = false,
+                rayNeoUsbAttached = true,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldPrompt_falseWhenUsbOnlyAlreadyDismissed() {
+        assertFalse(
+            HostGlassesAttachLogic.shouldPrompt(
+                hostImmersive = true,
+                secondaryDisplayIds = emptyList(),
+                dismissedDisplayIds = setOf(HostGlassesAttachLogic.USB_ONLY_DISMISS_ID),
+                externalWorkspaceActive = false,
+                rayNeoUsbAttached = true,
+            ),
+        )
+    }
+
+    @Test
+    fun xrGlassesUiAvailable_requiresSecondary() {
+        assertFalse(HostGlassesAttachLogic.xrGlassesUiAvailable(emptyList()))
+        assertTrue(HostGlassesAttachLogic.xrGlassesUiAvailable(listOf(4)))
+    }
+
+    @Test
+    fun pruneDismissed_clearsWhenNoSecondaryAndNoUsb() {
         assertEquals(
             emptySet<Int>(),
-            HostGlassesAttachLogic.pruneDismissed(setOf(7, 9), emptyList()),
+            HostGlassesAttachLogic.pruneDismissed(setOf(7, 9), emptyList(), rayNeoUsbAttached = false),
         )
     }
 
@@ -79,6 +111,14 @@ class HostGlassesAttachLogicTest {
         assertEquals(
             setOf(7),
             HostGlassesAttachLogic.pruneDismissed(setOf(7, 9), listOf(7)),
+        )
+    }
+
+    @Test
+    fun dismissIds_usbOnlyUsesSentinel() {
+        assertEquals(
+            setOf(HostGlassesAttachLogic.USB_ONLY_DISMISS_ID),
+            HostGlassesAttachLogic.dismissIds(emptyList(), rayNeoUsbAttached = true),
         )
     }
 }

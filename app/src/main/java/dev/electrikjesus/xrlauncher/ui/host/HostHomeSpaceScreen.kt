@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.ui.host
 
 import android.view.Display
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,8 @@ import dev.electrikjesus.xrlauncher.core.display.HostGlassesAttachLogic
 import dev.electrikjesus.xrlauncher.core.display.HostGlassesAttachPromptState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
+import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceAppLaunchCoordinator
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingLogic
@@ -88,6 +91,8 @@ fun HostHomeSpaceScreen(
     var includeOnboardingIntro by remember { mutableStateOf(true) }
     val dismissedDisplayIds by HostGlassesAttachPromptState.dismissedDisplayIdsFlow.collectAsState()
     val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
+    val rayNeoUsbAttached = GlassesSessionState.rayNeoUsbAttached ||
+        RayNeoHeadTrackingController.isRayNeoAttached(context)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) resumeTick++
@@ -95,14 +100,15 @@ fun HostHomeSpaceScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(secondaryDisplayIds, dismissedDisplayIds, resumeTick, hostDialog) {
-        HostGlassesAttachPromptState.prune(secondaryDisplayIds)
+    LaunchedEffect(secondaryDisplayIds, dismissedDisplayIds, resumeTick, hostDialog, rayNeoUsbAttached) {
+        HostGlassesAttachPromptState.prune(secondaryDisplayIds, rayNeoUsbAttached = rayNeoUsbAttached)
         if (
             HostGlassesAttachLogic.shouldPrompt(
                 hostImmersive = GlassesSessionState.hostImmersiveSession,
                 secondaryDisplayIds = secondaryDisplayIds,
                 dismissedDisplayIds = HostGlassesAttachPromptState.dismissedDisplayIds,
                 externalWorkspaceActive = GlassesSessionState.externalWorkspaceActive,
+                rayNeoUsbAttached = rayNeoUsbAttached,
             )
         ) {
             // Don't steal focus from onboarding / settings.
@@ -112,7 +118,7 @@ fun HostHomeSpaceScreen(
         } else if (
             hostDialog == HomeSpaceDialog.GLASSES_DISPLAY &&
             (
-                secondaryDisplayIds.isEmpty() ||
+                secondaryDisplayIds.isEmpty() && !rayNeoUsbAttached ||
                     GlassesSessionState.externalWorkspaceActive
                 )
         ) {
@@ -347,27 +353,48 @@ fun HostHomeSpaceScreen(
             }
         }
         if (hostDialog == HomeSpaceDialog.GLASSES_DISPLAY) {
+            val xrAvailable = HostGlassesAttachLogic.xrGlassesUiAvailable(secondaryDisplayIds) ||
+                DisplayLaunchHelper.findSecondaryDisplayId(context) != null
             Box(Modifier.fillMaxSize().zIndex(12f)) {
                 HostGlassesDisplayDialogLayer(
+                    xrGlassesUiAvailable = xrAvailable,
                     onChoice = { choice ->
                         when (choice) {
                             HostGlassesAttachLogic.Choice.XR_GLASSES_UI -> {
                                 HomeSpaceDialogState.close()
-                                DisplayLaunchHelper.openGlassesSession(
+                                val opened = DisplayLaunchHelper.openGlassesSession(
                                     context = context,
-                                    preferredDisplayId = secondaryDisplayIds.firstOrNull(),
+                                    preferredDisplayId = secondaryDisplayIds.firstOrNull()
+                                        ?: DisplayLaunchHelper.findSecondaryDisplayId(context),
                                     openCompanion = false,
                                 )
+                                if (!opened) {
+                                    Toast.makeText(
+                                        context,
+                                        R.string.host_glasses_attach_xr_failed,
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
                             }
                             HostGlassesAttachLogic.Choice.ANDROID_DESKTOP -> {
-                                HostGlassesAttachPromptState.dismiss(secondaryDisplayIds)
+                                HostGlassesAttachPromptState.dismiss(
+                                    HostGlassesAttachLogic.dismissIds(
+                                        secondaryDisplayIds,
+                                        rayNeoUsbAttached = rayNeoUsbAttached,
+                                    ),
+                                )
                                 HomeSpaceDialogState.close()
                                 DisplayLaunchHelper.openCompanionController(context)
                             }
                         }
                     },
                     onDismiss = {
-                        HostGlassesAttachPromptState.dismiss(secondaryDisplayIds)
+                        HostGlassesAttachPromptState.dismiss(
+                            HostGlassesAttachLogic.dismissIds(
+                                secondaryDisplayIds,
+                                rayNeoUsbAttached = rayNeoUsbAttached,
+                            ),
+                        )
                         HomeSpaceDialogState.close()
                     },
                 )

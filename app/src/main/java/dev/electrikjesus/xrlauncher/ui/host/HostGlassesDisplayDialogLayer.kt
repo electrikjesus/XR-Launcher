@@ -30,10 +30,12 @@ private val CardBg = Color(0xF21C1C1E)
 private val ScrimBg = Color(0x99000000)
 private val Accent = Color(0xFF8AB4F8)
 private val ChipBg = Color(0xFF3A3A3C)
+private val DisabledChip = Color(0xFF2A2A2C)
 
 /** Ask what to put on the newly attached glasses / secondary display. */
 @Composable
 fun BoxScope.HostGlassesDisplayDialogLayer(
+    xrGlassesUiAvailable: Boolean,
     onChoice: (HostGlassesAttachLogic.Choice) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -70,18 +72,32 @@ fun BoxScope.HostGlassesDisplayDialogLayer(
             color = Color.White,
         )
         Text(
-            text = stringResource(R.string.host_glasses_attach_body),
+            text = stringResource(
+                if (xrGlassesUiAvailable) {
+                    R.string.host_glasses_attach_body
+                } else {
+                    R.string.host_glasses_attach_body_no_display
+                },
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = 0.72f),
         )
         ChoiceRow(
             title = stringResource(R.string.host_glasses_attach_xr_ui),
-            hint = stringResource(R.string.host_glasses_attach_xr_ui_hint),
+            hint = stringResource(
+                if (xrGlassesUiAvailable) {
+                    R.string.host_glasses_attach_xr_ui_hint
+                } else {
+                    R.string.host_glasses_attach_xr_ui_unavailable_hint
+                },
+            ),
+            enabled = xrGlassesUiAvailable,
             onClick = { onChoice(HostGlassesAttachLogic.Choice.XR_GLASSES_UI) },
         )
         ChoiceRow(
             title = stringResource(R.string.host_glasses_attach_android_desktop),
             hint = stringResource(R.string.host_glasses_attach_android_desktop_hint),
+            enabled = true,
             onClick = { onChoice(HostGlassesAttachLogic.Choice.ANDROID_DESKTOP) },
         )
     }
@@ -91,25 +107,28 @@ fun BoxScope.HostGlassesDisplayDialogLayer(
 private fun ChoiceRow(
     title: String,
     hint: String,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val titleColor = if (enabled) Accent else Color.White.copy(alpha = 0.35f)
+    val hintColor = if (enabled) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.35f)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(ChipBg)
-            .clickable(onClick = onClick)
+            .background(if (enabled) ChipBg else DisabledChip)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            color = Accent,
+            color = titleColor,
         )
         Text(
             text = hint,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.65f),
+            color = hintColor,
             modifier = Modifier.padding(top = 4.dp),
         )
     }

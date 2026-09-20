@@ -5,10 +5,13 @@
     <string name="control_glasses">Control glasses</string>
     <string name="host_glasses_attach_title">Glasses connected</string>
     <string name="host_glasses_attach_body">Choose what to use on the glasses display.</string>
+    <string name="host_glasses_attach_body_no_display">Glasses USB is connected, but Android is not exposing a second display yet. XR Glasses UI needs Desktop Mode (or DisplayPort) to present a display we can launch onto.</string>
     <string name="host_glasses_attach_xr_ui">XR Glasses UI</string>
     <string name="host_glasses_attach_xr_ui_hint">Open XR Launcher Home Space on the glasses. This tablet keeps its own Home Space.</string>
+    <string name="host_glasses_attach_xr_ui_unavailable_hint">Unavailable — no secondary display. Enable Desktop Mode / DP display on the glasses, then replug or tap again.</string>
     <string name="host_glasses_attach_android_desktop">Android Desktop UI</string>
     <string name="host_glasses_attach_android_desktop_hint">Leave Android Desktop on the glasses and open the companion touchpad on this tablet.</string>
+    <string name="host_glasses_attach_xr_failed">Could not open XR UI on glasses — no secondary display available.</string>
     <string name="phone_connect_glasses_hint">Connect XR glasses or a display to open the spatial workspace. Your phone becomes the touchpad.</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>

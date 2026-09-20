@@ -74,13 +74,11 @@ class MainActivity : ComponentActivity() {
         if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
             RayNeoHeadTrackingController.start(this)
         }
-        // Expanded host already running: offer what to put on the glasses display.
+        // Expanded host already running: offer XR vs Android Desktop even when the
+        // glasses only show up as USB (no DisplayManager secondary yet).
         if (GlassesSessionState.hostImmersiveSession) {
             refreshCapabilities()
-            if (
-                !GlassesSessionState.externalWorkspaceActive &&
-                capabilityDetector.capabilities.value.hasSecondaryDisplay
-            ) {
+            if (!GlassesSessionState.externalWorkspaceActive) {
                 HomeSpaceDialogState.openGlassesDisplay()
             }
         }

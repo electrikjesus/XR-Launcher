@@ -114,7 +114,11 @@ object DisplayLaunchHelper {
     ): Boolean {
         val displayId = resolveSecondaryDisplayId(context, preferredDisplayId)
         if (displayId == null) {
-            Log.w(TAG, "No secondary display available for glasses session")
+            val displayManager = context.getSystemService(DisplayManager::class.java)
+            val summary = displayManager.displays.joinToString { d ->
+                "id=${d.displayId} state=${d.state} type=${d.name}"
+            }
+            Log.w(TAG, "No secondary display available for glasses session; displays=[$summary]")
             return false
         }
 

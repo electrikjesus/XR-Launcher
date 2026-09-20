@@ -13,16 +13,20 @@ object HostGlassesAttachPromptState {
     val dismissedDisplayIdsFlow: StateFlow<Set<Int>> = _dismissedDisplayIds.asStateFlow()
     val dismissedDisplayIds: Set<Int> get() = _dismissedDisplayIds.value
 
-    fun dismiss(displayIds: Collection<Int>) {
-        if (displayIds.isEmpty()) return
-        _dismissedDisplayIds.value = dismissedDisplayIds + displayIds
-    }
-
-    fun prune(secondaryDisplayIds: List<Int>) {
-        val next = HostGlassesAttachLogic.pruneDismissed(dismissedDisplayIds, secondaryDisplayIds)
+    fun prune(secondaryDisplayIds: List<Int>, rayNeoUsbAttached: Boolean = false) {
+        val next = HostGlassesAttachLogic.pruneDismissed(
+            dismissedDisplayIds,
+            secondaryDisplayIds,
+            rayNeoUsbAttached = rayNeoUsbAttached,
+        )
         if (next != dismissedDisplayIds) {
             _dismissedDisplayIds.value = next
         }
+    }
+
+    fun dismiss(displayIds: Collection<Int>) {
+        if (displayIds.isEmpty()) return
+        _dismissedDisplayIds.value = dismissedDisplayIds + displayIds
     }
 
     fun clear() {
