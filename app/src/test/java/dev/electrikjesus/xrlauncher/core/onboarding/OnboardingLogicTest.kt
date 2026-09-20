@@ -66,6 +66,22 @@ class OnboardingLogicTest {
     }
 
     @Test
+    fun hidesWhenOnlyHomeRoleMissingAfterCompleted() {
+        assertFalse(
+            OnboardingLogic.shouldShow(
+                completed = true,
+                replayRequested = false,
+                hasSecondaryDisplay = false,
+                grants = OnboardingGrantState(
+                    accessibilityEnabled = true,
+                    isDefaultHome = false,
+                    notificationListenerEnabled = true,
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun showsWhenOnlyAccessibilityMissing() {
         assertTrue(
             OnboardingLogic.shouldShow(

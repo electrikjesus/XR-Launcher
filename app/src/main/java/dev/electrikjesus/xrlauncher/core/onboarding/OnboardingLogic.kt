@@ -15,9 +15,13 @@ data class OnboardingGrantState(
     val isDefaultHome: Boolean,
     val notificationListenerEnabled: Boolean = true,
 ) {
-    /** Grants the wizard must keep nagging about until the user enables them. */
+    /**
+     * Grants that force the wizard to reappear after the user has already finished it.
+     * Default Home is encouraged on first run / Settings replay, but alone must not nag
+     * every launch — users often keep another launcher as Home while still using XR Launcher.
+     */
     fun allRequiredGranted(): Boolean =
-        accessibilityEnabled && isDefaultHome && notificationListenerEnabled
+        accessibilityEnabled && notificationListenerEnabled
 
     fun hasMissingRequired(): Boolean = !allRequiredGranted()
 }
@@ -47,9 +51,9 @@ object OnboardingLogic {
     }
 
     /**
-     * Show on every launch when a required grant is missing, on first run (no glasses yet),
-     * or when Settings requests a replay. Completing / skipping the wizard must not hide
-     * missing Accessibility or Home role forever.
+     * Show on every launch when Accessibility or Notification listener is missing, on first
+     * run (no glasses yet), or when Settings requests a replay. Completing / skipping must
+     * not hide those two forever. Missing default Home alone does not re-show.
      */
     fun shouldShow(
         completed: Boolean,

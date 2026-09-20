@@ -637,7 +637,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
 5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / hand=GESTURE / mouse=FPS (force, not toggle); still open: OS mouse capture.
 6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
-7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility / Notification listener re-shows the guide; App Info Restricted-settings path; no privileged wallpaper/storage APIs — `FLAG_SHOW_WALLPAPER` + gradient GLES surround.
+7. **6.9 — Onboarding permissions** — ☑ Partial: Accessibility / Notification listener re-show the guide; default Home alone does not; App Info Restricted-settings path; no privileged wallpaper/storage APIs — `FLAG_SHOW_WALLPAPER` + gradient GLES surround.
 
 8. **Stop** — Do not start unrelated Phase 6 work in this pass.
 
@@ -722,7 +722,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 | 6.6 | Privacy policy (minimal collection; no analytics or explicit opt-in only). | ☐ |
 | 6.7 | Play listing: screenshots, supported devices, honest “embedding limitations” note. | ☐ |
 | 6.8 | Beta via internal / closed testing; file bugs against `device-matrix.md` gaps. | ☐ |
-| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service and notification listener. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility + Notification listener settings from the step. Re-check grants when the user returns. Do **not** request root/system/wallpaper privileges — Play launcher path only (`FLAG_SHOW_WALLPAPER`). | ☑ Partial — host + phone re-show when Home / Accessibility / Notification listener missing; App Info CTA; no privileged wallpaper APIs |
+| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service and notification listener. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility + Notification listener settings from the step. Re-check grants when the user returns. Do **not** request root/system/wallpaper privileges — Play launcher path only (`FLAG_SHOW_WALLPAPER`). | ☑ Partial — re-show for Accessibility / Notification listener (not Home-only); App Info CTA; no privileged wallpaper APIs |
 
 ---
 
@@ -864,7 +864,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Create Pile Folder vs Stack:** real `DeskPile` objects (2×2 folder preview / layered stack); expand toggle; desk_json piles segment | Folder and Stack arrange stand-ins both just jumped icons |
 | 2026-09-20 | **Pile polish:** icon-sized faces (not widget extents); hide face when open; radial Fan Out / Break Apart | Piles read ~4× large; collapsed face stayed under fan; no undo/fan menu |
 | 2026-09-20 | **Break Apart anti-orbit:** sized yaw spacing, static settle vs panes/obstacles, physics max-separation + rest-on-pinned | Top pile member ran left forever around the sphere after break |
+| 2026-09-20 | **Onboarding:** do not re-show when the only missing grant is default Home | Users often keep another launcher as Home; Home-only nag blocked the workspace |
 
 ---
 
-*Last updated: 2026-09-20 (Break Apart anti-orbit)*
+*Last updated: 2026-09-20 (onboarding Home-only no re-show)*
