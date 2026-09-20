@@ -331,6 +331,9 @@ private fun handleRightClick(
             } else if (
                 homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null
             ) {
+                // Empty desk radial must not inherit a prior widget/lasso selection
+                // (Grow/Shrink/Remove), or it looks like the moved widget is still selected.
+                DeskLassoState.clearSelection()
                 val hit = HomeSpaceScene.sphereHit(
                     cursorX = click.x,
                     cursorY = click.y,
@@ -937,13 +940,17 @@ private fun trackDeskDrag(
         ) {
             val deskIcon = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
             when {
-                deskIcon != null -> HomeSpaceDeskState.press(
-                    icon = deskIcon,
-                    cursorX = cursorX,
-                    cursorY = cursorY,
-                    hitYawDeg = hit.yawDeg,
-                    hitPitchDeg = hit.pitchDeg,
-                )
+                deskIcon != null -> {
+                    // Dragging an item replaces any prior lasso/widget selection.
+                    DeskLassoState.clearSelection()
+                    HomeSpaceDeskState.press(
+                        icon = deskIcon,
+                        cursorX = cursorX,
+                        cursorY = cursorY,
+                        hitYawDeg = hit.yawDeg,
+                        hitPitchDeg = hit.pitchDeg,
+                    )
+                }
                 tryPressHomePaneApp(
                     cursorX = cursorX,
                     cursorY = cursorY,

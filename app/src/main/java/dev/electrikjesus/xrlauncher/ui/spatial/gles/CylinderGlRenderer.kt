@@ -443,7 +443,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             val count = deskIconVertexCounts[icon.componentKey] ?: return@forEach
             val textureId = uploadedDeskTextures[icon.componentKey]?.textureId ?: 0
             val hovered = icon.componentKey == deskHoveredKey && !icon.isBacking
-            val selected = icon.componentKey in DeskLassoState.selectedKeys && icon.isDesktopApp
+            val selected = icon.componentKey in DeskLassoState.selectedKeys &&
+                (icon.isDesktopApp || icon.isWidget)
             drawMesh(
                 buffer,
                 count,

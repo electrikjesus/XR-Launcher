@@ -859,7 +859,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **BumpDesk RadialMenuView:** pie wedges + nested Create Pile / Layout rings replace Compose chip orbit | Chip ring did not match BumpDesk presentation or submenu affordances |
 | 2026-09-20 | **AppWidgetHost desk widgets:** off-screen host → Canvas capture → GLES; empty radial **Add widget** at click sphere pose; `desk_json` WIDGET half extents | Live widgets were deferred after tray/wallpaper surface work |
 | 2026-09-20 | **Widget Grow/Shrink radial:** 1.25× half-extent scale with clamp; dirty capture refresh | Resize was only via future drag handles |
+| 2026-09-20 | **Empty-desk radial clears selection** — and drag-press clears prior lasso/widget keys | Stale widget selection showed Grow/Shrink after move + empty click |
 
 ---
 
-*Last updated: 2026-09-20 (widget Grow/Shrink radial)*
+*Last updated: 2026-09-20 (clear stale desk selection)*
