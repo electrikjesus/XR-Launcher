@@ -631,6 +631,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c7. **Wallpaper on glasses only** — ☑ Companion uses opaque theme (no `windowShowWallpaper`); GLES surround stays on glasses/XR / host Home Space.
 0c8. **PIP / foreign-window pointer inject** — ☑ When launcher is still resumed under PIP, inject `dispatchGesture` if the cursor hits a PIP or other-app window (Compose cannot).
 0c9. **Wallpaper choice switch + snap default** — ☑ SYSTEM re-uploads after gradient (no stale GLES texture); `deskSnapToGrid` defaults **on**.
+0c10. **Radial world-lock in mouse-look** — ☑ Menu pins to enactment sphere pose; FPS crosshair aims wedges via `updatePointer`; left-click activates via `RadialMenuPointerBridge`.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -639,7 +640,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
 2. **Lasso → pile / arrange** — ☑ Partial: radial **Move**; Create Pile **Folder** / **Stack** are real pile objects; Layout Grid/Row/Column rearrange free icons.
-3. **Radial menu** — ☑ BumpDesk `RadialMenuView`; empty **Add widget**; selected widgets Grow/Shrink; multi-select **Move** + arrange; host catcher drops while open.
+3. **Radial menu** — ☑ BumpDesk `RadialMenuView`; empty **Add widget**; selected widgets Grow/Shrink; multi-select **Move** + arrange; host catcher drops while open; **world-locked in FPS** (enactment pose + crosshair aim).
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
 **Large-screen host:**
@@ -887,7 +888,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Wallpaper on glasses only:** companion opaque theme; no system wallpaper behind touchpad | Companion inherited Theme.XRLauncher `windowShowWallpaper` |
 | 2026-09-20 | **PIP pointer inject:** inject when cursor over PIP/foreign window even if launcher resumed | Inject was gated only on `launcherBackgrounded`; PIP left Compose-dead |
 | 2026-09-20 | **Wallpaper SYSTEM switch + snap default:** clear/re-upload on choice change; deskSnapToGrid default true | Stale gradient stuck under SYSTEM gen; snap was off by default |
+| 2026-09-20 | **Radial world-lock (FPS):** pin menu to enactment sphere pose; aim wedges with crosshair; left-click activates | Menu used screen anchors at cursor center and stuck to mouse-look |
 
 ---
 
-*Last updated: 2026-09-20 (wallpaper switch + snap default)*
+*Last updated: 2026-09-20 (radial world-lock FPS)*

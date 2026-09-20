@@ -125,6 +125,7 @@ fun GlassesWorkspaceScreen(
                 }
             }
 
+            val appearance = workspace?.appearance ?: WorkspaceAppearance.default()
             LauncherWorkspaceInteractionLayer(
                 launchableApps = launchableApps,
                 panels = panels,
@@ -148,6 +149,8 @@ fun GlassesWorkspaceScreen(
                         },
                     )
                 },
+                panelScale = appearance.clamped().panelScale,
+                sphereScale = appearance.clamped().sphereScale,
             )
         }
     }

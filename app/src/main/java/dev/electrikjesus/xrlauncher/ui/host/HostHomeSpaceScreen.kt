@@ -414,6 +414,8 @@ fun HostHomeSpaceScreen(
                     onSnapPanelToGrid = { panelId ->
                         scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
                     },
+                    panelScale = appearance.clamped().panelScale,
+                    sphereScale = appearance.clamped().sphereScale,
                 )
             }
         }

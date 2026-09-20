@@ -102,6 +102,8 @@ fun LauncherWorkspaceInteractionLayer(
                 onSnapPanelToGrid = { panelId ->
                     scope.launch { workspaceRepository.snapPanelToDefaultGrid(panelId) }
                 },
+                panelScale = panelScale,
+                sphereScale = sphereScale,
             )
         }
     }

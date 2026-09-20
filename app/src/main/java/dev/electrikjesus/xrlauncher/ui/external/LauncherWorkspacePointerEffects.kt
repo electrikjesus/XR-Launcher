@@ -44,6 +44,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.LayoutPreset
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
+import dev.electrikjesus.xrlauncher.core.workspace.RadialMenuPointerBridge
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpacePanePick
@@ -302,19 +303,39 @@ private fun handleRightClick(
     panelScale: Float,
     sphereScale: Float,
 ) {
+    val deskHit = deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
     val app = findAppAt(point, itemBounds, apps)
-        ?: deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        ?: deskHit
             ?.takeUnless { it.isAppDrawer }
             ?.let { desk -> apps.find { it.componentKey() == desk.componentKey } }
     Log.d(LOG_TAG, "right-click at (${click.x}, ${click.y}) app=${app?.label}")
-    val deskHit = deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
+    val sphere = HomeSpaceScene.sphereHit(
+        cursorX = click.x,
+        cursorY = click.y,
+        camera = homeSpaceCamera(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale),
+        viewportWidthPx = rootWidthPx,
+        viewportHeightPx = rootHeightPx,
+        sphereScale = sphereScale,
+    )
     when {
-        app != null -> LauncherContextMenuState.openApp(
-            app = app,
-            isPinned = app.componentKey() in pinnedComponentKeys,
-            anchorX = click.x,
-            anchorY = click.y,
-        )
+        app != null -> {
+            val poseYaw = deskHit
+                ?.takeIf { it.componentKey == app.componentKey() }
+                ?.yawDeg
+                ?: sphere.yawDeg
+            val posePitch = deskHit
+                ?.takeIf { it.componentKey == app.componentKey() }
+                ?.pitchDeg
+                ?: sphere.pitchDeg
+            LauncherContextMenuState.openApp(
+                app = app,
+                isPinned = app.componentKey() in pinnedComponentKeys,
+                anchorX = click.x,
+                anchorY = click.y,
+                deskYawDeg = poseYaw,
+                deskPitchDeg = posePitch,
+            )
+        }
         deskHit?.isWidget == true -> {
             DeskLassoState.setSelection(setOf(deskHit.componentKey))
             LauncherContextMenuState.openDesktop(
@@ -346,25 +367,19 @@ private fun handleRightClick(
                     kind = panel.kind,
                     anchorX = click.x,
                     anchorY = click.y,
+                    deskYawDeg = sphere.yawDeg,
+                    deskPitchDeg = sphere.pitchDeg,
                 )
             } else if (
                 homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
                     .let { it == null || GlassesHomeLook.acceptsDeskItems(it.slot.panelId) }
             ) {
                 DeskLassoState.clearSelection()
-                val hit = HomeSpaceScene.sphereHit(
-                    cursorX = click.x,
-                    cursorY = click.y,
-                    camera = homeSpaceCamera(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale),
-                    viewportWidthPx = rootWidthPx,
-                    viewportHeightPx = rootHeightPx,
-                    sphereScale = sphereScale,
-                )
                 LauncherContextMenuState.openDesktop(
                     anchorX = click.x,
                     anchorY = click.y,
-                    deskYawDeg = hit.yawDeg,
-                    deskPitchDeg = hit.pitchDeg,
+                    deskYawDeg = sphere.yawDeg,
+                    deskPitchDeg = sphere.pitchDeg,
                 )
             }
         }
@@ -388,6 +403,10 @@ private fun handleLeftClick(
     sphereScale: Float,
 ) {
     if (LauncherContextMenuState.isOpen) {
+        if (RadialMenuPointerBridge.onActivate?.invoke() == true) {
+            Log.d(LOG_TAG, "left-click activated radial menu item")
+            return
+        }
         Log.d(LOG_TAG, "left-click dismiss context menu")
         LauncherContextMenuState.dismiss()
         return

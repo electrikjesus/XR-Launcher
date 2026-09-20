@@ -2,6 +2,7 @@ package dev.electrikjesus.xrlauncher.ui.workspace
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.capability.SpatialEmbedCapability
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
@@ -25,14 +27,20 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskPile
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetResizeState
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
+import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
+import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuRequest
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.RadialMenuItem
+import dev.electrikjesus.xrlauncher.core.workspace.RadialMenuPointerBridge
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
+import dev.electrikjesus.xrlauncher.core.workspace.scene.RadialMenuWorldLock
 
 fun openAppContextMenuFromBounds(
     app: LaunchableApp,
@@ -52,7 +60,11 @@ fun openAppContextMenuFromBounds(
 
 /**
  * Hosts BumpDesk [RadialMenuView] for right-click / long-press / lasso release.
- * Pie wedges + nested secondary ring (Create Pile / Layout), not Compose chips.
+ * Pie wedges + nested secondary ring (Create Pile / Layout).
+ *
+ * When [LauncherContextMenuRequest.deskYawDeg]/[deskPitchDeg] are set, the menu is
+ * reprojected each frame onto the sphere pose where it was opened so mouse-look can
+ * aim the crosshair at wedges instead of dragging the ring with the cursor.
  */
 @Composable
 fun LauncherContextMenuHost(
@@ -62,12 +74,19 @@ fun LauncherContextMenuHost(
     onToggleHotseatPin: (LaunchableApp) -> Unit,
     onHidePanel: (String) -> Unit,
     onSnapPanelToGrid: (String) -> Unit,
+    panelScale: Float = 1f,
+    sphereScale: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
     val request by LauncherContextMenuState.request.collectAsState()
     val selectedKeys by DeskLassoState.selectedKeysFlow.collectAsState()
+    val lookYaw by GlassesHomeLook.lookYawDegFlow.collectAsState()
+    val lookPitch by GlassesHomeLook.lookPitchFlow.collectAsState()
+    val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
+    val cursor by CompanionPointerBus.cursor.collectAsState()
     val context = LocalContext.current
     val shownRequest = remember { mutableStateOf<Any?>(null) }
+    val viewRef = remember { mutableStateOf<RadialMenuView?>(null) }
 
     val items = remember(request, selectedKeys, onLaunchApp, onToggleHotseatPin, onHidePanel, onSnapPanelToGrid) {
         val req = request ?: return@remember emptyList()
@@ -95,10 +114,22 @@ fun LauncherContextMenuHost(
         }
     }
 
+    DisposableEffect(Unit) {
+        RadialMenuPointerBridge.onActivate = {
+            viewRef.value?.activateSelection() == true
+        }
+        onDispose {
+            if (RadialMenuPointerBridge.onActivate != null) {
+                RadialMenuPointerBridge.onActivate = null
+            }
+        }
+    }
+
     AndroidView(
-        factory = { ctx -> RadialMenuView(ctx) },
+        factory = { ctx -> RadialMenuView(ctx).also { viewRef.value = it } },
         modifier = modifier.fillMaxSize(),
         update = { view ->
+            viewRef.value = view
             val req = request
             if (req == null || items.isEmpty() || rootWidthPx <= 0f || rootHeightPx <= 0f) {
                 if (shownRequest.value != null) {
@@ -107,22 +138,81 @@ fun LauncherContextMenuHost(
                 }
                 return@AndroidView
             }
+            val (centerX, centerY) = menuCenterPx(
+                req = req,
+                rootWidthPx = rootWidthPx,
+                rootHeightPx = rootHeightPx,
+                panelScale = panelScale,
+                sphereScale = sphereScale,
+                lookYawDeg = lookYaw,
+                lookPitchDeg = lookPitch,
+                panNorm = panNorm,
+                cursorX = cursor.x,
+                cursorY = cursor.y,
+            )
             // Avoid resetting selection / isFirstUpAfterShow on every recomposition.
             val showKey = req to items.map { it.label to (it.subItems?.map { s -> s.label }) }
-            if (shownRequest.value == showKey && view.visibility == View.VISIBLE) return@AndroidView
+            if (shownRequest.value == showKey && view.visibility == View.VISIBLE) {
+                view.setCenter(centerX, centerY)
+                view.updatePointer(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
+                return@AndroidView
+            }
             shownRequest.value = showKey
             view.setItems(
                 items = items,
-                x = req.anchorX * rootWidthPx,
-                y = req.anchorY * rootHeightPx,
+                x = centerX,
+                y = centerY,
                 onSelected = { },
                 onDismiss = {
                     shownRequest.value = null
                     LauncherContextMenuState.dismiss()
                 },
             )
+            view.updatePointer(cursor.x * rootWidthPx, cursor.y * rootHeightPx)
         },
     )
+}
+
+private fun menuCenterPx(
+    req: LauncherContextMenuRequest,
+    rootWidthPx: Float,
+    rootHeightPx: Float,
+    panelScale: Float,
+    sphereScale: Float,
+    lookYawDeg: Float,
+    lookPitchDeg: Float,
+    panNorm: Float,
+    cursorX: Float,
+    cursorY: Float,
+): Pair<Float, Float> {
+    val yaw = req.deskYawDeg
+    val pitch = req.deskPitchDeg
+    if (yaw != null && pitch != null) {
+        val arc = HomeSpaceScene.paneArcDegrees(rootWidthPx, rootHeightPx, panelScale, sphereScale)
+        GlassesHomeLook.lastPaneArcDegrees = arc
+        val camera = HomeSpaceScene.camera(
+            look = panNorm,
+            cursorX = cursorX,
+            cursorY = cursorY,
+            viewportWidthPx = rootWidthPx,
+            viewportHeightPx = rootHeightPx,
+            panelScale = panelScale,
+            sphereScale = sphereScale,
+            lookMode = GlassesLookMode.effective(),
+            lookPitchDeg = lookPitchDeg,
+            applyCursorOffset = !HostInputMethod.usesAbsoluteHostCursor(),
+            lookYawDegrees = lookYawDeg,
+        )
+        RadialMenuWorldLock.projectToScreenPx(
+            yawDeg = yaw,
+            pitchDeg = pitch,
+            camera = camera,
+            viewportWidthPx = rootWidthPx,
+            viewportHeightPx = rootHeightPx,
+            sphereScale = sphereScale,
+        )?.let { return it }
+    }
+    return (req.anchorX * rootWidthPx) to (req.anchorY * rootHeightPx)
 }
 
 private fun appMenuItems(

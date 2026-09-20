@@ -31,6 +31,27 @@ class LauncherContextMenuStateTest {
     }
 
     @Test
+    fun openApp_storesWorldLockPose() {
+        val app = LaunchableApp(
+            label = "Example",
+            packageName = "com.example",
+            componentName = android.content.ComponentName("com.example", ".Main"),
+        )
+        LauncherContextMenuState.openApp(
+            app = app,
+            isPinned = false,
+            anchorX = 0.5f,
+            anchorY = 0.5f,
+            deskYawDeg = -22f,
+            deskPitchDeg = 6f,
+        )
+        val request = LauncherContextMenuState.request.value
+        assertNotNull(request)
+        assertEquals(-22f, request!!.deskYawDeg!!, 0.001f)
+        assertEquals(6f, request.deskPitchDeg!!, 0.001f)
+    }
+
+    @Test
     fun dismiss_clearsRequest() {
         LauncherContextMenuState.openPanel(
             panelId = "widget_clock",

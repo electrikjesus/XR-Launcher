@@ -24,7 +24,7 @@ data class LauncherContextMenuRequest(
     /** Normalized anchor (0..1) for menu placement. */
     val anchorX: Float,
     val anchorY: Float,
-    /** Sphere hit under the pointer when opening a Desktop menu (Add widget place). */
+    /** Sphere pose where the menu was enacted (world-lock while mouse-look aims). */
     val deskYawDeg: Float? = null,
     val deskPitchDeg: Float? = null,
 )
@@ -45,12 +45,16 @@ object LauncherContextMenuState {
         isPinned: Boolean,
         anchorX: Float,
         anchorY: Float,
+        deskYawDeg: Float? = null,
+        deskPitchDeg: Float? = null,
     ) {
         open(
             LauncherContextMenuRequest(
                 target = LauncherContextMenuTarget.App(app, isPinned),
                 anchorX = anchorX.coerceIn(0f, 1f),
                 anchorY = anchorY.coerceIn(0f, 1f),
+                deskYawDeg = deskYawDeg,
+                deskPitchDeg = deskPitchDeg,
             ),
         )
     }
@@ -60,12 +64,16 @@ object LauncherContextMenuState {
         kind: PanelKind,
         anchorX: Float,
         anchorY: Float,
+        deskYawDeg: Float? = null,
+        deskPitchDeg: Float? = null,
     ) {
         open(
             LauncherContextMenuRequest(
                 target = LauncherContextMenuTarget.Panel(panelId, kind),
                 anchorX = anchorX.coerceIn(0f, 1f),
                 anchorY = anchorY.coerceIn(0f, 1f),
+                deskYawDeg = deskYawDeg,
+                deskPitchDeg = deskPitchDeg,
             ),
         )
     }

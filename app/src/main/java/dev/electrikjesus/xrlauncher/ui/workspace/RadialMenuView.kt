@@ -101,6 +101,52 @@ class RadialMenuView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Reposition without resetting selection (world-lock while mouse-look aims). */
+    fun setCenter(x: Float, y: Float) {
+        if (visibility != VISIBLE) return
+        val spanW = if (width > 0) width.toFloat() else resources.displayMetrics.widthPixels.toFloat()
+        val spanH = if (height > 0) height.toFloat() else resources.displayMetrics.heightPixels.toFloat()
+        val nx = RadialMenuGeometry.clampMenuCenter(x, layout.secondaryOuterRadius, spanW)
+        val ny = RadialMenuGeometry.clampMenuCenter(y, layout.secondaryOuterRadius, spanH)
+        if (nx == centerX && ny == centerY) return
+        centerX = nx
+        centerY = ny
+        invalidate()
+    }
+
+    /** Highlight the wedge under a screen-space pointer (FPS crosshair or mouse). */
+    fun updatePointer(x: Float, y: Float) {
+        if (visibility != VISIBLE) return
+        updateSelection(x, y)
+    }
+
+    /**
+     * Activate the highlighted wedge (companion / FPS left-click).
+     * @return true if an item ran; false if nothing selected (caller may dismiss).
+     */
+    fun activateSelection(): Boolean {
+        if (visibility != VISIBLE) return false
+        if (selectedSubIndex != -1 && selectedIndex != -1) {
+            val subItem = items[selectedIndex].subItems!![selectedSubIndex]
+            subItem.action?.invoke()
+            onItemSelected?.invoke(subItem)
+            dismiss()
+            return true
+        }
+        if (selectedIndex != -1) {
+            val item = items[selectedIndex]
+            if (item.subItems == null) {
+                item.action?.invoke()
+                onItemSelected?.invoke(item)
+                dismiss()
+                return true
+            }
+            // Parent with submenu — keep open so the user can aim at children.
+            return true
+        }
+        return false
+    }
+
     fun hide() {
         visibility = GONE
         items = emptyList()
