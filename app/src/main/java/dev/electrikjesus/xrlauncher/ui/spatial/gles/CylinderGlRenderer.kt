@@ -327,9 +327,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
         GLES20.glUseProgram(litProgram)
         GLES20.glUniformMatrix4fv(litMvpHandle, 1, false, mvpMatrix, 0)
-        GLES20.glUniform3f(litLightHandle, 0f, 0f, 0f)
-        GLES20.glUniform1f(litAmbientHandle, 0.28f)
-        GLES20.glUniform1f(litDiffuseGainHandle, 1.35f)
+        // Match desk-icon lighting: high ambient + low diffuse so Home pane icons keep
+        // the same gamma as Desktop faces (strong diffuse crushed Compose-captured icons).
+        GLES20.glUniform3f(litLightHandle, 0.2f, 1.4f, 0.4f)
+        GLES20.glUniform1f(litAmbientHandle, 0.92f)
+        GLES20.glUniform1f(litDiffuseGainHandle, 0.12f)
         GLES20.glUniform3f(litTintHandle, 1f, 1f, 1f)
         GLES20.glUniform1f(litHighlightHandle, 0f)
         GLES20.glDisable(GLES20.GL_CULL_FACE)
