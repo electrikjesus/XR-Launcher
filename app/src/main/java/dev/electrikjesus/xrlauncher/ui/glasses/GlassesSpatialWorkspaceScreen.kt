@@ -81,6 +81,7 @@ import dev.electrikjesus.xrlauncher.ui.workspace.EmptySlotPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WidgetPanelById
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
+import dev.electrikjesus.xrlauncher.ui.workspace.DeskWidgetHostEffect
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceAppDrawerPanel
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceDockShell
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceHotseatRow
@@ -133,6 +134,8 @@ fun GlassesSpatialWorkspaceScreen(
     val homePageIndex by HomeAppsPaginationState.pageIndexFlow.collectAsState()
     val context = LocalContext.current
     var deskHydrated by remember { mutableStateOf(workspaceRepository == null) }
+
+    DeskWidgetHostEffect()
 
     LaunchedEffect(workspaceRepository) {
         val repo = workspaceRepository ?: run {

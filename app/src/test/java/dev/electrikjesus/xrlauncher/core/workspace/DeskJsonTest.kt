@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -35,8 +36,35 @@ class DeskJsonTest {
     }
 
     @Test
-    fun decode_blank_isEmpty() {
-        assertEquals(DeskLayout(), DeskJson.decode(""))
+    fun encodeDecode_widget_roundTrip() {
+        val layout = DeskLayout(
+            items = listOf(
+                DeskPlacedItem(
+                    componentKey = "widget_42",
+                    label = "Clock",
+                    packageName = "com.android.deskclock",
+                    yawDeg = -20f,
+                    pitchDeg = 5f,
+                    kind = "WIDGET",
+                    halfWidth = 0.8f,
+                    halfHeight = 0.4f,
+                ),
+            ),
+        )
+        val decoded = DeskJson.decode(DeskJson.encode(layout))
+        assertEquals(1, decoded.items.size)
+        val item = decoded.items.first()
+        assertEquals("widget_42", item.componentKey)
+        assertEquals("WIDGET", item.kind)
+        assertEquals(0.8f, item.halfWidth!!, 0.01f)
+        assertEquals(0.4f, item.halfHeight!!, 0.01f)
+        assertEquals(-20f, item.yawDeg, 0.01f)
+    }
+
+    @Test
+    fun decode_widgetKey_infersKind() {
+        val decoded = DeskJson.decode("_;_|widget_7~W~pkg~-10.0000~2.0000")
+        assertEquals("WIDGET", decoded.items.first().kind)
     }
 }
 
@@ -65,17 +93,56 @@ class HomeSpaceDeskPersistTest {
     }
 
     @Test
-    fun pruneMissing_dropsUninstalled() {
+    fun pruneMissing_keepsWidgets() {
         HomeSpaceDeskState.restore(
             DeskLayout(
                 items = listOf(
-                    DeskPlacedItem("a/.Main", "Alpha", "a", -12f, 0f),
+                    DeskPlacedItem(
+                        componentKey = "widget_9",
+                        label = "W",
+                        packageName = "pkg",
+                        yawDeg = -5f,
+                        pitchDeg = 0f,
+                        kind = "WIDGET",
+                        halfWidth = 0.7f,
+                        halfHeight = 0.35f,
+                    ),
                     DeskPlacedItem("gone/.Main", "Gone", "gone", -8f, 0f),
                 ),
             ),
         )
-        assertTrue(HomeSpaceDeskState.pruneMissing(setOf("a/.Main")))
+        assertTrue(HomeSpaceDeskState.pruneMissing(emptySet()))
         assertEquals(1, HomeSpaceDeskState.placed.size)
-        assertEquals("a/.Main", HomeSpaceDeskState.placed.first().app.componentKey)
+        assertEquals("widget_9", HomeSpaceDeskState.placed.first().app.componentKey)
+        assertEquals(HomeSpaceDesk.Kind.WIDGET, HomeSpaceDeskState.placed.first().app.kind)
+    }
+
+    @Test
+    fun placeWidget_persistsHalfExtents() {
+        HomeSpaceDeskState.placeWidget(
+            appWidgetId = 3,
+            label = "Calendar",
+            packageName = "com.android.calendar",
+            yawDeg = -15f,
+            pitchDeg = 4f,
+            halfWidth = 0.9f,
+            halfHeight = 0.5f,
+        )
+        val out = HomeSpaceDeskState.toLayout()
+        assertEquals(1, out.items.size)
+        assertEquals("widget_3", out.items.first().componentKey)
+        assertEquals("WIDGET", out.items.first().kind)
+        assertEquals(0.9f, out.items.first().halfWidth!!, 0.01f)
+        assertEquals(0.5f, out.items.first().halfHeight!!, 0.01f)
+    }
+}
+
+class DeskWidgetUtilsTest {
+    @Test
+    fun widgetKey_and_parseWidgetId() {
+        assertEquals("widget_12", DeskWidgetUtils.widgetKey(12))
+        assertEquals(12, DeskWidgetUtils.parseWidgetId("widget_12"))
+        assertNull(DeskWidgetUtils.parseWidgetId("a/.Main"))
+        assertNull(DeskWidgetUtils.parseWidgetId("widget_"))
     }
 }

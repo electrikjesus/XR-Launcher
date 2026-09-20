@@ -24,6 +24,9 @@ data class LauncherContextMenuRequest(
     /** Normalized anchor (0..1) for menu placement. */
     val anchorX: Float,
     val anchorY: Float,
+    /** Sphere hit under the pointer when opening a Desktop menu (Add widget place). */
+    val deskYawDeg: Float? = null,
+    val deskPitchDeg: Float? = null,
 )
 
 /** Shared open context menu state for companion right-click and icon long-press. */
@@ -67,12 +70,19 @@ object LauncherContextMenuState {
         )
     }
 
-    fun openDesktop(anchorX: Float, anchorY: Float) {
+    fun openDesktop(
+        anchorX: Float,
+        anchorY: Float,
+        deskYawDeg: Float? = null,
+        deskPitchDeg: Float? = null,
+    ) {
         open(
             LauncherContextMenuRequest(
                 target = LauncherContextMenuTarget.Desktop,
                 anchorX = anchorX.coerceIn(0f, 1f),
                 anchorY = anchorY.coerceIn(0f, 1f),
+                deskYawDeg = deskYawDeg,
+                deskPitchDeg = deskPitchDeg,
             ),
         )
     }

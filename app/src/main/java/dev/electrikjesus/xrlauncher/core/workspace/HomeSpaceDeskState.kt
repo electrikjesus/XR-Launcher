@@ -75,7 +75,7 @@ object HomeSpaceDeskState {
             _drag.value = null
             return
         }
-        if (!icon.isDesktopApp && !icon.isAppDrawer) {
+        if (!icon.isDesktopApp && !icon.isAppDrawer && !icon.isWidget) {
             _drag.value = null
             return
         }
@@ -187,8 +187,10 @@ object HomeSpaceDeskState {
         }
         val wasOnDesktop = _placed.value.any { it.app.componentKey == current.app.componentKey }
         // BumpDesk: drag a Desktop icon onto the All Apps tile (or open backing) to remove it.
+        // Widgets are not returned to All Apps — they stay until Delete from radial.
         if (
             onDesktop &&
+            current.app.kind != HomeSpaceDesk.Kind.WIDGET &&
             HomeSpaceDesk.hitsAllAppsReturn(
                 yawDeg = current.yawDeg,
                 pitchDeg = current.pitchDeg,
@@ -207,11 +209,14 @@ object HomeSpaceDeskState {
             return true
         }
         if (!onDesktop) return true
+        val existing = _placed.value.firstOrNull { it.app.componentKey == current.app.componentKey }
+        val dropHalfW = existing?.halfWidth ?: halfWidth
+        val dropHalfH = existing?.halfHeight ?: halfHeight
         val resolved = HomeSpaceDesk.resolveDesktopDrop(
             yawDeg = current.yawDeg,
             pitchDeg = current.pitchDeg,
-            halfWidth = halfWidth,
-            halfHeight = halfHeight,
+            halfWidth = dropHalfW,
+            halfHeight = dropHalfH,
             sphereScale = sphereScale,
             obstacles = obstacles,
             paneBlocks = panes,
@@ -225,6 +230,8 @@ object HomeSpaceDeskState {
                 pitchDeg = resolved.second,
                 velYawDeg = 0f,
                 velPitchDeg = 0f,
+                halfWidth = existing?.halfWidth,
+                halfHeight = existing?.halfHeight,
             )
         _placed.value = next
         return true
@@ -253,21 +260,20 @@ object HomeSpaceDeskState {
             sphereScale = sphereScale,
             density = density,
         )
-        val halfH = halfW
-        val halfYaw = HomeSpaceDesk.angularHalfYaw(halfW, sphereScale)
-        val halfPitch = HomeSpaceDesk.angularHalfPitch(halfH, sphereScale)
-        val mass = DeskPhysics.massFor(halfW, halfH)
+        val labeledHalfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
         val bodies = ArrayList<DeskPhysics.Body>(_placed.value.size + pinnedObstacles.size + panes.size)
         _placed.value.forEach { item ->
+            val itemHalfW = item.halfWidth ?: halfW
+            val itemHalfH = item.halfHeight ?: labeledHalfH
             bodies += DeskPhysics.Body(
                 key = item.app.componentKey,
                 yawDeg = item.yawDeg,
                 pitchDeg = item.pitchDeg,
                 velYawDeg = item.velYawDeg,
                 velPitchDeg = item.velPitchDeg,
-                halfYawDeg = halfYaw,
-                halfPitchDeg = halfPitch,
-                mass = mass,
+                halfYawDeg = HomeSpaceDesk.angularHalfYaw(itemHalfW, sphereScale),
+                halfPitchDeg = HomeSpaceDesk.angularHalfPitch(itemHalfH, sphereScale),
+                mass = DeskPhysics.massFor(itemHalfW, itemHalfH),
                 pinned = false,
             )
         }
@@ -300,15 +306,18 @@ object HomeSpaceDeskState {
         val draggingKey = _drag.value?.takeIf { it.pulling }?.app?.componentKey
         if (draggingKey != null) {
             val drag = _drag.value!!
+            val existing = _placed.value.firstOrNull { it.app.componentKey == draggingKey }
+            val dragHalfW = existing?.halfWidth ?: halfW
+            val dragHalfH = existing?.halfHeight ?: labeledHalfH
             bodies += DeskPhysics.Body(
                 key = draggingKey,
                 yawDeg = drag.yawDeg,
                 pitchDeg = drag.pitchDeg,
                 velYawDeg = 0f,
                 velPitchDeg = 0f,
-                halfYawDeg = halfYaw,
-                halfPitchDeg = halfPitch,
-                mass = mass,
+                halfYawDeg = HomeSpaceDesk.angularHalfYaw(dragHalfW, sphereScale),
+                halfPitchDeg = HomeSpaceDesk.angularHalfPitch(dragHalfH, sphereScale),
+                mass = DeskPhysics.massFor(dragHalfW, dragHalfH),
                 pinned = false,
             )
         }
@@ -348,16 +357,24 @@ object HomeSpaceDeskState {
 
     fun restore(layout: DeskLayout) {
         _placed.value = layout.items.map { item ->
+            val kind = when {
+                item.kind == "WIDGET" || item.componentKey.startsWith("widget_") ->
+                    HomeSpaceDesk.Kind.WIDGET
+                else -> HomeSpaceDesk.Kind.APP
+            }
             HomeSpaceDesk.Placed(
                 app = HomeSpaceDesk.AppRef(
                     componentKey = item.componentKey,
                     label = item.label,
                     packageName = item.packageName,
+                    kind = kind,
                 ),
                 yawDeg = item.yawDeg,
                 pitchDeg = item.pitchDeg,
                 velYawDeg = 0f,
                 velPitchDeg = 0f,
+                halfWidth = item.halfWidth,
+                halfHeight = item.halfHeight,
             )
         }
         _drawerPose.value = layout.drawerYawDeg?.let { yaw ->
@@ -375,27 +392,66 @@ object HomeSpaceDeskState {
                 packageName = item.app.packageName,
                 yawDeg = item.yawDeg,
                 pitchDeg = item.pitchDeg,
+                kind = if (item.app.kind == HomeSpaceDesk.Kind.WIDGET) "WIDGET" else "APP",
+                halfWidth = item.halfWidth,
+                halfHeight = item.halfHeight,
             )
         },
         drawerYawDeg = _drawerPose.value?.first,
         drawerPitchDeg = _drawerPose.value?.second,
     )
 
-    /** Drop icons whose apps are no longer installed. */
+    /** Drop icons whose apps are no longer installed. Widgets are kept (host id is durable). */
     fun pruneMissing(validComponentKeys: Set<String>): Boolean {
-        val next = _placed.value.filter { it.app.componentKey in validComponentKeys }
+        val next = _placed.value.filter {
+            it.app.kind == HomeSpaceDesk.Kind.WIDGET || it.app.componentKey in validComponentKeys
+        }
         if (next.size == _placed.value.size) return false
         _placed.value = next
         return true
     }
 
-    /** Remove placed Desktop icons by component key (lasso / radial selection). */
+    /** Remove placed Desktop icons / widgets by component key (lasso / radial selection). */
     fun removeByKeys(componentKeys: Set<String>): Boolean {
         if (componentKeys.isEmpty()) return false
-        val next = _placed.value.filter { it.app.componentKey !in componentKeys }
-        if (next.size == _placed.value.size) return false
-        _placed.value = next
+        val removed = _placed.value.filter { it.app.componentKey in componentKeys }
+        if (removed.isEmpty()) return false
+        removed.forEach { item ->
+            if (item.app.kind == HomeSpaceDesk.Kind.WIDGET) {
+                DeskWidgetUtils.parseWidgetId(item.app.componentKey)?.let { id ->
+                    DeskWidgetController.deleteWidget(id)
+                }
+            }
+        }
+        _placed.value = _placed.value.filter { it.app.componentKey !in componentKeys }
         return true
+    }
+
+    /** Place a live AppWidgetHost face on the sphere (BumpDesk addWidgetAt). */
+    fun placeWidget(
+        appWidgetId: Int,
+        label: String,
+        packageName: String,
+        yawDeg: Float,
+        pitchDeg: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+    ) {
+        val key = DeskWidgetUtils.widgetKey(appWidgetId)
+        val next = _placed.value.filter { it.app.componentKey != key } +
+            HomeSpaceDesk.Placed(
+                app = HomeSpaceDesk.AppRef(
+                    componentKey = key,
+                    label = label,
+                    packageName = packageName,
+                    kind = HomeSpaceDesk.Kind.WIDGET,
+                ),
+                yawDeg = yawDeg,
+                pitchDeg = pitchDeg,
+                halfWidth = halfWidth,
+                halfHeight = halfHeight,
+            )
+        _placed.value = next
     }
 
     /**

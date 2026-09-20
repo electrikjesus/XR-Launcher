@@ -104,6 +104,11 @@ object DeskLassoState {
         DeskIconTextureBus.requestRender()
     }
 
+    fun setSelection(keys: Set<String>) {
+        _selectedKeys.value = keys
+        DeskIconTextureBus.requestRender()
+    }
+
     fun reset() {
         cancel()
         clearSelection()

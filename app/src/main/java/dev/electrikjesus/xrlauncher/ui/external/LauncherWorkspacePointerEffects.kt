@@ -302,6 +302,7 @@ private fun handleRightClick(
             ?.takeUnless { it.isAppDrawer }
             ?.let { desk -> apps.find { it.componentKey() == desk.componentKey } }
     Log.d(LOG_TAG, "right-click at (${click.x}, ${click.y}) app=${app?.label}")
+    val deskHit = deskIconAt(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
     when {
         app != null -> LauncherContextMenuState.openApp(
             app = app,
@@ -309,6 +310,15 @@ private fun handleRightClick(
             anchorX = click.x,
             anchorY = click.y,
         )
+        deskHit?.isWidget == true -> {
+            DeskLassoState.setSelection(setOf(deskHit.componentKey))
+            LauncherContextMenuState.openDesktop(
+                anchorX = click.x,
+                anchorY = click.y,
+                deskYawDeg = deskHit.yawDeg,
+                deskPitchDeg = deskHit.pitchDeg,
+            )
+        }
         else -> {
             val panel = findPanelAt(point, panelBounds, panels)
             if (panel != null) {
@@ -321,7 +331,20 @@ private fun handleRightClick(
             } else if (
                 homeSpacePick(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null
             ) {
-                LauncherContextMenuState.openDesktop(click.x, click.y)
+                val hit = HomeSpaceScene.sphereHit(
+                    cursorX = click.x,
+                    cursorY = click.y,
+                    camera = homeSpaceCamera(click.x, click.y, rootWidthPx, rootHeightPx, panelScale, sphereScale),
+                    viewportWidthPx = rootWidthPx,
+                    viewportHeightPx = rootHeightPx,
+                    sphereScale = sphereScale,
+                )
+                LauncherContextMenuState.openDesktop(
+                    anchorX = click.x,
+                    anchorY = click.y,
+                    deskYawDeg = hit.yawDeg,
+                    deskPitchDeg = hit.pitchDeg,
+                )
             }
         }
     }
@@ -974,7 +997,20 @@ private fun trackDeskDrag(
         }
         val captured = DeskLassoState.completePending(iconsForLasso)
         if (captured.isNotEmpty()) {
-            LauncherContextMenuState.openDesktop(cursorX, cursorY)
+            val hit = HomeSpaceScene.sphereHit(
+                cursorX = cursorX,
+                cursorY = cursorY,
+                camera = homeSpaceCamera(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale),
+                viewportWidthPx = rootWidthPx,
+                viewportHeightPx = rootHeightPx,
+                sphereScale = sphereScale,
+            )
+            LauncherContextMenuState.openDesktop(
+                anchorX = cursorX,
+                anchorY = cursorY,
+                deskYawDeg = hit.yawDeg,
+                deskPitchDeg = hit.pitchDeg,
+            )
         }
         val drag = HomeSpaceDeskState.drag
         val draggingKey = drag?.app?.componentKey

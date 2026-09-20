@@ -38,6 +38,7 @@ object DeskIconBitmaps {
             icon.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> drawChevron(canvas, width, ICON_SIZE, left = false)
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
             icon.isAppDrawer -> drawAppDrawer(canvas, width, ICON_SIZE)
+            icon.isWidget -> drawWidgetPlaceholder(canvas, width, ICON_SIZE)
             else -> drawAppIcon(canvas, context, icon.packageName, width, ICON_SIZE)
         }
 
@@ -57,6 +58,7 @@ object DeskIconBitmaps {
 
     fun drawsLabel(icon: HomeSpaceDesk.Icon): Boolean =
         !icon.isBacking &&
+            !icon.isWidget &&
             icon.kind != HomeSpaceDesk.Kind.PAGE &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
@@ -120,6 +122,17 @@ object DeskIconBitmaps {
         paint.textSize = 36f
         paint.typeface = Typeface.DEFAULT_BOLD
         canvas.drawText(label, cx, cy + 13f, paint)
+    }
+
+    private fun drawWidgetPlaceholder(canvas: Canvas, width: Int, iconSize: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.argb(200, 50, 58, 72)
+        canvas.drawRoundRect(RectF(4f, 4f, width - 4f, iconSize - 4f), 16f, 16f, paint)
+        paint.color = Color.argb(220, 180, 190, 210)
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 28f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        canvas.drawText("Widget", width / 2f, iconSize / 2f + 10f, paint)
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

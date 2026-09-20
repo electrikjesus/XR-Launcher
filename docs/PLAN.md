@@ -584,7 +584,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.17 | **Tier 1:** Wallpaper — selectable presets (gradient ☑); optional user image later. | ☑ |
 | 2.18 | **Tier 1:** Panel chrome — title bar, focus highlight, close/minimize for widget slots. | ☑ |
 | 2.20 | **Recreate pinned-widget contents with BumpDesk items.** Home / Tray / app-plane **faces** are pinned `WidgetItem`s; their chrome/icons/widgets are child `ItemRenderer` objects. Port `TextureUtils` + `WidgetRenderer`. | ☑ Partial — Desktop drawer tile is a GLES box on the sphere; Home/Tray still captured Compose onto pinned pane meshes |
-| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso stroke/selection + radial context menu; still missing piles |
+| 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso + BumpDesk radial + AppWidgetHost desk items; still missing piles |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** via pane-matched half-extents (same 92.dp Home face). Min uiScale 0.5. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
@@ -592,7 +592,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
 | 2.25c | **Mouse-look + motion drag.** While FPS mouse-look is on and a grab is active, phone **motion** should drive the same unlocked-cursor desk drag as the touchpad (or a clear look-follow grab). Today motion+FPS registers the press/click but the drag phase moves the cursor without a usable view/grab feel — touchpad path only is reliable. | ☐ Partial — touchpad OK; motion+FPS DnD broken/awkward |
-| 2.25d | **Launcher surface (Play path).** `FLAG_SHOW_WALLPAPER` on host; tray notifications via `NotificationListenerService`; curated QS panels; launcher-owned recents; `AppWidgetHost` desk items follow-on. | ☑ Partial — wallpaper flag + live tray notifications/QS/recents; AppWidgetHost still open |
+| 2.25d | **Launcher surface (Play path).** `FLAG_SHOW_WALLPAPER` on host; tray notifications via `NotificationListenerService`; curated QS panels; launcher-owned recents; `AppWidgetHost` desk items follow-on. | ☑ Partial — wallpaper + tray/QS/recents; AppWidgetHost desk pick/place/persist/capture landed; touch-through still open |
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
@@ -620,7 +620,8 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **Do this next. One concern per change.**
 
 **Launcher surface / BumpDesk widgets:**
-0a. **AppWidgetHost on desk** — host live widgets as sphere desk items (BumpDesk `WidgetRenderer` path); picker + persist. Tray notifications / QS / launcher recents and `FLAG_SHOW_WALLPAPER` are landed.
+0a. **AppWidgetHost on desk** — ☑ Partial: system picker from empty-desktop radial at click sphere pose; off-screen host capture → GLES desk mesh; `desk_json` WIDGET + half extents; restore on bind. Still open: touch-through / resize handles.
+0b. **True Smart Pile objects** — ☐ after arrange stand-ins.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -629,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
 2. **Lasso → pile / arrange** — ☑ Partial: radial Stack (pile stand-in), Folder layout, Row, Column, Grid rearrange selected desk icons around their centroid. True Smart Pile objects still open.
-3. **Radial menu** — ☑ BumpDesk `RadialMenuView` pie wedges + secondary ring (Create Pile / Layout submenus); right-click / empty long-press / lasso release; host catcher drops while open.
+3. **Radial menu** — ☑ BumpDesk `RadialMenuView` pie wedges + secondary ring; empty menu includes **Add widget** at click yaw/pitch; host catcher drops while open.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
 **Large-screen host:**
@@ -856,7 +857,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Empty long-press + arrange radial:** pending lasso until slop; long-press / secondary open radial; catcher drops while menu open; Stack/Folder/Row/Column/Grid rearrange | Long-press started lasso; catcher ate radial clicks; no BumpDesk layout actions |
 | 2026-09-19 | **Labeled desk mesh aspect:** APP/drawer halfHeight = halfWidth × 1.25 to match icon+label atlas; pager bitmaps stay square | 160×200 texture on square mesh squashed circles into vertical ovals |
 | 2026-09-20 | **BumpDesk RadialMenuView:** pie wedges + nested Create Pile / Layout rings replace Compose chip orbit | Chip ring did not match BumpDesk presentation or submenu affordances |
+| 2026-09-20 | **AppWidgetHost desk widgets:** off-screen host → Canvas capture → GLES; empty radial **Add widget** at click sphere pose; `desk_json` WIDGET half extents | Live widgets were deferred after tray/wallpaper surface work |
 
 ---
 
-*Last updated: 2026-09-20 (BumpDesk radial menu)*
+*Last updated: 2026-09-20 (AppWidgetHost desk widgets)*

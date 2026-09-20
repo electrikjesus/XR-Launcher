@@ -151,7 +151,7 @@ object HomeSpaceDesk {
     fun labeledIconHalfHeight(iconHalfWidth: Float): Float =
         iconHalfWidth * LABELED_ICON_ASPECT
 
-    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE }
+    enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE, WIDGET }
 
     data class AppRef(
         val componentKey: String,
@@ -166,6 +166,9 @@ object HomeSpaceDesk {
         val pitchDeg: Float,
         val velYawDeg: Float = 0f,
         val velPitchDeg: Float = 0f,
+        /** When set (widgets), layout uses these instead of matched icon half-extents. */
+        val halfWidth: Float? = null,
+        val halfHeight: Float? = null,
     )
 
     data class Icon(
@@ -186,6 +189,7 @@ object HomeSpaceDesk {
         val isBacking: Boolean get() = kind == Kind.DRAWER_BACKING
         val isPager: Boolean get() = kind == Kind.PAGE_PREV || kind == Kind.PAGE_NEXT || kind == Kind.PAGE
         val isDesktopApp: Boolean get() = kind == Kind.APP
+        val isWidget: Boolean get() = kind == Kind.WIDGET
     }
 
     fun yawDegrees(
@@ -327,19 +331,29 @@ object HomeSpaceDesk {
             halfHeight = labeledHalfH * DRAWER_SCALE,
             lift = if (drawerDragging) HOVER_LIFT else 0f,
         )
-        val placedIcons = placed.filter { it.app.kind == Kind.APP }.map { item ->
+        val placedIcons = placed.filter {
+            it.app.kind == Kind.APP || it.app.kind == Kind.WIDGET
+        }.map { item ->
             val pose = if (item.app.componentKey == draggingKey) {
                 item.copy(yawDeg = dragYawDeg, pitchDeg = dragPitchDeg)
             } else {
                 item
+            }
+            val itemHalfW = when {
+                pose.app.kind == Kind.WIDGET -> pose.halfWidth ?: (halfW * 3.2f)
+                else -> halfW
+            }
+            val itemHalfH = when {
+                pose.app.kind == Kind.WIDGET -> pose.halfHeight ?: itemHalfW
+                else -> labeledHalfH
             }
             iconOf(
                 app = pose.app,
                 yawDeg = pose.yawDeg,
                 pitchDeg = pose.pitchDeg,
                 sphereScale = scale,
-                halfWidth = halfW,
-                halfHeight = labeledHalfH,
+                halfWidth = itemHalfW,
+                halfHeight = itemHalfH,
                 lift = if (item.app.componentKey == draggingKey) HOVER_LIFT else 0f,
             )
         }
@@ -476,7 +490,7 @@ object HomeSpaceDesk {
     /** Prefer apps/pager over the large backing so pagination stays clickable. */
     private fun pickPriority(icon: Icon): Int = when (icon.kind) {
         Kind.PAGE_PREV, Kind.PAGE_NEXT, Kind.PAGE -> 0
-        Kind.APP, Kind.APP_DRAWER -> 1
+        Kind.APP, Kind.APP_DRAWER, Kind.WIDGET -> 1
         Kind.DRAWER_BACKING -> 3
     }
 
@@ -830,7 +844,8 @@ object HomeSpaceDesk {
         quad(face.bl, face.br, face.tr, face.tl, inward, textured = true)
         // App / All-Apps stickers are round via texture alpha — skip box sides so a
         // rectangular pancake silhouette does not read as a square plate around the icon.
-        if (icon.isDesktopApp || icon.isAppDrawer) {
+        // Widgets keep a thin pancake (front only for now) with rectangular textures.
+        if (icon.isDesktopApp || icon.isAppDrawer || icon.isWidget) {
             return HomeSpacePaneMesh(verts.toFloatArray(), 6)
         }
         quad(face.outBr, face.outBl, face.outTl, face.outTr, out, textured = false)

@@ -20,6 +20,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
@@ -84,6 +85,8 @@ fun LauncherContextMenuHost(
             is LauncherContextMenuTarget.Desktop -> desktopMenuItems(
                 context = context,
                 selected = selectedKeys,
+                deskYawDeg = req.deskYawDeg,
+                deskPitchDeg = req.deskPitchDeg,
             )
         }
     }
@@ -212,6 +215,8 @@ private fun panelMenuItems(
 private fun desktopMenuItems(
     context: android.content.Context,
     selected: Set<String>,
+    deskYawDeg: Float?,
+    deskPitchDeg: Float?,
 ): List<RadialMenuItem> {
     val dismiss = { LauncherContextMenuState.dismiss() }
     if (selected.isNotEmpty()) {
@@ -295,6 +300,16 @@ private fun desktopMenuItems(
         }
     }
     return listOf(
+        RadialMenuItem(
+            label = context.getString(R.string.context_menu_add_widget),
+            iconRes = android.R.drawable.ic_menu_manage,
+        ) {
+            dismiss()
+            DeskWidgetController.openPicker(
+                yawDeg = deskYawDeg ?: 0f,
+                pitchDeg = deskPitchDeg ?: 0f,
+            )
+        },
         RadialMenuItem(
             label = context.getString(R.string.context_menu_open_all_apps),
             iconRes = android.R.drawable.ic_menu_search,

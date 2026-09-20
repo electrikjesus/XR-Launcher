@@ -3,9 +3,11 @@ package dev.electrikjesus.xrlauncher.core.workspace
 import java.util.Locale
 
 /**
- * Persisted Desktop icons + All Apps tile pose on the Home Space sphere.
+ * Persisted Desktop icons + widgets + All Apps tile pose on the Home Space sphere.
  * Format: `{drawerYaw};{drawerPitch}|{item},{item},…`
- * Item: `componentKey~label~package~yaw~pitch` (`_` = null drawer field).
+ * App item: `componentKey~label~package~yaw~pitch`
+ * Widget item: `widget_{id}~label~package~yaw~pitch~WIDGET~halfW~halfH`
+ * (`_` = null drawer field).
  */
 object DeskJson {
     private const val FIELD_SEP = "|"
@@ -20,13 +22,18 @@ object DeskJson {
             layout.drawerPitchDeg.toToken(),
         ).joinToString(DRAWER_SEP)
         val items = layout.items.joinToString(ITEM_SEP) { item ->
-            listOf(
-                item.componentKey,
-                item.label.replace(ITEM_FIELD_SEP, " ").replace(ITEM_SEP, " "),
-                item.packageName,
-                item.yawDeg.toCompactString(),
-                item.pitchDeg.toCompactString(),
-            ).joinToString(ITEM_FIELD_SEP)
+            buildList {
+                add(item.componentKey)
+                add(item.label.replace(ITEM_FIELD_SEP, " ").replace(ITEM_SEP, " "))
+                add(item.packageName)
+                add(item.yawDeg.toCompactString())
+                add(item.pitchDeg.toCompactString())
+                if (item.kind == "WIDGET") {
+                    add("WIDGET")
+                    add(item.halfWidth?.toCompactString() ?: NULL_TOKEN)
+                    add(item.halfHeight?.toCompactString() ?: NULL_TOKEN)
+                }
+            }.joinToString(ITEM_FIELD_SEP)
         }
         return listOf(drawer, items).joinToString(FIELD_SEP)
     }
@@ -55,12 +62,19 @@ object DeskJson {
         val key = fields[0].takeIf { it.isNotBlank() } ?: return null
         val yaw = fields[3].toFloatOrNull() ?: return null
         val pitch = fields[4].toFloatOrNull() ?: return null
+        val kind = fields.getOrNull(5)?.takeIf { it == "WIDGET" }
+            ?: if (key.startsWith("widget_")) "WIDGET" else "APP"
+        val halfW = fields.getOrNull(6).fromToken()
+        val halfH = fields.getOrNull(7).fromToken()
         return DeskPlacedItem(
             componentKey = key,
             label = fields[1],
             packageName = fields[2],
             yawDeg = yaw,
             pitchDeg = pitch,
+            kind = kind,
+            halfWidth = halfW,
+            halfHeight = halfH,
         )
     }
 
@@ -79,6 +93,9 @@ data class DeskPlacedItem(
     val packageName: String,
     val yawDeg: Float,
     val pitchDeg: Float,
+    val kind: String = "APP",
+    val halfWidth: Float? = null,
+    val halfHeight: Float? = null,
 )
 
 data class DeskLayout(
