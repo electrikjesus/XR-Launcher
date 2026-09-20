@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.CompanionTouchpadMultiTouch
 import dev.electrikjesus.xrlauncher.core.input.CursorStyles
 import dev.electrikjesus.xrlauncher.core.input.PointerAction
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
@@ -93,6 +94,12 @@ fun CompanionTouchpadSurface(
                     val doubleTapTimeoutMs = 300L
                     val doubleTapMinTimeMs = 40L
                     val doubleTapSlop = viewConfiguration.touchSlop * 2f
+                    val multi = CompanionTouchpadMultiTouch(
+                        touchSlopPx = viewConfiguration.touchSlop,
+                        pinchZoomThresholdPx = viewConfiguration.touchSlop * 1.5f,
+                    )
+                    val padW = size.width.toFloat().coerceAtLeast(1f)
+                    val padH = size.height.toFloat().coerceAtLeast(1f)
 
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
@@ -102,6 +109,7 @@ fun CompanionTouchpadSurface(
                         var clickDragActive = false
                         var longPressActive = false
                         var finished = false
+                        var multiActive = false
                         val pointerId = down.id
                         val tapToClick = !useDesktopGestures
                         val longPressTimeoutMs = viewConfiguration.longPressTimeoutMillis.toLong()
@@ -122,6 +130,26 @@ fun CompanionTouchpadSurface(
                             val early = withTimeoutOrNull(longPressTimeoutMs) {
                                 while (true) {
                                     val event = awaitPointerEvent(PointerEventPass.Main)
+                                    val pressed = event.changes.filter { it.pressed }
+                                    if (pressed.size >= 2) {
+                                        if (longPressActive || clickDragActive) {
+                                            CompanionPointerBus.abortLeftButton()
+                                            longPressActive = false
+                                            clickDragActive = false
+                                        }
+                                        val points = pressed.map { it.position.x to it.position.y }
+                                        val (mx, my) = CompanionTouchpadMultiTouch.midpoint(points)
+                                        multi.begin(
+                                            fingerCount = pressed.size,
+                                            midX = mx,
+                                            midY = my,
+                                            distance = CompanionTouchpadMultiTouch.span(points),
+                                        )
+                                        multiActive = true
+                                        lastTapTime = 0L
+                                        pressed.forEach { it.consume() }
+                                        return@withTimeoutOrNull "multi"
+                                    }
                                     val change = event.changes.firstOrNull { it.id == pointerId }
                                         ?: return@withTimeoutOrNull "cancel"
                                     if (!change.pressed) return@withTimeoutOrNull "up"
@@ -154,6 +182,9 @@ fun CompanionTouchpadSurface(
                                     longPressActive = true
                                     CompanionPointerHaptics.pressDown(haptic)
                                 }
+                                "multi" -> {
+                                    CompanionPointerHaptics.pressDown(haptic)
+                                }
                                 "up" -> {
                                     finished = true
                                     when {
@@ -172,7 +203,58 @@ fun CompanionTouchpadSurface(
 
                         while (!finished) {
                             val event = awaitPointerEvent(PointerEventPass.Main)
-                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                            val pressed = event.changes.filter { it.pressed }
+
+                            if (pressed.size >= 2) {
+                                if (!multiActive) {
+                                    if (longPressActive || clickDragActive) {
+                                        CompanionPointerBus.abortLeftButton()
+                                        longPressActive = false
+                                        clickDragActive = false
+                                    }
+                                    val points = pressed.map { it.position.x to it.position.y }
+                                    val (mx, my) = CompanionTouchpadMultiTouch.midpoint(points)
+                                    multi.begin(
+                                        fingerCount = pressed.size,
+                                        midX = mx,
+                                        midY = my,
+                                        distance = CompanionTouchpadMultiTouch.span(points),
+                                    )
+                                    multiActive = true
+                                    lastTapTime = 0L
+                                    CompanionPointerHaptics.pressDown(haptic)
+                                } else {
+                                    val points = pressed.map { it.position.x to it.position.y }
+                                    val (mx, my) = CompanionTouchpadMultiTouch.midpoint(points)
+                                    val actions = multi.move(
+                                        fingerCount = pressed.size,
+                                        midX = mx,
+                                        midY = my,
+                                        distance = CompanionTouchpadMultiTouch.span(points),
+                                    )
+                                    for (action in actions) {
+                                        CompanionPointerBus.applyTouchpadMultiTouch(action, padW, padH)
+                                    }
+                                }
+                                pressed.forEach { it.consume() }
+                                continue
+                            }
+
+                            if (multiActive) {
+                                multi.end()?.let { endAction ->
+                                    CompanionPointerBus.applyTouchpadMultiTouch(endAction, padW, padH)
+                                    if (endAction is CompanionTouchpadMultiTouch.Action.RightClick) {
+                                        CompanionPointerHaptics.rightClick(haptic)
+                                    }
+                                }
+                                multiActive = false
+                                if (pressed.isEmpty()) break
+                                // Fall through to one-finger if a single finger remains.
+                            }
+
+                            val change = event.changes.firstOrNull { it.id == pointerId }
+                                ?: pressed.firstOrNull()
+                                ?: break
                             if (!change.pressed) {
                                 when {
                                     longPressActive -> {
@@ -216,6 +298,12 @@ fun CompanionTouchpadSurface(
                                 )
                             }
                         }
+
+                        if (multiActive) {
+                            multi.end()?.let { endAction ->
+                                CompanionPointerBus.applyTouchpadMultiTouch(endAction, padW, padH)
+                            }
+                        }
                     }
                 },
         ) {
@@ -243,6 +331,12 @@ fun CompanionTouchpadSurface(
                     },
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.companion_multitouch_hint),
+                    modifier = Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = stringResource(

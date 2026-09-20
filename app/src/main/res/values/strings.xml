@@ -151,6 +151,7 @@
     <string name="companion_mouselook_hint">Drag cursor to screen edge to look around · Tap to click</string>
     <string name="companion_head_tracking_hint">Turn head to look · Drag touchpad to aim pointer · Tap to click</string>
     <string name="companion_desktop_hint">Drag to move · Long-press to grab · Hold Left and drag · Double-tap-hold to click-drag</string>
+    <string name="companion_multitouch_hint">2-finger scroll / pinch-zoom · 3-finger look · 2-finger tap = right-click</string>
 
     <string name="companion_text_entry_hint">Keyboard open — drag to move, use Left button to tap keys and menus</string>
     <string name="precision_pointer">Precision pointer</string>

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,9 +22,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.SubspaceSpike
+import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.Workspace
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLayoutPresets
@@ -131,6 +134,19 @@ private fun FlatGlassesWorkspaceScreen(
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         val appearance = workspace?.appearance ?: WorkspaceAppearance.default()
+
+        DisposableEffect(scope, workspaceRepository) {
+            CompanionPointerBus.onSphereZoom = { delta ->
+                scope.launch {
+                    workspaceRepository.nudgeAppearance(HomeSpaceTuneAxis.SPHERE, delta)
+                }
+            }
+            onDispose {
+                if (CompanionPointerBus.onSphereZoom != null) {
+                    CompanionPointerBus.onSphereZoom = null
+                }
+            }
+        }
 
         Box(modifier = Modifier.fillMaxSize()) {
             GlassesSpatialWorkspaceScreen(

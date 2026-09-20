@@ -21,8 +21,8 @@ android {
         applicationId = "dev.electrikjesus.xrlauncher"
         minSdk = 34
         targetSdk = 36
-        versionCode = 32
-        versionName = "0.1.31"
+        versionCode = 33
+        versionName = "0.1.32"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

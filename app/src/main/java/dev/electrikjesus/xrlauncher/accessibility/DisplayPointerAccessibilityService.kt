@@ -191,6 +191,53 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         return dispatchGesture(gesture, null, null)
     }
 
+    /**
+     * Accumulate two-finger pad motion and dispatch short swipes at the cursor so lists
+     * and pages under the glasses pointer actually scroll.
+     */
+    fun dispatchScroll(
+        displayId: Int,
+        normalizedX: Float,
+        normalizedY: Float,
+        deltaNormX: Float,
+        deltaNormY: Float,
+        mapViaLauncherFrame: Boolean = false,
+    ): Boolean {
+        pendingScrollX += deltaNormX
+        pendingScrollY += deltaNormY
+        val travel = kotlin.math.hypot(pendingScrollX.toDouble(), pendingScrollY.toDouble()).toFloat()
+        if (travel < SCROLL_FIRE_NORM) return true
+
+        val displayManager = getSystemService(DisplayManager::class.java)
+        val display = displayManager.getDisplay(displayId) ?: return false
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        val (cx, cy) = normalizedToDisplayPixels(normalizedX, normalizedY, metrics, mapViaLauncherFrame)
+        val swipeX = (pendingScrollX * SCROLL_PX_PER_NORM)
+            .coerceIn(-SCROLL_MAX_PX, SCROLL_MAX_PX)
+        val swipeY = (pendingScrollY * SCROLL_PX_PER_NORM)
+            .coerceIn(-SCROLL_MAX_PX, SCROLL_MAX_PX)
+        pendingScrollX = 0f
+        pendingScrollY = 0f
+        if (kotlin.math.abs(swipeX) < 1f && kotlin.math.abs(swipeY) < 1f) return true
+
+        val path = Path().apply {
+            moveTo(cx, cy)
+            lineTo(cx + swipeX, cy + swipeY)
+        }
+        val stroke = GestureDescription.StrokeDescription(path, 0, SCROLL_DURATION_MS)
+        val gesture = GestureDescription.Builder()
+            .setDisplayId(displayId)
+            .addStroke(stroke)
+            .build()
+        Log.d(TAG, "dispatchScroll display=$displayId ($cx,$cy) d=($swipeX,$swipeY)")
+        return dispatchGesture(gesture, null, null)
+    }
+
+    private var pendingScrollX = 0f
+    private var pendingScrollY = 0f
+
     private fun normalizedToDisplayPixels(
         normalizedX: Float,
         normalizedY: Float,
@@ -237,5 +284,10 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
         private const val TAG = "XRLauncher/DisplayPointer"
         private const val TAP_DURATION_MS = 50L
         private const val DRAG_DURATION_MS = 250L
+        private const val SCROLL_DURATION_MS = 48L
+        /** Fire a swipe once accumulated pad travel reaches this fraction of the pad. */
+        private const val SCROLL_FIRE_NORM = 0.035f
+        private const val SCROLL_PX_PER_NORM = 520f
+        private const val SCROLL_MAX_PX = 140f
     }
 }

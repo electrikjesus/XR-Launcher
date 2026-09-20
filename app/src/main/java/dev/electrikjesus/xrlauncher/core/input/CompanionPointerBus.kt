@@ -22,7 +22,9 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
+import dev.electrikjesus.xrlauncher.core.workspace.HostSpaceZoom
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlin.math.hypot
 
 enum class PointerAction {
@@ -320,6 +322,13 @@ object CompanionPointerBus {
     @Volatile
     var onPointerGestureFinalize: ((endX: Float, endY: Float) -> Unit)? = null
 
+    /**
+     * Two-finger pinch on the companion touchpad → sphere zoom (same as host pinch).
+     * Bound by the Home Space screen while it is alive.
+     */
+    @Volatile
+    var onSphereZoom: ((Float) -> Unit)? = null
+
     fun beginLeftButton() {
         leftButtonInGesture = true
         beginPointerGesture()
@@ -526,6 +535,63 @@ object CompanionPointerBus {
             yawDegrees = (current.yawDegrees + deltaYaw).coerceIn(-45f, 45f),
             pitchDegrees = (current.pitchDegrees + deltaPitch).coerceIn(-30f, 30f),
         )
+    }
+
+    /** Apply a classified companion multi-touch action (scroll / zoom / look / right-click). */
+    fun applyTouchpadMultiTouch(
+        action: CompanionTouchpadMultiTouch.Action,
+        touchpadWidthPx: Float,
+        touchpadHeightPx: Float,
+    ) {
+        val w = touchpadWidthPx.coerceAtLeast(1f)
+        val h = touchpadHeightPx.coerceAtLeast(1f)
+        when (action) {
+            is CompanionTouchpadMultiTouch.Action.Scroll ->
+                scrollFromTouchpad(action.dxPx / w, action.dyPx / h)
+            is CompanionTouchpadMultiTouch.Action.Zoom ->
+                pinchZoomFromTouchpad(action.previousDistance, action.currentDistance)
+            is CompanionTouchpadMultiTouch.Action.LookPan ->
+                lookPanFromTouchpad(action.dxPx / w, action.dyPx / h)
+            CompanionTouchpadMultiTouch.Action.RightClick -> click(PointerButton.RIGHT)
+        }
+    }
+
+    /**
+     * Two-finger drag → scroll under the glasses cursor (a11y swipe), or look-pan when
+     * the display pointer service is unavailable.
+     */
+    fun scrollFromTouchpad(deltaNormX: Float, deltaNormY: Float) {
+        if (deltaNormX == 0f && deltaNormY == 0f) return
+        if (pointerInjectionAvailable()) {
+            DisplayPointerInjector.dispatchScroll(
+                GlassesSessionState.secondaryDisplayId!!,
+                _cursor.value.x,
+                _cursor.value.y,
+                deltaNormX,
+                deltaNormY,
+            )
+        } else {
+            lookPanFromTouchpad(deltaNormX, deltaNormY)
+        }
+    }
+
+    /** Three-finger drag (and 2-finger look fallback) → Home Space camera pan. */
+    fun lookPanFromTouchpad(deltaNormX: Float, deltaNormY: Float) {
+        if (deltaNormX == 0f && deltaNormY == 0f) return
+        val mode = GlassesLookMode.effective()
+        val sign = GlassesLookMode.lookPanSign(mode)
+        GlassesHomeLook.addLookDegrees(
+            yawDeltaDeg = sign * HomeSpaceScene.fpsYawDegreesDelta(deltaNormX),
+            pitchDeltaDeg = sign * HomeSpaceScene.fpsPitchDelta(deltaNormY),
+        )
+    }
+
+    /** Two-finger pinch → sphere scale nudge. */
+    fun pinchZoomFromTouchpad(previousDistance: Float, currentDistance: Float) {
+        val delta = HostSpaceZoom.sphereDeltaFromPinch(previousDistance, currentDistance)
+        if (delta != 0f) {
+            onSphereZoom?.invoke(delta)
+        }
     }
 
     fun setFocusedPanel(index: Int) {

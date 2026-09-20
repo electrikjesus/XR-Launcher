@@ -53,6 +53,28 @@ object DisplayPointerInjector {
         ) ?: false
     }
 
+    /**
+     * Two-finger companion scroll: accumulate pad-normalized deltas and fire short
+     * swipe gestures at the cursor when enough travel has piled up.
+     */
+    fun dispatchScroll(
+        displayId: Int,
+        normalizedX: Float,
+        normalizedY: Float,
+        deltaNormX: Float,
+        deltaNormY: Float,
+        mapViaLauncherFrame: Boolean = false,
+    ): Boolean {
+        return service?.dispatchScroll(
+            displayId,
+            normalizedX,
+            normalizedY,
+            deltaNormX,
+            deltaNormY,
+            mapViaLauncherFrame,
+        ) ?: false
+    }
+
     /** Cursor is over a PIP / foreign app window that Compose cannot hit. */
     fun shouldInjectOverForeignWindow(normalizedX: Float, normalizedY: Float): Boolean =
         service?.shouldInjectOverForeignWindow(normalizedX, normalizedY) == true

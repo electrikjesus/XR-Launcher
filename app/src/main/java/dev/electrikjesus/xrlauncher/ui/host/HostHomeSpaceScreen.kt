@@ -186,6 +186,15 @@ fun HostHomeSpaceScreen(
         }
     }
 
+    DisposableEffect(scope, workspaceRepository) {
+        CompanionPointerBus.onSphereZoom = onZoomSphere
+        onDispose {
+            if (CompanionPointerBus.onSphereZoom === onZoomSphere) {
+                CompanionPointerBus.onSphereZoom = null
+            }
+        }
+    }
+
     // BumpDesk absolute mouse/touch is the default host path; COMPANION_BUS keeps the
     // older HostPointerBridge for A/B (HostInputMethod.preference).
     val hostContent: @Composable () -> Unit = {
