@@ -125,6 +125,7 @@ fun GlassesSpatialWorkspaceScreen(
     }
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val homeOverlay by GlassesSessionState.homeOverlayFlow.collectAsState()
+    val recents by GlassesRecentApps.recentsFlow.collectAsState()
     val editingHomeSpace by GlassesSessionState.homeSpaceEditFlow.collectAsState()
     val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
     val panNorm by GlassesHomeLook.panNormFlow.collectAsState()
@@ -475,15 +476,33 @@ fun GlassesSpatialWorkspaceScreen(
             captureToGles = true,
             onBoundsChanged = onBoundsChanged,
             center = {
-                GlassesHomeSpace(
-                    hoveredLabel = cursor.hoveredLabel,
-                    onBoundsChanged = prefixBounds("home"),
-                    onOpenRecents = { GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS) },
-                    onOpenNotifications = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
-                    onOpenQuickSettings = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
-                    onOpenSettings = onOpenSettings,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // Recents is world-locked on the Home pane (GLES capture), not a viewport
+                // overlay — otherwise the cards stick to the FPS mouse-look crosshair.
+                Box(modifier = Modifier.fillMaxSize()) {
+                    GlassesHomeSpace(
+                        hoveredLabel = cursor.hoveredLabel,
+                        onBoundsChanged = prefixBounds("home"),
+                        onOpenRecents = {
+                            GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS)
+                        },
+                        onOpenNotifications = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
+                        onOpenQuickSettings = { GlassesHomeLook.lookAt(GlassesHomeLook.trayPane()) },
+                        onOpenSettings = onOpenSettings,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
+                        GlassesRecentsLayer(
+                            recents = recents,
+                            hoveredLabel = cursor.hoveredLabel,
+                            onBoundsChanged = prefixBounds("home"),
+                            onLaunchApp = launchApp,
+                            onClear = { GlassesRecentApps.clear() },
+                            onDismiss = { GlassesSessionState.hideHomeOverlays() },
+                            dismissOnScrim = true,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             },
             right = {
                 GlassesHomeTrayPane(
@@ -505,18 +524,8 @@ fun GlassesSpatialWorkspaceScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-    val recents by GlassesRecentApps.recentsFlow.collectAsState()
-    if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
-            GlassesRecentsLayer(
-                recents = recents,
-                hoveredLabel = cursor.hoveredLabel,
-                onBoundsChanged = onBoundsChanged,
-                onLaunchApp = launchApp,
-                onClear = { GlassesRecentApps.clear() },
-                onDismiss = { GlassesSessionState.hideHomeOverlays() },
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+        // Recents used to be a sibling fillMaxSize overlay here — that made cards stick
+        // to the mouse-look crosshair. They now live on the Home pane above.
 
         CompositionLocalProvider(
             LocalWorkspaceViewportPx provides overlayViewport,
