@@ -205,6 +205,13 @@ object GlassesSessionState {
     @Volatile
     var hostImmersiveSession: Boolean = false
 
+    /**
+     * True while [dev.electrikjesus.xrlauncher.external.ExternalDisplayActivity] is alive
+     * on a secondary / glasses display.
+     */
+    @Volatile
+    var externalWorkspaceActive: Boolean = false
+
     private val _xrInputMode = MutableStateFlow(GlassesXrInputMode.COMPANION)
     val xrInputModeFlow: StateFlow<GlassesXrInputMode> = _xrInputMode.asStateFlow()
 
@@ -251,6 +258,7 @@ object GlassesSessionState {
         pendingAppLaunch = null
         _xrInputMode.value = GlassesXrInputMode.COMPANION
         rayNeoUsbAttached = false
+        externalWorkspaceActive = false
         RayNeoHeadTrackingController.stop()
     }
 }

@@ -9,6 +9,8 @@ enum class HomeSpaceDialog {
     NONE,
     SETTINGS,
     ONBOARDING,
+    /** Host-only: glasses secondary display appeared — choose what to show there. */
+    GLASSES_DISPLAY,
 }
 
 object HomeSpaceDialogState {
@@ -25,6 +27,10 @@ object HomeSpaceDialogState {
 
     fun openOnboarding() {
         _dialog.value = HomeSpaceDialog.ONBOARDING
+    }
+
+    fun openGlassesDisplay() {
+        _dialog.value = HomeSpaceDialog.GLASSES_DISPLAY
     }
 
     fun close() {

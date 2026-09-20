@@ -106,8 +106,12 @@ object DisplayLaunchHelper {
         )
     }
 
-    /** Launch workspace on glasses display and companion touchpad on the phone. */
-    fun openGlassesSession(context: Context, preferredDisplayId: Int? = null): Boolean {
+    /** Launch workspace on glasses display and optionally companion touchpad on the phone. */
+    fun openGlassesSession(
+        context: Context,
+        preferredDisplayId: Int? = null,
+        openCompanion: Boolean = true,
+    ): Boolean {
         val displayId = resolveSecondaryDisplayId(context, preferredDisplayId)
         if (displayId == null) {
             Log.w(TAG, "No secondary display available for glasses session")
@@ -130,7 +134,9 @@ object DisplayLaunchHelper {
                 "spatialApi=${subspaceDecision.hasSpatialApi} forced=${subspaceDecision.forcedForSpike}",
         )
 
-        openCompanionController(context)
+        if (openCompanion) {
+            openCompanionController(context)
+        }
         launchActivityOnDisplay(
             context = context,
             activityClass = ExternalDisplayActivity::class.java,

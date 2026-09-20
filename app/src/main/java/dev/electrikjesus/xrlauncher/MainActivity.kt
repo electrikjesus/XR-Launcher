@@ -15,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.ui.theme.XRLauncherTheme
 
 class MainActivity : ComponentActivity() {
@@ -72,6 +73,16 @@ class MainActivity : ComponentActivity() {
         GlassesSessionState.rayNeoUsbAttached = RayNeoHeadTrackingController.isRayNeoAttached(this)
         if (GlassesSessionState.xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
             RayNeoHeadTrackingController.start(this)
+        }
+        // Expanded host already running: offer what to put on the glasses display.
+        if (GlassesSessionState.hostImmersiveSession) {
+            refreshCapabilities()
+            if (
+                !GlassesSessionState.externalWorkspaceActive &&
+                capabilityDetector.capabilities.value.hasSecondaryDisplay
+            ) {
+                HomeSpaceDialogState.openGlassesDisplay()
+            }
         }
     }
 

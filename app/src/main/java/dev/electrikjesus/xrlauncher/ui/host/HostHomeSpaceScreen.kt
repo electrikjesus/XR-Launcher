@@ -28,7 +28,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.display.HostGlassesAttachLogic
+import dev.electrikjesus.xrlauncher.core.display.HostGlassesAttachPromptState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
@@ -65,6 +68,7 @@ fun HostHomeSpaceScreen(
     launcherPackageName: String,
     workspaceRepository: WorkspaceRepository,
     launchCoordinator: WorkspaceAppLaunchCoordinator,
+    secondaryDisplayIds: List<Int> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     DisposableEffect(Unit) {
@@ -73,6 +77,7 @@ fun HostHomeSpaceScreen(
         onDispose {
             GlassesSessionState.hostImmersiveSession = false
             GlassesSessionState.clearLauncherSession()
+            HostGlassesAttachPromptState.clear()
             HomeSpaceDialogState.close()
         }
     }
@@ -81,12 +86,38 @@ fun HostHomeSpaceScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeTick by remember { mutableStateOf(0) }
     var includeOnboardingIntro by remember { mutableStateOf(true) }
+    val dismissedDisplayIds by HostGlassesAttachPromptState.dismissedDisplayIdsFlow.collectAsState()
+    val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) resumeTick++
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(secondaryDisplayIds, dismissedDisplayIds, resumeTick, hostDialog) {
+        HostGlassesAttachPromptState.prune(secondaryDisplayIds)
+        if (
+            HostGlassesAttachLogic.shouldPrompt(
+                hostImmersive = GlassesSessionState.hostImmersiveSession,
+                secondaryDisplayIds = secondaryDisplayIds,
+                dismissedDisplayIds = HostGlassesAttachPromptState.dismissedDisplayIds,
+                externalWorkspaceActive = GlassesSessionState.externalWorkspaceActive,
+            )
+        ) {
+            // Don't steal focus from onboarding / settings.
+            if (hostDialog == HomeSpaceDialog.NONE) {
+                HomeSpaceDialogState.openGlassesDisplay()
+            }
+        } else if (
+            hostDialog == HomeSpaceDialog.GLASSES_DISPLAY &&
+            (
+                secondaryDisplayIds.isEmpty() ||
+                    GlassesSessionState.externalWorkspaceActive
+                )
+        ) {
+            HomeSpaceDialogState.close()
+        }
     }
     LaunchedEffect(resumeTick) {
         OnboardingStore.init(context)
@@ -289,8 +320,7 @@ fun HostHomeSpaceScreen(
                 },
             )
         }
-        val settingsOpen by HomeSpaceDialogState.dialogFlow.collectAsState()
-        if (settingsOpen == HomeSpaceDialog.SETTINGS) {
+        if (hostDialog == HomeSpaceDialog.SETTINGS) {
             Box(Modifier.fillMaxSize().zIndex(9f)) {
                 HostSettingsDialogLayer(
                     workspaceRepository = workspaceRepository,
@@ -305,13 +335,35 @@ fun HostHomeSpaceScreen(
                 )
             }
         }
-        if (settingsOpen == HomeSpaceDialog.ONBOARDING) {
+        if (hostDialog == HomeSpaceDialog.ONBOARDING) {
             Box(Modifier.fillMaxSize().zIndex(11f)) {
                 HostOnboardingDialogLayer(
                     includeIntro = includeOnboardingIntro,
                     onFinished = {
                         OnboardingStore.markCompleted(context)
                         HomeSpaceDialogState.close()
+                    },
+                )
+            }
+        }
+        if (hostDialog == HomeSpaceDialog.GLASSES_DISPLAY) {
+            Box(Modifier.fillMaxSize().zIndex(12f)) {
+                HostGlassesDisplayDialogLayer(
+                    onChoice = { choice ->
+                        when (choice) {
+                            HostGlassesAttachLogic.Choice.OPEN_HOME_SPACE -> {
+                                HomeSpaceDialogState.close()
+                                DisplayLaunchHelper.openGlassesSession(
+                                    context = context,
+                                    preferredDisplayId = secondaryDisplayIds.firstOrNull(),
+                                    openCompanion = false,
+                                )
+                            }
+                            HostGlassesAttachLogic.Choice.LEAVE_UNUSED -> {
+                                HostGlassesAttachPromptState.dismiss(secondaryDisplayIds)
+                                HomeSpaceDialogState.close()
+                            }
+                        }
                     },
                 )
             }

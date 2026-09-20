@@ -46,15 +46,9 @@
         <activity
             android:name=".companion.CompanionControllerActivity"
             android:exported="false"
+            android:label="@string/companion_touchpad"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.XRLauncher">
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-            </intent-filter>
-            <meta-data
-                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-                android:resource="@xml/rayneo_usb_device_filter" />
-        </activity>
+            android:theme="@style/Theme.XRLauncher" />
 
         <activity
             android:name=".external.ExternalDisplayActivity"

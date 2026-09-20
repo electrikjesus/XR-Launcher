@@ -41,6 +41,7 @@ class ExternalDisplayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        GlassesSessionState.externalWorkspaceActive = true
         val appLauncher = AppLauncher(this)
         val workspaceRepository = WorkspaceRepository(applicationContext)
         val embedRegistry = PanelEmbedRegistry.fromActivity(this)
@@ -223,6 +224,7 @@ class ExternalDisplayActivity : ComponentActivity() {
     override fun onDestroy() {
         GlassesSessionState.onLauncherRootSized = null
         GlassesSessionState.clearLauncherSession()
+        GlassesSessionState.externalWorkspaceActive = false
         launchCoordinator.embedRegistry?.disposeAll()
         GlassesSessionState.panelEmbedRegistry = null
         super.onDestroy()

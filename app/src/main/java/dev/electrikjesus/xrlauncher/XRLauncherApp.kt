@@ -73,6 +73,7 @@ fun XRLauncherApp(
                 launcherPackageName = context.packageName,
                 workspaceRepository = workspaceRepository,
                 launchCoordinator = launchCoordinator,
+                secondaryDisplayIds = capabilities.secondaryDisplayIds,
                 modifier = Modifier.fillMaxSize(),
             )
         }
