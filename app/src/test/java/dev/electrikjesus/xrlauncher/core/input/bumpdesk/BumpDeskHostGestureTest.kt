@@ -187,6 +187,26 @@ class BumpDeskHostGestureTest {
     }
 
     @Test
+    fun longPressEmpty_whileArmed_emitsAndClearsHold() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
+        val action = gesture.onLongPressEmpty()
+        assertTrue(action is BumpDeskHostAction.LongPressEmpty)
+        val empty = action as BumpDeskHostAction.LongPressEmpty
+        assertEquals(100f, empty.x, 0.01f)
+        assertEquals(100f, empty.y, 0.01f)
+        assertFalse(gesture.primaryDown)
+        assertFalse(gesture.deskDragArmed)
+    }
+
+    @Test
+    fun longPressEmpty_afterSlop_returnsNull() {
+        gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
+        gesture.onMove(140f, 100f, allowDeskGrab = true, fpsLook = false, dialogOpen = false)
+        assertTrue(gesture.movedPastSlop)
+        assertEquals(null, gesture.onLongPressEmpty())
+    }
+
+    @Test
     fun pinchMove_emitsLookPanAndZoom() {
         gesture.onPinchBegin(100f, 200f, 300f)
         val actions = gesture.onPinchMove(120f, 230f, 310f)

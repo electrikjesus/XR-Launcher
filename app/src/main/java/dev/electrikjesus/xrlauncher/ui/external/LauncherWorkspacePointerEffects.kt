@@ -15,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import dev.electrikjesus.xrlauncher.core.input.bumpdesk.BumpDeskHostGesture
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.AppsPageState
@@ -48,6 +49,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.scene.pickPane
 import dev.electrikjesus.xrlauncher.core.workspace.scene.sphereHit
 import dev.electrikjesus.xrlauncher.core.workspace.scene.worldRay
 import dev.electrikjesus.xrlauncher.ui.glasses.GlassesWorkspaceTitleBar
+import kotlin.math.hypot
 import dev.electrikjesus.xrlauncher.ui.glasses.WorkspaceLayoutPresetBar
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsLauncher
 import dev.electrikjesus.xrlauncher.ui.workspace.AllAppsPageControls
@@ -248,6 +250,12 @@ fun LauncherWorkspacePointerEffects(
 
 private var lastLoggedHoverLabel: String? = null
 private var deskGesturePressed = false
+/** Empty-desk Hold-Left waits for touch-slop before the lasso stroke (BumpDesk isLassoPending). */
+private var deskLassoPending = false
+private var pendingLassoCursorX = 0f
+private var pendingLassoCursorY = 0f
+private var pendingLassoYawDeg = 0f
+private var pendingLassoPitchDeg = 0f
 
 private fun findAppAt(
     point: Offset,
@@ -859,6 +867,11 @@ fun abortDeskPointerGesture() {
     DeskLassoState.cancel()
     HomeSpaceDeskState.cancel()
     deskGesturePressed = false
+    clearPendingLasso()
+}
+
+private fun clearPendingLasso() {
+    deskLassoPending = false
 }
 
 private fun trackDeskDrag(
@@ -896,6 +909,7 @@ private fun trackDeskDrag(
         if (
             !HomeSpaceDeskState.hasActiveGesture() &&
             !DeskLassoState.active &&
+            !deskLassoPending &&
             !gestureLookIgnoresPathIcons
         ) {
             val deskIcon = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
@@ -921,11 +935,28 @@ private fun trackDeskDrag(
                 ) -> Unit
                 // Near-misses on open All Apps pagination must not start a Desktop lasso —
                 // a one-point lasso cancels and the follow-up click dismisses the drawer.
+                // Empty desk: pending until touch-slop so long-press can open the radial.
                 homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null &&
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
-                    ) ->
-                    DeskLassoState.begin(hit.yawDeg, hit.pitchDeg)
+                    ) -> {
+                    deskLassoPending = true
+                    pendingLassoCursorX = cursorX
+                    pendingLassoCursorY = cursorY
+                    pendingLassoYawDeg = hit.yawDeg
+                    pendingLassoPitchDeg = hit.pitchDeg
+                }
+            }
+        }
+        if (deskLassoPending && !DeskLassoState.active) {
+            val distPx = hypot(
+                (cursorX - pendingLassoCursorX) * rootWidthPx,
+                (cursorY - pendingLassoCursorY) * rootHeightPx,
+            )
+            if (distPx > BumpDeskHostGesture.DEFAULT_TOUCH_SLOP_PX) {
+                DeskLassoState.begin(pendingLassoYawDeg, pendingLassoPitchDeg)
+                clearPendingLasso()
+                DeskLassoState.extend(hit.yawDeg, hit.pitchDeg)
             }
         }
         when {
@@ -935,6 +966,9 @@ private fun trackDeskDrag(
                 DeskLassoState.extend(hit.yawDeg, hit.pitchDeg)
         }
     } else if (deskGesturePressed) {
+        if (deskLassoPending) {
+            clearPendingLasso()
+        }
         val iconsForLasso = DeskIconTextureBus.icons().ifEmpty {
             HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
         }

@@ -42,6 +42,9 @@ class BumpDeskHostGesture(
         private set
     var deskDragArmed: Boolean = false
         private set
+    /** True once primary travel past [touchSlopPx] — long-press empty no longer applies. */
+    var movedPastSlop: Boolean = false
+        private set
     var middleDragging: Boolean = false
         private set
     var pinching: Boolean = false
@@ -62,6 +65,7 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskGrabAllowed = false
         deskDragArmed = false
+        movedPastSlop = false
         middleDragging = false
         pinching = false
         pinchDistance = 0f
@@ -82,6 +86,7 @@ class BumpDeskHostGesture(
         // FPS mouse-look: do not arm desk hold on down — finger/mouse drag must rotate the view.
         // Desk clicks still fire on up if we didn't look-drag past slop.
         deskDragArmed = allowDeskGrab && !fpsLook
+        movedPastSlop = false
         middleDragging = false
         pinching = false
         pinchLock = PinchLock.NONE
@@ -120,6 +125,7 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskDragArmed = false
         deskGrabAllowed = false
+        movedPastSlop = false
         middleDragging = false
         pinchLock = PinchLock.NONE
         pinchDistance = distance
@@ -129,6 +135,18 @@ class BumpDeskHostGesture(
         lastX = midX
         lastY = midY
         return BumpDeskHostAction.CancelDeskHold
+    }
+
+    /**
+     * Empty-desktop long-press (BumpDesk GestureDetector.onLongPress). Only valid while
+     * primary is still down, desk hold armed, and travel has not passed touch slop.
+     */
+    fun onLongPressEmpty(): BumpDeskHostAction? {
+        if (!primaryDown || !deskDragArmed || movedPastSlop || pinching) return null
+        primaryDown = false
+        deskDragArmed = false
+        deskGrabAllowed = false
+        return BumpDeskHostAction.LongPressEmpty(downX, downY)
     }
 
     /**
@@ -165,6 +183,7 @@ class BumpDeskHostGesture(
                 // Scheme A: one finger is desk only (lasso / icon drag). Look is two-finger.
                 val dist = hypot(x - downX, y - downY)
                 if (dist > touchSlopPx) {
+                    movedPastSlop = true
                     out += BumpDeskHostAction.DeskMoveWhilePressed
                 }
             }
@@ -248,6 +267,7 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskGrabAllowed = false
         deskDragArmed = false
+        movedPastSlop = false
         return out
     }
 
@@ -279,6 +299,8 @@ sealed class BumpDeskHostAction {
     data object EndDeskHold : BumpDeskHostAction()
     data object DeskMoveWhilePressed : BumpDeskHostAction()
     data object CancelDeskHold : BumpDeskHostAction()
+    /** Empty-desktop long-press (BumpDesk): open radial, do not start lasso. */
+    data class LongPressEmpty(val x: Float, val y: Float) : BumpDeskHostAction()
     data class LeftClick(val x: Float, val y: Float) : BumpDeskHostAction()
     data class RightClick(val x: Float, val y: Float) : BumpDeskHostAction()
     data class LookPan(val dxPx: Float, val dyPx: Float) : BumpDeskHostAction()

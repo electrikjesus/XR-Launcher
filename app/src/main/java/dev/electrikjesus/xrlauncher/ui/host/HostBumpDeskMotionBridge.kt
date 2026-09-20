@@ -1,7 +1,9 @@
 package dev.electrikjesus.xrlauncher.ui.host
 
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
-import android.util.Log
+import android.view.ViewConfiguration
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
@@ -14,6 +16,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.HostSpaceZoom
+import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.ui.external.abortDeskPointerGesture
 import dev.electrikjesus.xrlauncher.ui.external.isHostScreenChromeAt
@@ -26,6 +29,10 @@ import kotlin.math.hypot
  */
 object HostBumpDeskMotionBridge {
     private val gesture = BumpDeskHostGesture()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var longPressRunnable: Runnable? = null
+    private var lastViewportW: Float = 1f
+    private var lastViewportH: Float = 1f
     @Volatile
     private var onZoomSphere: (Float) -> Unit = {}
 
@@ -34,6 +41,7 @@ object HostBumpDeskMotionBridge {
     }
 
     fun reset() {
+        cancelLongPress()
         gesture.reset()
         onZoomSphere = {}
     }
@@ -41,8 +49,12 @@ object HostBumpDeskMotionBridge {
     /** @return true if the event was handled (surface should consume). */
     fun onTouch(event: MotionEvent, viewportW: Int, viewportH: Int): Boolean {
         if (!GlassesSessionState.hostImmersiveSession) return false
+        // Radial / context menu owns the pointer (catcher is also removed while open).
+        if (LauncherContextMenuState.isOpen) return false
         val w = viewportW.coerceAtLeast(1).toFloat()
         val h = viewportH.coerceAtLeast(1).toFloat()
+        lastViewportW = w
+        lastViewportH = h
         val x = event.x
         val y = event.y
         val nx = (x / w).coerceIn(0f, 1f)
@@ -65,25 +77,41 @@ object HostBumpDeskMotionBridge {
             }
         }
 
+        val secondary = (event.buttonState and MotionEvent.BUTTON_SECONDARY) != 0
+        val tertiary = (event.buttonState and MotionEvent.BUTTON_TERTIARY) != 0
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                if (event.pointerCount >= 2) {
-                    val dist = pinchDistance(event)
-                    val mid = pinchMid(event)
-                    // CancelDeskHold from onPinchBegin aborts one-finger desk/lasso.
-                    apply(listOf(gesture.onPinchBegin(dist, mid.first, mid.second)))
-                } else {
-                    apply(
-                        gesture.onPrimaryDown(
-                            x = x,
-                            y = y,
-                            allowDeskGrab = allowDesk,
-                            fpsLook = fpsLook,
-                        ),
-                    )
+                when {
+                    tertiary -> {
+                        cancelLongPress()
+                        apply(listOf(gesture.onMiddleDown(x, y)))
+                    }
+                    secondary -> {
+                        cancelLongPress()
+                        apply(listOf(gesture.onSecondaryDown(x, y)))
+                    }
+                    event.pointerCount >= 2 -> {
+                        cancelLongPress()
+                        val dist = pinchDistance(event)
+                        val mid = pinchMid(event)
+                        apply(listOf(gesture.onPinchBegin(dist, mid.first, mid.second)))
+                    }
+                    else -> {
+                        apply(
+                            gesture.onPrimaryDown(
+                                x = x,
+                                y = y,
+                                allowDeskGrab = allowDesk,
+                                fpsLook = fpsLook,
+                            ),
+                        )
+                        if (allowDesk && !fpsLook) scheduleLongPress()
+                    }
                 }
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
+                cancelLongPress()
                 if (event.pointerCount >= 2) {
                     val dist = pinchDistance(event)
                     val mid = pinchMid(event)
@@ -93,6 +121,7 @@ object HostBumpDeskMotionBridge {
             MotionEvent.ACTION_MOVE -> {
                 when {
                     event.pointerCount >= 2 -> {
+                        cancelLongPress()
                         val dist = pinchDistance(event)
                         val mid = pinchMid(event)
                         if (!gesture.pinching) {
@@ -111,17 +140,20 @@ object HostBumpDeskMotionBridge {
                                 gestureLook = gestureLook,
                             ),
                         )
-                    else ->
-                        apply(
-                            gesture.onMove(
-                                x = x,
-                                y = y,
-                                allowDeskGrab = allowDesk,
-                                fpsLook = fpsLook,
-                                dialogOpen = dialogOpen,
-                                gestureLook = gestureLook,
-                            ),
+                    else -> {
+                        val actions = gesture.onMove(
+                            x = x,
+                            y = y,
+                            allowDeskGrab = allowDesk,
+                            fpsLook = fpsLook,
+                            dialogOpen = dialogOpen,
+                            gestureLook = gestureLook,
                         )
+                        if (actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed }) {
+                            cancelLongPress()
+                        }
+                        apply(actions)
+                    }
                 }
             }
             MotionEvent.ACTION_POINTER_UP -> {
@@ -130,6 +162,7 @@ object HostBumpDeskMotionBridge {
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                cancelLongPress()
                 when {
                     gesture.pinching -> apply(listOf(gesture.onPinchEnd()))
                     gesture.middleDragging -> apply(listOf(gesture.onMiddleUp(x, y)))
@@ -172,6 +205,24 @@ object HostBumpDeskMotionBridge {
             (event.getY(0) + event.getY(1)) * 0.5f
     }
 
+    private fun scheduleLongPress() {
+        cancelLongPress()
+        val timeout = ViewConfiguration.getLongPressTimeout().toLong()
+        val runnable = Runnable {
+            longPressRunnable = null
+            gesture.onLongPressEmpty()?.let { action ->
+                applyAction(action, lastViewportW, lastViewportH, onZoomSphere)
+            }
+        }
+        longPressRunnable = runnable
+        mainHandler.postDelayed(runnable, timeout)
+    }
+
+    private fun cancelLongPress() {
+        longPressRunnable?.let { mainHandler.removeCallbacks(it) }
+        longPressRunnable = null
+    }
+
     private fun applyAction(
         action: BumpDeskHostAction,
         viewportW: Float,
@@ -193,6 +244,16 @@ object HostBumpDeskMotionBridge {
                 // Second finger / pinch: abandon one-finger desk work without selecting.
                 abortDeskPointerGesture()
                 CompanionPointerBus.abortLeftButton()
+            }
+            is BumpDeskHostAction.LongPressEmpty -> {
+                // BumpDesk GestureDetector.onLongPress → radial; abort pending lasso / hold.
+                cancelLongPress()
+                val nx = (action.x / viewportW).coerceIn(0f, 1f)
+                val ny = (action.y / viewportH).coerceIn(0f, 1f)
+                CompanionPointerBus.setCursorPosition(nx, ny)
+                abortDeskPointerGesture()
+                CompanionPointerBus.abortLeftButton()
+                CompanionPointerBus.click(PointerButton.RIGHT)
             }
             is BumpDeskHostAction.LeftClick -> {
                 val nx = (action.x / viewportW).coerceIn(0f, 1f)
@@ -250,8 +311,11 @@ object HostBumpDeskMotionBridge {
         secondY: Float = y,
     ): Boolean {
         if (!GlassesSessionState.hostImmersiveSession) return false
-        val nx = (x / viewportW.coerceAtLeast(1f)).coerceIn(0f, 1f)
-        val ny = (y / viewportH.coerceAtLeast(1f)).coerceIn(0f, 1f)
+        if (LauncherContextMenuState.isOpen) return false
+        lastViewportW = viewportW.coerceAtLeast(1f)
+        lastViewportH = viewportH.coerceAtLeast(1f)
+        val nx = (x / lastViewportW).coerceIn(0f, 1f)
+        val ny = (y / lastViewportH).coerceIn(0f, 1f)
         if (isHostScreenChromeAt(nx, ny)) return false
 
         val fpsLook = GlassesLookMode.effective() == GlassesLookMode.FPS
@@ -264,13 +328,14 @@ object HostBumpDeskMotionBridge {
 
         fun apply(actions: List<BumpDeskHostAction>) {
             for (action in actions) {
-                applyAction(action, viewportW, viewportH, onZoomSphere)
+                applyAction(action, lastViewportW, lastViewportH, onZoomSphere)
             }
         }
 
         when (actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 if (pointerCount >= 2) {
+                    cancelLongPress()
                     val dist = hypot(x - secondX, y - secondY)
                     apply(
                         listOf(
@@ -283,10 +348,12 @@ object HostBumpDeskMotionBridge {
                     )
                 } else {
                     apply(gesture.onPrimaryDown(x, y, allowDesk, fpsLook))
+                    if (allowDesk && !fpsLook) scheduleLongPress()
                 }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (pointerCount >= 2) {
+                    cancelLongPress()
                     val dist = hypot(x - secondX, y - secondY)
                     val midX = (x + secondX) * 0.5f
                     val midY = (y + secondY) * 0.5f
@@ -302,10 +369,15 @@ object HostBumpDeskMotionBridge {
                         ),
                     )
                 } else {
-                    apply(gesture.onMove(x, y, allowDesk, fpsLook, dialogOpen, gestureLook))
+                    val actions = gesture.onMove(x, y, allowDesk, fpsLook, dialogOpen, gestureLook)
+                    if (actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed }) {
+                        cancelLongPress()
+                    }
+                    apply(actions)
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                cancelLongPress()
                 when {
                     gesture.pinching -> apply(listOf(gesture.onPinchEnd()))
                     gesture.middleDragging -> apply(listOf(gesture.onMiddleUp(x, y)))

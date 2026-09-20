@@ -27,6 +27,7 @@ import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
+import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 
 /**
  * BumpDesk-derived host pointer for Expanded Home Space.
@@ -48,7 +49,9 @@ fun HostBumpDeskInput(
     var catcherH by remember { mutableIntStateOf(1) }
     val editing by GlassesSessionState.homeSpaceEditFlow.collectAsState()
     val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
-    val modalOpen = editing || hostDialog != HomeSpaceDialog.NONE
+    val contextMenu by LauncherContextMenuState.request.collectAsState()
+    // Settings / Edit / radial menu own the pointer — catcher would eat their clicks.
+    val modalOpen = editing || hostDialog != HomeSpaceDialog.NONE || contextMenu != null
 
     LaunchedEffect(zoomLatest) {
         HostBumpDeskMotionBridge.bind(zoomLatest)

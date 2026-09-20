@@ -627,9 +627,9 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; optional Settings toggle for `HostInputMethod`. ☑ partial: Scheme A gesture look (two-finger pan/zoom lock; one-finger desk/lasso); absolute host no longer double-applies cursor into camera.
 
 **BumpDesk desktop (sphere):**
-1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (clear / remove from Desktop).
-2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile (radial action once piles land).
-3. **Radial menu** — ☑ right-click / long-press opens a ring (Open, hotseat, app info, uninstall, All apps, Clear selection). Host menu sits above the pointer catcher.
+1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
+2. **Lasso → pile / arrange** — ☑ Partial: radial Stack (pile stand-in), Folder layout, Row, Column, Grid rearrange selected desk icons around their centroid. True Smart Pile objects still open.
+3. **Radial menu** — ☑ right-click / empty long-press / lasso release open a ring; host catcher drops while open so chips receive clicks. Selection ≥2: Stack / Folder / Row / Column / Grid + Clear / Remove. Empty: All apps.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
 
 **Large-screen host:**
@@ -853,7 +853,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Home pane icon gamma:** pane lit shader uses desk-flat ambient/diffuse (0.92 / 0.12) | Strong pane diffuse (0.28 / 1.35) made Home icons look higher-contrast than Desktop |
 | 2026-09-19 | **Pinch aborts lasso:** second finger cancels desk hold/lasso without finalize; 2-finger MOVE always enters pinch | One-finger slop started lasso before POINTER_DOWN; endLeftButton finalized stroke |
 | 2026-09-19 | **Lasso release opens radial:** non-empty capture opens Desktop context ring (clear / remove from desk) | Selection highlighted but no group actions on finger-up |
+| 2026-09-19 | **Empty long-press + arrange radial:** pending lasso until slop; long-press / secondary open radial; catcher drops while menu open; Stack/Folder/Row/Column/Grid rearrange | Long-press started lasso; catcher ate radial clicks; no BumpDesk layout actions |
 
 ---
 
-*Last updated: 2026-09-19 (lasso release radial)*
+*Last updated: 2026-09-19 (empty long-press + arrange radial)*

@@ -84,6 +84,11 @@
     <string name="context_menu_hide_panel">Hide panel</string>
     <string name="context_menu_clear_selection">Clear selection</string>
     <string name="context_menu_remove_from_desktop">Remove from Desktop</string>
+    <string name="context_menu_arrange_stack">Stack (pile)</string>
+    <string name="context_menu_arrange_folder">Folder layout</string>
+    <string name="context_menu_arrange_row">Arrange in a row</string>
+    <string name="context_menu_arrange_column">Arrange in a column</string>
+    <string name="context_menu_arrange_grid">Arrange in a grid</string>
     <string name="context_menu_selection_count">%1$d selected</string>
     <string name="context_menu_widget">Widget · %1$s</string>
     <string name="launcher_return_bubble_label">XR</string>

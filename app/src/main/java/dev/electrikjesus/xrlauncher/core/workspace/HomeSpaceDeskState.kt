@@ -397,4 +397,26 @@ object HomeSpaceDeskState {
         _placed.value = next
         return true
     }
+
+    /**
+     * BumpDesk lasso layout: rearrange selected Desktop icons (row / column / grid / stack / folder).
+     */
+    fun arrangeSelected(
+        keys: Set<String>,
+        mode: DeskArrangeMode,
+        sphereScale: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+    ): Boolean {
+        val next = DeskArrange.arrange(
+            placed = _placed.value,
+            keys = keys,
+            mode = mode,
+            sphereScale = sphereScale,
+            halfWidth = halfWidth,
+            halfHeight = halfHeight,
+        ) ?: return false
+        _placed.value = next
+        return true
+    }
 }

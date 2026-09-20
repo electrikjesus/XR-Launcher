@@ -28,6 +28,8 @@ import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
+import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
@@ -36,6 +38,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
 import dev.electrikjesus.xrlauncher.core.workspace.PanelState
 import dev.electrikjesus.xrlauncher.core.workspace.RadialMenuGeometry
 import dev.electrikjesus.xrlauncher.core.workspace.componentKey
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import kotlin.math.roundToInt
 
 fun openAppContextMenuFromBounds(
@@ -245,17 +248,67 @@ private fun desktopRadialActions(showClear: Boolean): List<RadialAction> {
     val dismiss = { LauncherContextMenuState.dismiss() }
     val selected = DeskLassoState.selectedKeys
     if (selected.isNotEmpty()) {
-        return listOf(
-            RadialAction(stringResource(R.string.context_menu_clear_selection)) {
-                dismiss()
-                DeskLassoState.clearSelection()
-            },
-            RadialAction(stringResource(R.string.context_menu_remove_from_desktop)) {
-                dismiss()
-                HomeSpaceDeskState.removeByKeys(selected)
-                DeskLassoState.clearSelection()
-            },
-        )
+        val halfW = DeskIconTextureBus.icons()
+            .firstOrNull { it.componentKey in selected }
+            ?.halfWidth
+            ?: HomeSpaceDesk.ICON_HALF_WIDTH
+        val halfH = DeskIconTextureBus.icons()
+            .firstOrNull { it.componentKey in selected }
+            ?.halfHeight
+            ?: HomeSpaceDesk.ICON_HALF_HEIGHT
+        fun arrange(mode: DeskArrangeMode) {
+            dismiss()
+            HomeSpaceDeskState.arrangeSelected(
+                keys = selected,
+                mode = mode,
+                sphereScale = 1f,
+                halfWidth = halfW,
+                halfHeight = halfH,
+            )
+            DeskLassoState.clearSelection()
+        }
+        return buildList {
+            if (selected.size >= 2) {
+                add(
+                    RadialAction(stringResource(R.string.context_menu_arrange_stack)) {
+                        arrange(DeskArrangeMode.STACK)
+                    },
+                )
+                add(
+                    RadialAction(stringResource(R.string.context_menu_arrange_folder)) {
+                        arrange(DeskArrangeMode.FOLDER)
+                    },
+                )
+                add(
+                    RadialAction(stringResource(R.string.context_menu_arrange_row)) {
+                        arrange(DeskArrangeMode.ROW)
+                    },
+                )
+                add(
+                    RadialAction(stringResource(R.string.context_menu_arrange_column)) {
+                        arrange(DeskArrangeMode.COLUMN)
+                    },
+                )
+                add(
+                    RadialAction(stringResource(R.string.context_menu_arrange_grid)) {
+                        arrange(DeskArrangeMode.GRID)
+                    },
+                )
+            }
+            add(
+                RadialAction(stringResource(R.string.context_menu_clear_selection)) {
+                    dismiss()
+                    DeskLassoState.clearSelection()
+                },
+            )
+            add(
+                RadialAction(stringResource(R.string.context_menu_remove_from_desktop)) {
+                    dismiss()
+                    HomeSpaceDeskState.removeByKeys(selected)
+                    DeskLassoState.clearSelection()
+                },
+            )
+        }
     }
     val actions = mutableListOf(
         RadialAction(stringResource(R.string.context_menu_open_all_apps)) {
