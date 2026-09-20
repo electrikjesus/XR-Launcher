@@ -620,7 +620,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **Do this next. One concern per change.**
 
 **Launcher surface / BumpDesk widgets:**
-0a. **AppWidgetHost on desk** — ☑ Partial: system picker from empty-desktop radial at click sphere pose; off-screen host capture → GLES desk mesh; `desk_json` WIDGET + half extents; restore on bind. Still open: touch-through / resize handles.
+0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Grow / Shrink** (1.25×) for selected widgets. Still open: touch-through / drag resize handles.
 0b. **True Smart Pile objects** — ☐ after arrange stand-ins.
 
 **Pointer / mouse-look:**
@@ -630,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 **BumpDesk desktop (sphere):**
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
 2. **Lasso → pile / arrange** — ☑ Partial: radial Stack (pile stand-in), Folder layout, Row, Column, Grid rearrange selected desk icons around their centroid. True Smart Pile objects still open.
-3. **Radial menu** — ☑ BumpDesk `RadialMenuView` pie wedges + secondary ring; empty menu includes **Add widget** at click yaw/pitch; host catcher drops while open.
+3. **Radial menu** — ☑ BumpDesk `RadialMenuView` pie wedges + secondary ring; empty menu **Add widget**; selected widgets get **Grow / Shrink**; host catcher drops while open.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
 **Large-screen host:**
@@ -858,7 +858,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Labeled desk mesh aspect:** APP/drawer halfHeight = halfWidth × 1.25 to match icon+label atlas; pager bitmaps stay square | 160×200 texture on square mesh squashed circles into vertical ovals |
 | 2026-09-20 | **BumpDesk RadialMenuView:** pie wedges + nested Create Pile / Layout rings replace Compose chip orbit | Chip ring did not match BumpDesk presentation or submenu affordances |
 | 2026-09-20 | **AppWidgetHost desk widgets:** off-screen host → Canvas capture → GLES; empty radial **Add widget** at click sphere pose; `desk_json` WIDGET half extents | Live widgets were deferred after tray/wallpaper surface work |
+| 2026-09-20 | **Widget Grow/Shrink radial:** 1.25× half-extent scale with clamp; dirty capture refresh | Resize was only via future drag handles |
 
 ---
 
-*Last updated: 2026-09-20 (AppWidgetHost desk widgets)*
+*Last updated: 2026-09-20 (widget Grow/Shrink radial)*

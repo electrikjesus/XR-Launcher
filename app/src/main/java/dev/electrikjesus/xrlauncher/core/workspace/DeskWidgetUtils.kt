@@ -33,12 +33,34 @@ object DeskWidgetUtils {
         return (w.toFloat() / h.toFloat()).coerceIn(0.35f, 8f)
     }
 
+    /** Multiplicative step for radial Grow / Shrink. */
+    const val SIZE_STEP = 1.25f
+    private const val MIN_HALF_WIDTH = 0.28f
+    private const val MAX_HALF_WIDTH = 2.2f
+    private const val MIN_HALF_HEIGHT = 0.12f
+    private const val MAX_HALF_HEIGHT = 1.8f
+
     fun defaultHalfExtents(info: AppWidgetProviderInfo): Pair<Float, Float> {
         val aspect = aspectRatioFromProvider(info)
         val halfW = REFERENCE_HALF_WIDTH * (defaultWidthDp(info, dpPerCell(info)) / (4f * LAUNCHER_CELL_DP))
             .coerceIn(0.55f, 1.8f)
-        val halfH = (halfW / aspect).coerceIn(0.12f, 1.4f)
+        val halfH = (halfW / aspect).coerceIn(MIN_HALF_HEIGHT, 1.4f)
         return halfW to halfH
+    }
+
+    fun clampHalfExtents(halfWidth: Float, halfHeight: Float): Pair<Float, Float> =
+        halfWidth.coerceIn(MIN_HALF_WIDTH, MAX_HALF_WIDTH) to
+            halfHeight.coerceIn(MIN_HALF_HEIGHT, MAX_HALF_HEIGHT)
+
+    /** Uniform grow/shrink preserving aspect; returns null if already at a clamp. */
+    fun scaledHalfExtents(
+        halfWidth: Float,
+        halfHeight: Float,
+        factor: Float,
+    ): Pair<Float, Float>? {
+        val (nextW, nextH) = clampHalfExtents(halfWidth * factor, halfHeight * factor)
+        if (nextW == halfWidth && nextH == halfHeight) return null
+        return nextW to nextH
     }
 
     fun captureSizePx(

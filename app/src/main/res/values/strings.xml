@@ -246,6 +246,8 @@
     <string name="xr_edit_off">Off</string>
     <string name="context_menu_open_all_apps">All apps</string>
     <string name="context_menu_add_widget">Add widget</string>
+    <string name="context_menu_grow_widget">Grow</string>
+    <string name="context_menu_shrink_widget">Shrink</string>
     <string name="xr_recents">Recents</string>
     <string name="xr_recents_empty">No recent apps</string>
     <string name="xr_notifications">Notifications</string>

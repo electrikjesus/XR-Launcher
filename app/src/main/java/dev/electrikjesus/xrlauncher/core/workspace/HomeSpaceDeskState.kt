@@ -455,6 +455,31 @@ object HomeSpaceDeskState {
     }
 
     /**
+     * Grow or shrink selected desk widgets by [factor] (e.g. [DeskWidgetUtils.SIZE_STEP]).
+     * Marks host views dirty so capture re-bakes at the new size.
+     */
+    fun scaleWidgets(keys: Set<String>, factor: Float): Boolean {
+        if (keys.isEmpty() || factor <= 0f) return false
+        var changed = false
+        val next = _placed.value.map { item ->
+            if (item.app.componentKey !in keys || item.app.kind != HomeSpaceDesk.Kind.WIDGET) {
+                return@map item
+            }
+            val halfW = item.halfWidth ?: (HomeSpaceDesk.ICON_HALF_WIDTH * 3.2f)
+            val halfH = item.halfHeight ?: halfW
+            val scaled = DeskWidgetUtils.scaledHalfExtents(halfW, halfH, factor) ?: return@map item
+            changed = true
+            DeskWidgetUtils.parseWidgetId(item.app.componentKey)?.let { id ->
+                DeskWidgetController.requestRecapture(id)
+            }
+            item.copy(halfWidth = scaled.first, halfHeight = scaled.second)
+        }
+        if (!changed) return false
+        _placed.value = next
+        return true
+    }
+
+    /**
      * BumpDesk lasso layout: rearrange selected Desktop icons (row / column / grid / stack / folder).
      */
     fun arrangeSelected(

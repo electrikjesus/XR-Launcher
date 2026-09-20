@@ -21,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
+import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetUtils
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
@@ -239,7 +240,28 @@ private fun desktopMenuItems(
             )
             DeskLassoState.clearSelection()
         }
+        val selectedWidgets = HomeSpaceDeskState.placed.filter {
+            it.app.componentKey in selected && it.app.kind == HomeSpaceDesk.Kind.WIDGET
+        }
+        fun scaleWidgets(factor: Float) {
+            dismiss()
+            HomeSpaceDeskState.scaleWidgets(selected, factor)
+        }
         return buildList {
+            if (selectedWidgets.isNotEmpty()) {
+                add(
+                    RadialMenuItem(
+                        label = context.getString(R.string.context_menu_grow_widget),
+                        iconRes = android.R.drawable.ic_menu_zoom,
+                    ) { scaleWidgets(DeskWidgetUtils.SIZE_STEP) },
+                )
+                add(
+                    RadialMenuItem(
+                        label = context.getString(R.string.context_menu_shrink_widget),
+                        iconRes = android.R.drawable.ic_menu_zoom,
+                    ) { scaleWidgets(1f / DeskWidgetUtils.SIZE_STEP) },
+                )
+            }
             if (selected.size >= 2) {
                 add(
                     RadialMenuItem(

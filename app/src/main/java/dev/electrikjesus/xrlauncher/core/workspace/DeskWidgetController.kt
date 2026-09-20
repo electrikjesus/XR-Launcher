@@ -183,6 +183,12 @@ object DeskWidgetController {
         dirtyIds += appWidgetId
     }
 
+    /** Mark dirty and wake the capture loop (e.g. after Grow / Shrink). */
+    fun requestRecapture(appWidgetId: Int) {
+        dirtyIds += appWidgetId
+        _changed.tryEmit(appWidgetId)
+    }
+
     private fun configureOrAdd(id: Int) {
         val info = manager?.getAppWidgetInfo(id)
         val configure = info?.configure

@@ -135,6 +135,27 @@ class HomeSpaceDeskPersistTest {
         assertEquals(0.9f, out.items.first().halfWidth!!, 0.01f)
         assertEquals(0.5f, out.items.first().halfHeight!!, 0.01f)
     }
+
+    @Test
+    fun scaleWidgets_growAndShrink() {
+        HomeSpaceDeskState.placeWidget(
+            appWidgetId = 5,
+            label = "Clock",
+            packageName = "pkg",
+            yawDeg = 0f,
+            pitchDeg = 0f,
+            halfWidth = 0.8f,
+            halfHeight = 0.4f,
+        )
+        assertTrue(HomeSpaceDeskState.scaleWidgets(setOf("widget_5"), DeskWidgetUtils.SIZE_STEP))
+        val grown = HomeSpaceDeskState.placed.first()
+        assertEquals(0.8f * DeskWidgetUtils.SIZE_STEP, grown.halfWidth!!, 0.01f)
+        assertEquals(0.4f * DeskWidgetUtils.SIZE_STEP, grown.halfHeight!!, 0.01f)
+        assertTrue(HomeSpaceDeskState.scaleWidgets(setOf("widget_5"), 1f / DeskWidgetUtils.SIZE_STEP))
+        val shrunk = HomeSpaceDeskState.placed.first()
+        assertEquals(0.8f, shrunk.halfWidth!!, 0.01f)
+        assertEquals(0.4f, shrunk.halfHeight!!, 0.01f)
+    }
 }
 
 class DeskWidgetUtilsTest {
@@ -144,5 +165,16 @@ class DeskWidgetUtilsTest {
         assertEquals(12, DeskWidgetUtils.parseWidgetId("widget_12"))
         assertNull(DeskWidgetUtils.parseWidgetId("a/.Main"))
         assertNull(DeskWidgetUtils.parseWidgetId("widget_"))
+    }
+
+    @Test
+    fun scaledHalfExtents_clampsAtBounds() {
+        val tiny = DeskWidgetUtils.scaledHalfExtents(0.28f, 0.12f, 1f / DeskWidgetUtils.SIZE_STEP)
+        assertNull(tiny)
+        val huge = DeskWidgetUtils.scaledHalfExtents(2.2f, 1.8f, DeskWidgetUtils.SIZE_STEP)
+        assertNull(huge)
+        val mid = DeskWidgetUtils.scaledHalfExtents(0.8f, 0.4f, DeskWidgetUtils.SIZE_STEP)!!
+        assertEquals(0.8f * DeskWidgetUtils.SIZE_STEP, mid.first, 0.01f)
+        assertEquals(0.4f * DeskWidgetUtils.SIZE_STEP, mid.second, 0.01f)
     }
 }
