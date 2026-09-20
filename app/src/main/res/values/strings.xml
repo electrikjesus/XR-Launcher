@@ -26,6 +26,10 @@
     <string name="onboarding_touchpad_body">Control glasses opens the spatial workspace on the XR display and a touchpad on the phone. Drag to move the cursor; use Left / Right click for taps.</string>
     <string name="onboarding_accessibility_title">Desktop pointer</string>
     <string name="onboarding_accessibility_body">Sideloaded builds hide the service until you allow Restricted settings on this app’s App Info page. Then turn on Accessibility → XR Launcher display pointer so clicks work over other apps on the glasses display.</string>
+    <string name="onboarding_notifications_title">Notification access</string>
+    <string name="onboarding_notifications_body">Allow XR Launcher to read notifications so the Home Space tray can show, clear, and open them — the same grant other launchers use (Settings → Notifications → Device &amp; app notifications).</string>
+    <string name="onboarding_enable_notifications">Enable notification access</string>
+    <string name="notification_listener_label">XR Launcher notifications</string>
     <string name="settings_how_to_section">Getting started</string>
     <string name="spatial_workspace">Spatial workspace</string>
     <string name="open_on_glasses">Open on glasses</string>
@@ -52,7 +56,7 @@
     <string name="settings_wallpaper_section">Wallpaper</string>
     <string name="settings_wallpaper_hint">Surround backdrop for the Home Space room.</string>
     <string name="settings_look_section">Look</string>
-    <string name="settings_look_home_space_hint">Eye = edge look. Hand = drag to look. Mouse = free look. Panel and icon size stay in Edit.</string>
+    <string name="settings_look_home_space_hint">Eye = edge look. Hand = two-finger pan or pinch zoom (one locks the other); one finger is desk. Mouse = free look. Panel and icon size stay in Edit.</string>
     <string name="settings_look_deadzone_hint">Center band where the cursor does not move look. The sine curve starts at the edge of that band.</string>
     <string name="settings_look_deadzone_horizontal">Horizontal deadzone · %1$d%%</string>
     <string name="settings_look_deadzone_vertical">Vertical deadzone · %1$d%%</string>
@@ -98,7 +102,7 @@
     <string name="workspace_look_yaw">Look left / right</string>
     <string name="workspace_look_pitch">Look up / down</string>
     <string name="workspace_look_hint">Manual look offset for companion mode only</string>
-    <string name="workspace_look_mode_hint">Gradient follows the cursor. Gesture keeps the view still until you drag. FPS locks the cursor to view center and turns the camera 1:1. Launching an app always uses Gradient pointing.</string>
+    <string name="workspace_look_mode_hint">Gradient follows the cursor. Gesture keeps the view still until a two-finger pan; pinch zooms (pan and zoom lock each other out). One finger is desk and lasso. FPS locks the cursor to view center and turns the camera 1:1. Launching an app always uses Gradient pointing.</string>
     <string name="workspace_look_mode_gradient">Look mode A — Gradient</string>
     <string name="workspace_look_mode_gesture">Look mode C — Gesture</string>
     <string name="workspace_look_mode_fps">Look mode B — FPS capture</string>
@@ -238,6 +242,8 @@
     <string name="xr_notifications">Notifications</string>
     <string name="xr_notifications_empty_title">Silent</string>
     <string name="xr_notifications_empty_body">Notifications from apps on glasses will show here.</string>
+    <string name="xr_notifications_access_title">Enable notification access</string>
+    <string name="xr_notifications_access_body">Tap to open Settings and allow XR Launcher to show notifications in this tray.</string>
     <string name="xr_quick_settings">Quick settings</string>
     <string name="xr_clear_all">Clear all</string>
     <string name="xr_qs_internet">Internet</string>

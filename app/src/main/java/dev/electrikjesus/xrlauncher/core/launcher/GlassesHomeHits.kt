@@ -34,6 +34,22 @@ object GlassesHomeHits {
     const val HUD_RECENTER = "__xr_hud_recenter__"
     const val HUD_KEYBOARD = "__xr_hud_keyboard__"
     const val HUD_SETTINGS = "__xr_hud_settings__"
+    const val QS_WIFI = "__xr_qs_wifi__"
+    const val QS_BLUETOOTH = "__xr_qs_bluetooth__"
+    const val QS_BRIGHTNESS = "__xr_qs_brightness__"
+    const val QS_NOTIFICATIONS = "__xr_qs_notifications__"
+    const val NOTIFICATION_LISTENER = "__xr_notification_listener__"
+    const val NOTIFICATION_ITEM_PREFIX = "__xr_notif_item_"
+
+    fun notificationItemKey(notificationKey: String): String =
+        NOTIFICATION_ITEM_PREFIX + notificationKey
+
+    fun notificationKeyFromHit(hitKey: String): String? =
+        if (hitKey.startsWith(NOTIFICATION_ITEM_PREFIX)) {
+            hitKey.removePrefix(NOTIFICATION_ITEM_PREFIX).ifBlank { null }
+        } else {
+            null
+        }
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -65,6 +81,11 @@ object GlassesHomeHits {
     const val HUD_RECENTER_LABEL = "Recenter"
     const val HUD_KEYBOARD_LABEL = "Keyboard"
     const val HUD_SETTINGS_LABEL = "Settings"
+    const val QS_WIFI_LABEL = "Wi‑Fi"
+    const val QS_BLUETOOTH_LABEL = "Bluetooth"
+    const val QS_BRIGHTNESS_LABEL = "Brightness"
+    const val QS_NOTIFICATIONS_LABEL = "Notification access"
+    const val NOTIFICATION_LISTENER_LABEL = "Enable notification access"
 
     fun appCloseKey(panelId: String): String = APP_CLOSE_PREFIX + panelId
 
@@ -108,6 +129,11 @@ object GlassesHomeHits {
             HUD_RECENTER -> HUD_RECENTER_LABEL
             HUD_KEYBOARD -> HUD_KEYBOARD_LABEL
             HUD_SETTINGS -> HUD_SETTINGS_LABEL
+            QS_WIFI -> QS_WIFI_LABEL
+            QS_BLUETOOTH -> QS_BLUETOOTH_LABEL
+            QS_BRIGHTNESS -> QS_BRIGHTNESS_LABEL
+            QS_NOTIFICATIONS -> QS_NOTIFICATIONS_LABEL
+            NOTIFICATION_LISTENER -> NOTIFICATION_LISTENER_LABEL
             else -> null
         }
     }
@@ -135,6 +161,11 @@ object GlassesHomeHits {
         HUD_LOOK_GESTURE,
         HUD_INPUT_HEAD,
         HUD_INPUT_TOUCHPAD,
+        QS_WIFI,
+        QS_BLUETOOTH,
+        QS_BRIGHTNESS,
+        QS_NOTIFICATIONS,
+        NOTIFICATION_LISTENER,
         OVERLAY_CLOSE,
         RECENTS_CLEAR,
         NOTIFICATIONS_CLEAR,

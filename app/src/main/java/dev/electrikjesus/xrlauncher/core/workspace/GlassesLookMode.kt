@@ -14,8 +14,8 @@ enum class GlassesLookMode {
     FPS,
 
     /**
-     * View stays put. Cursor and touch position do not aim the camera.
-     * A drag (or two-finger pan) is the only look gesture.
+     * View stays put until a two-finger pan. Cursor and one-finger touch do not aim the camera.
+     * Pinch zoom locks out pan (and vice versa) for that gesture. One finger is desk / lasso.
      */
     GESTURE,
     ;

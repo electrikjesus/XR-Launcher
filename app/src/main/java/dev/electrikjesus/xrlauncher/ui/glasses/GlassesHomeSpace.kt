@@ -23,13 +23,18 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -37,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -50,22 +56,27 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import android.provider.Settings
 import dev.electrikjesus.xrlauncher.R
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
+import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesAppPlane
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeSpace3d
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import dev.electrikjesus.xrlauncher.core.workspace.scene.paneRootKey
+import dev.electrikjesus.xrlauncher.notifications.TrayNotificationListenerService
 import dev.electrikjesus.xrlauncher.ui.workspace.LocalWorkspaceViewportPx
 import dev.electrikjesus.xrlauncher.ui.workspace.PanelTextureCapture
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
@@ -265,6 +276,10 @@ fun GlassesNotificationsLayer(
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onDismiss)
+    val context = LocalContext.current
+    val notifications by TrayNotificationBus.notificationsFlow.collectAsState()
+    val listenerEnabled =
+        TrayNotificationListenerService.isEnabled(context) || TrayNotificationBus.listenerConnected
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -282,13 +297,43 @@ fun GlassesNotificationsLayer(
             modifier = Modifier
                 .align(Alignment.Center)
                 .widthIn(max = 520.dp)
-                .fillMaxWidth(0.55f),
+                .fillMaxWidth(0.55f)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            GlassesNotificationCard(
-                title = stringResource(R.string.xr_notifications_empty_title),
-                body = stringResource(R.string.xr_notifications_empty_body),
-            )
+            when {
+                !listenerEnabled -> {
+                    GlassesNotificationCard(
+                        title = stringResource(R.string.xr_notifications_access_title),
+                        body = stringResource(R.string.xr_notifications_access_body),
+                        boundsKey = GlassesHomeHits.NOTIFICATION_LISTENER,
+                        hovered = hoveredLabel == GlassesHomeHits.NOTIFICATION_LISTENER_LABEL,
+                        onBoundsChanged = onBoundsChanged,
+                        onClick = {
+                            LauncherSystemPanels.openNotificationListenerSettings(context)
+                        },
+                    )
+                }
+                notifications.isEmpty() -> {
+                    GlassesNotificationCard(
+                        title = stringResource(R.string.xr_notifications_empty_title),
+                        body = stringResource(R.string.xr_notifications_empty_body),
+                    )
+                }
+                else -> {
+                    notifications.take(8).forEach { notif ->
+                        val hitKey = GlassesHomeHits.notificationItemKey(notif.key)
+                        GlassesNotificationCard(
+                            title = notif.title,
+                            body = notif.body.ifBlank { notif.packageName },
+                            boundsKey = hitKey,
+                            hovered = hoveredLabel == notif.title,
+                            onBoundsChanged = onBoundsChanged,
+                            onClick = { TrayNotificationBus.openKey?.invoke(notif.key) },
+                        )
+                    }
+                }
+            }
         }
         GlassesCapsuleButton(
             label = stringResource(R.string.xr_clear_all),
@@ -313,7 +358,14 @@ fun GlassesQuickSettingsLayer(
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onDismiss)
-    var brightness by remember { mutableFloatStateOf(0.65f) }
+    val context = LocalContext.current
+    var brightness by remember {
+        mutableFloatStateOf(
+            runCatching {
+                Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f
+            }.getOrDefault(0.65f),
+        )
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -339,13 +391,21 @@ fun GlassesQuickSettingsLayer(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassesQsPill(
-                    icon = Icons.Default.Star,
+                    icon = Icons.Default.Wifi,
                     label = stringResource(R.string.xr_qs_internet),
+                    boundsKey = GlassesHomeHits.QS_WIFI,
+                    hovered = hoveredLabel == GlassesHomeHits.QS_WIFI_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = { LauncherSystemPanels.openWifi(context) },
                     modifier = Modifier.weight(1f),
                 )
                 GlassesQsPill(
-                    icon = Icons.Default.Notifications,
+                    icon = Icons.Default.Bluetooth,
                     label = stringResource(R.string.xr_qs_bluetooth),
+                    boundsKey = GlassesHomeHits.QS_BLUETOOTH,
+                    hovered = hoveredLabel == GlassesHomeHits.QS_BLUETOOTH_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = { LauncherSystemPanels.openBluetooth(context) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -353,12 +413,54 @@ fun GlassesQuickSettingsLayer(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                GlassesQsTile(Icons.Default.Star, stringResource(R.string.xr_qs_dark_theme))
-                GlassesQsTile(Icons.Default.Notifications, stringResource(R.string.xr_notifications))
-                GlassesQsTile(Icons.Default.Settings, stringResource(R.string.settings_title), onClick = onOpenSettings)
-                GlassesQsTile(Icons.Default.Menu, stringResource(R.string.xr_qs_brightness))
+                GlassesQsTile(
+                    icon = Icons.Default.Wifi,
+                    label = stringResource(R.string.xr_qs_internet),
+                    boundsKey = GlassesHomeHits.QS_WIFI,
+                    hovered = hoveredLabel == GlassesHomeHits.QS_WIFI_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = { LauncherSystemPanels.openWifi(context) },
+                )
+                GlassesQsTile(
+                    icon = Icons.Default.Notifications,
+                    label = stringResource(R.string.xr_notifications),
+                    boundsKey = GlassesHomeHits.QS_NOTIFICATIONS,
+                    hovered = hoveredLabel == GlassesHomeHits.QS_NOTIFICATIONS_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = { LauncherSystemPanels.openNotificationListenerSettings(context) },
+                )
+                GlassesQsTile(
+                    icon = Icons.Default.Settings,
+                    label = stringResource(R.string.settings_title),
+                    boundsKey = GlassesHomeHits.SETTINGS,
+                    hovered = hoveredLabel == GlassesHomeHits.SETTINGS_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = onOpenSettings,
+                )
+                GlassesQsTile(
+                    icon = Icons.Default.Brightness6,
+                    label = stringResource(R.string.xr_qs_brightness),
+                    boundsKey = GlassesHomeHits.QS_BRIGHTNESS,
+                    hovered = hoveredLabel == GlassesHomeHits.QS_BRIGHTNESS_LABEL,
+                    onBoundsChanged = onBoundsChanged,
+                    onClick = {
+                        if (!Settings.System.canWrite(context)) {
+                            LauncherSystemPanels.requestWriteSettings(context)
+                        } else {
+                            LauncherSystemPanels.openDisplay(context)
+                        }
+                    },
+                )
             }
-            Slider(value = brightness, onValueChange = { brightness = it })
+            Slider(
+                value = brightness,
+                onValueChange = { next ->
+                    brightness = next
+                    if (!LauncherSystemPanels.setBrightnessFraction(context, next)) {
+                        LauncherSystemPanels.requestWriteSettings(context)
+                    }
+                },
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -551,12 +653,29 @@ private fun GlassesRecentCard(
 }
 
 @Composable
-private fun GlassesNotificationCard(title: String, body: String) {
+private fun GlassesNotificationCard(
+    title: String,
+    body: String,
+    boundsKey: String? = null,
+    hovered: Boolean = false,
+    onBoundsChanged: ((String, Rect) -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(CardBg)
+            .background(if (hovered) Color(0x882C2C2E) else CardBg)
+            .then(
+                if (boundsKey != null && onBoundsChanged != null) {
+                    Modifier.onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
+                } else {
+                    Modifier
+                },
+            )
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+            )
             .padding(18.dp),
     ) {
         Text(text = title, color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -572,11 +691,21 @@ private fun GlassesNotificationCard(title: String, body: String) {
 }
 
 @Composable
-private fun GlassesQsPill(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
+private fun GlassesQsPill(
+    icon: ImageVector,
+    label: String,
+    boundsKey: String,
+    hovered: Boolean,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFF2C2C2E))
+            .background(if (hovered) Color(0xFF3A3A3C) else Color(0xFF2C2C2E))
+            .onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -591,13 +720,21 @@ private fun GlassesQsPill(icon: ImageVector, label: String, modifier: Modifier =
 }
 
 @Composable
-private fun GlassesQsTile(icon: ImageVector, label: String, onClick: () -> Unit = {}) {
+private fun GlassesQsTile(
+    icon: ImageVector,
+    label: String,
+    boundsKey: String,
+    hovered: Boolean,
+    onBoundsChanged: (String, Rect) -> Unit,
+    onClick: () -> Unit,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF3A3A3C))
+                .background(if (hovered) Color(0xFF4A4A4C) else Color(0xFF3A3A3C))
+                .onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
@@ -792,7 +929,7 @@ fun GlassesHomeTrayPane(
         GlassesNotificationsLayer(
             hoveredLabel = hoveredLabel,
             onBoundsChanged = onBoundsChanged,
-            onClear = {},
+            onClear = { TrayNotificationBus.clear() },
             onDismiss = { GlassesHomeLook.lookHome() },
             dismissOnScrim = false,
             modifier = Modifier

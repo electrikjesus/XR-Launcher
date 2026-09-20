@@ -451,9 +451,10 @@ fun GlassesSpatialWorkspaceScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
+    val recents by GlassesRecentApps.recentsFlow.collectAsState()
+    if (homeOverlay == GlassesHomeOverlay.RECENTS && onLaunchApp != null) {
             GlassesRecentsLayer(
-                recents = GlassesRecentApps.list(),
+                recents = recents,
                 hoveredLabel = cursor.hoveredLabel,
                 onBoundsChanged = onBoundsChanged,
                 onLaunchApp = launchApp,

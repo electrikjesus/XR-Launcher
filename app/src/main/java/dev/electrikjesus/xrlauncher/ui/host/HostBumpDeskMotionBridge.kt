@@ -95,7 +95,7 @@ object HostBumpDeskMotionBridge {
                     gesture.pinching && event.pointerCount >= 2 -> {
                         val dist = pinchDistance(event)
                         val mid = pinchMid(event)
-                        apply(gesture.onPinchMove(dist, mid.first, mid.second))
+                        apply(gesture.onPinchMove(dist, mid.first, mid.second, gestureLook = gestureLook))
                     }
                     gesture.middleDragging ->
                         apply(
@@ -184,14 +184,8 @@ object HostBumpDeskMotionBridge {
             }
             BumpDeskHostAction.BeginDeskHold -> CompanionPointerBus.beginLeftButton()
             BumpDeskHostAction.EndDeskHold -> CompanionPointerBus.endLeftButton()
-            BumpDeskHostAction.DeskMoveWhilePressed -> {
-                val gestureLook = GlassesLookMode.effective() == GlassesLookMode.GESTURE
-                val grabbing = HomeSpaceDeskState.hasActiveGesture() || DeskLassoState.active
-                // Gesture look pans over the desk — do not re-grab icons under the finger.
-                if (!(gestureLook && !grabbing)) {
-                    CompanionPointerBus.onPointerMoveWhilePressed?.invoke()
-                }
-            }
+            BumpDeskHostAction.DeskMoveWhilePressed ->
+                CompanionPointerBus.onPointerMoveWhilePressed?.invoke()
             BumpDeskHostAction.CancelDeskHold -> {
                 if (CompanionPointerBus.cursor.value.isPressed) {
                     CompanionPointerBus.endLeftButton()
@@ -295,6 +289,7 @@ object HostBumpDeskMotionBridge {
                             dist,
                             (x + secondX) * 0.5f,
                             (y + secondY) * 0.5f,
+                            gestureLook = gestureLook,
                         ),
                     )
                 } else {

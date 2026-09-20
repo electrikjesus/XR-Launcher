@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.input.bumpdesk
 
+import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
@@ -9,11 +10,22 @@ import kotlin.math.hypot
  * middle-button drag for camera pan, secondary for context, and two-finger for pan+zoom.
  * This classifier does not raycast or own desk state — it only decides what the host
  * pointer layer should emit each frame.
+ *
+ * Gesture look (Scheme A): one finger is desk only; two-finger locks to either pan or
+ * zoom for the life of the pinch so the two never fight.
  */
 class BumpDeskHostGesture(
     /** Pixel distance before a primary press becomes a desk drag (BumpDesk touchSlop). */
     var touchSlopPx: Float = DEFAULT_TOUCH_SLOP_PX,
+    /** Absolute span change (px) that commits a two-finger gesture to zoom in GESTURE mode. */
+    var pinchZoomThresholdPx: Float = DEFAULT_PINCH_ZOOM_THRESHOLD_PX,
 ) {
+    enum class PinchLock {
+        NONE,
+        PAN,
+        ZOOM,
+    }
+
     var downX: Float = 0f
         private set
     var downY: Float = 0f
@@ -36,6 +48,12 @@ class BumpDeskHostGesture(
         private set
     var pinchDistance: Float = 0f
         private set
+    var pinchLock: PinchLock = PinchLock.NONE
+        private set
+
+    private var pinchBeginDistance: Float = 0f
+    private var pinchBeginMidX: Float = 0f
+    private var pinchBeginMidY: Float = 0f
 
     /** False until the first sample so hover look does not jump from (0,0) → cursor. */
     private var positionSeeded: Boolean = false
@@ -47,6 +65,10 @@ class BumpDeskHostGesture(
         middleDragging = false
         pinching = false
         pinchDistance = 0f
+        pinchLock = PinchLock.NONE
+        pinchBeginDistance = 0f
+        pinchBeginMidX = 0f
+        pinchBeginMidY = 0f
         positionSeeded = false
         downX = 0f
         downY = 0f
@@ -62,6 +84,7 @@ class BumpDeskHostGesture(
         deskDragArmed = allowDeskGrab && !fpsLook
         middleDragging = false
         pinching = false
+        pinchLock = PinchLock.NONE
         positionSeeded = true
         downX = x
         downY = y
@@ -85,6 +108,7 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskDragArmed = false
         pinching = false
+        pinchLock = PinchLock.NONE
         positionSeeded = true
         lastX = x
         lastY = y
@@ -99,13 +123,18 @@ class BumpDeskHostGesture(
         primaryDown = false
         deskDragArmed = false
         middleDragging = false
+        pinchLock = PinchLock.NONE
         pinchDistance = distance
+        pinchBeginDistance = distance
+        pinchBeginMidX = midX
+        pinchBeginMidY = midY
         lastX = midX
         lastY = midY
         return BumpDeskHostAction.CancelDeskHold
     }
 
     /**
+     * @param gestureLook When true, two-finger pan and zoom are mutually exclusive (Scheme A).
      * @return actions to apply in order (may be empty).
      */
     fun onMove(
@@ -135,14 +164,10 @@ class BumpDeskHostGesture(
                 }
             }
             primaryDown && deskDragArmed -> {
+                // Scheme A: one finger is desk only (lasso / icon drag). Look is two-finger.
                 val dist = hypot(x - downX, y - downY)
                 if (dist > touchSlopPx) {
                     out += BumpDeskHostAction.DeskMoveWhilePressed
-                    // Touch look: drag pans. Icon grabs still win; the bridge drops this pan
-                    // when a desk drag or lasso is actually holding the pointer.
-                    if (gestureLook && (dx != 0f || dy != 0f)) {
-                        out += BumpDeskHostAction.LookPan(dx, dy)
-                    }
                 }
             }
             primaryDown && !deskGrabAllowed -> {
@@ -158,7 +183,15 @@ class BumpDeskHostGesture(
         return out
     }
 
-    fun onPinchMove(distance: Float, midX: Float, midY: Float): List<BumpDeskHostAction> {
+    /**
+     * @param gestureLook When true, lock the pinch to PAN or ZOOM after the first decisive motion.
+     */
+    fun onPinchMove(
+        distance: Float,
+        midX: Float,
+        midY: Float,
+        gestureLook: Boolean = false,
+    ): List<BumpDeskHostAction> {
         if (!pinching) return emptyList()
         val midDx = midX - lastX
         val midDy = midY - lastY
@@ -167,7 +200,33 @@ class BumpDeskHostGesture(
         lastX = midX
         lastY = midY
         val out = mutableListOf<BumpDeskHostAction>(BumpDeskHostAction.CursorAt(midX, midY))
-        // BumpDesk: two-finger mid-point drag pans the camera while span change zooms.
+
+        if (gestureLook) {
+            if (pinchLock == PinchLock.NONE) {
+                val spanDelta = abs(distance - pinchBeginDistance)
+                val midTravel = hypot(midX - pinchBeginMidX, midY - pinchBeginMidY)
+                when {
+                    spanDelta >= pinchZoomThresholdPx -> pinchLock = PinchLock.ZOOM
+                    midTravel >= touchSlopPx -> pinchLock = PinchLock.PAN
+                }
+            }
+            when (pinchLock) {
+                PinchLock.PAN -> {
+                    if (midDx != 0f || midDy != 0f) {
+                        out += BumpDeskHostAction.LookPan(midDx, midDy)
+                    }
+                }
+                PinchLock.ZOOM -> {
+                    if (prev > 1f && distance > 1f) {
+                        out += BumpDeskHostAction.PinchZoom(prev, distance)
+                    }
+                }
+                PinchLock.NONE -> Unit
+            }
+            return out
+        }
+
+        // Non-gesture modes: combined pan + zoom (BumpDesk classic).
         if (midDx != 0f || midDy != 0f) {
             out += BumpDeskHostAction.LookPan(midDx, midDy)
         }
@@ -204,11 +263,14 @@ class BumpDeskHostGesture(
     fun onPinchEnd(): BumpDeskHostAction {
         pinching = false
         pinchDistance = 0f
+        pinchLock = PinchLock.NONE
+        pinchBeginDistance = 0f
         return BumpDeskHostAction.None
     }
 
     companion object {
         const val DEFAULT_TOUCH_SLOP_PX = 24f
+        const val DEFAULT_PINCH_ZOOM_THRESHOLD_PX = 36f
     }
 }
 

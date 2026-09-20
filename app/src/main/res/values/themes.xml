@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.XRLauncher" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.XRLauncher" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Launcher-style: system wallpaper composites behind transparent layers. -->
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
     <style name="Theme.XRLauncher.Glasses" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/glasses_background</item>
         <item name="android:colorBackground">@color/glasses_background</item>

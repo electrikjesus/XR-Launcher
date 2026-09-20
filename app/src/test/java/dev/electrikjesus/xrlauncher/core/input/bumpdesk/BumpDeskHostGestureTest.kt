@@ -63,7 +63,7 @@ class BumpDeskHostGestureTest {
     }
 
     @Test
-    fun gestureLook_dragPastSlop_emitsLookPanAndDeskMove() {
+    fun gestureLook_dragPastSlop_isDeskOnly_noLookPan() {
         gesture.onPrimaryDown(100f, 100f, allowDeskGrab = true, fpsLook = false)
         val actions = gesture.onMove(
             x = 140f,
@@ -73,9 +73,7 @@ class BumpDeskHostGestureTest {
             dialogOpen = false,
             gestureLook = true,
         )
-        val pan = actions.filterIsInstance<BumpDeskHostAction.LookPan>().single()
-        assertEquals(40f, pan.dxPx, 0.01f)
-        assertEquals(20f, pan.dyPx, 0.01f)
+        assertFalse(actions.any { it is BumpDeskHostAction.LookPan })
         assertTrue(actions.any { it === BumpDeskHostAction.DeskMoveWhilePressed })
     }
 
@@ -185,5 +183,34 @@ class BumpDeskHostGestureTest {
         val pan = actions.filterIsInstance<BumpDeskHostAction.LookPan>().single()
         assertEquals(30f, pan.dxPx, 0.01f)
         assertEquals(10f, pan.dyPx, 0.01f)
+    }
+
+    @Test
+    fun gestureLook_pinchMidpointTravel_locksPanOnly() {
+        gesture = BumpDeskHostGesture(touchSlopPx = 20f, pinchZoomThresholdPx = 36f)
+        gesture.onPinchBegin(100f, 200f, 300f)
+        // Midpoint moves past slop; span stays put.
+        val actions = gesture.onPinchMove(100f, 250f, 300f, gestureLook = true)
+        assertEquals(BumpDeskHostGesture.PinchLock.PAN, gesture.pinchLock)
+        assertTrue(actions.any { it is BumpDeskHostAction.LookPan })
+        assertFalse(actions.any { it is BumpDeskHostAction.PinchZoom })
+        // Later span change must not zoom once PAN is locked.
+        val later = gesture.onPinchMove(180f, 260f, 305f, gestureLook = true)
+        assertFalse(later.any { it is BumpDeskHostAction.PinchZoom })
+        assertTrue(later.any { it is BumpDeskHostAction.LookPan })
+    }
+
+    @Test
+    fun gestureLook_pinchSpanChange_locksZoomOnly() {
+        gesture = BumpDeskHostGesture(touchSlopPx = 20f, pinchZoomThresholdPx = 36f)
+        gesture.onPinchBegin(100f, 200f, 300f)
+        val actions = gesture.onPinchMove(150f, 205f, 302f, gestureLook = true)
+        assertEquals(BumpDeskHostGesture.PinchLock.ZOOM, gesture.pinchLock)
+        assertTrue(actions.any { it is BumpDeskHostAction.PinchZoom })
+        assertFalse(actions.any { it is BumpDeskHostAction.LookPan })
+        // Later midpoint travel must not pan once ZOOM is locked.
+        val later = gesture.onPinchMove(155f, 280f, 340f, gestureLook = true)
+        assertFalse(later.any { it is BumpDeskHostAction.LookPan })
+        assertTrue(later.any { it is BumpDeskHostAction.PinchZoom })
     }
 }

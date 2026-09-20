@@ -22,6 +22,8 @@ import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesRecentApps
 import dev.electrikjesus.xrlauncher.core.launcher.HomeAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
+import dev.electrikjesus.xrlauncher.core.launcher.LauncherSystemPanels
+import dev.electrikjesus.xrlauncher.core.launcher.TrayNotificationBus
 import dev.electrikjesus.xrlauncher.core.launcher.paginationStateForPane
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
@@ -453,7 +455,10 @@ private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
     }
     GlassesHomeHits.actionKeyAt(contains)?.let { return it }
     return itemBounds.keys.firstOrNull { key ->
-        GlassesHomeHits.appClosePanelId(key) != null && contains(key)
+        (
+            GlassesHomeHits.appClosePanelId(key) != null ||
+                key.startsWith(GlassesHomeHits.NOTIFICATION_ITEM_PREFIX)
+            ) && contains(key)
     }
 }
 
@@ -512,7 +517,17 @@ private fun handleHomeSpaceClick(
         }
         GlassesHomeHits.HUD_KEYBOARD -> CompanionPointerBus.setTextEntryActive(true)
         GlassesHomeHits.RECENTS_CLEAR -> GlassesRecentApps.clear()
-        GlassesHomeHits.NOTIFICATIONS_CLEAR -> { }
+        GlassesHomeHits.NOTIFICATIONS_CLEAR -> TrayNotificationBus.clear()
+        GlassesHomeHits.QS_WIFI ->
+            GlassesSessionState.appContext?.let { LauncherSystemPanels.openWifi(it) }
+        GlassesHomeHits.QS_BLUETOOTH ->
+            GlassesSessionState.appContext?.let { LauncherSystemPanels.openBluetooth(it) }
+        GlassesHomeHits.QS_BRIGHTNESS ->
+            GlassesSessionState.appContext?.let { LauncherSystemPanels.openDisplay(it) }
+        GlassesHomeHits.QS_NOTIFICATIONS, GlassesHomeHits.NOTIFICATION_LISTENER ->
+            GlassesSessionState.appContext?.let {
+                LauncherSystemPanels.openNotificationListenerSettings(it)
+            }
         GlassesHomeHits.EDIT_TOGGLE, GlassesHomeHits.EDIT_CLOSE -> {
             HomeSpaceDialogState.close()
             GlassesSessionState.toggleHomeSpaceEdit()
@@ -532,7 +547,13 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.EDIT_DESK_TILES -> onTuneAppearance(HomeSpaceTuneAxis.DESK_TILES, 0f)
         GlassesHomeHits.EDIT_DESK_WIDGETS -> onTuneAppearance(HomeSpaceTuneAxis.DESK_WIDGETS, 0f)
         GlassesHomeHits.EDIT_LOOK_FPS -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
-        else -> return false
+        else -> {
+            GlassesHomeHits.notificationKeyFromHit(key)?.let { notifKey ->
+                TrayNotificationBus.openKey?.invoke(notifKey)
+                return true
+            }
+            return false
+        }
     }
     return true
 }
@@ -896,8 +917,7 @@ private fun trackDeskDrag(
                 homeSpacePick(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale) == null &&
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
-                    ) &&
-                    GlassesLookMode.effective() != GlassesLookMode.GESTURE ->
+                    ) ->
                     DeskLassoState.begin(hit.yawDeg, hit.pitchDeg)
             }
         }

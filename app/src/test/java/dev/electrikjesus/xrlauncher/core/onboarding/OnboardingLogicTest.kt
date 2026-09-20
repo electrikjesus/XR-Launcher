@@ -9,10 +9,12 @@ class OnboardingLogicTest {
     private val missingGrants = OnboardingGrantState(
         accessibilityEnabled = false,
         isDefaultHome = false,
+        notificationListenerEnabled = false,
     )
     private val fullGrants = OnboardingGrantState(
         accessibilityEnabled = true,
         isDefaultHome = true,
+        notificationListenerEnabled = true,
     )
 
     @Test
@@ -70,7 +72,27 @@ class OnboardingLogicTest {
                 completed = true,
                 replayRequested = false,
                 hasSecondaryDisplay = false,
-                grants = OnboardingGrantState(accessibilityEnabled = false, isDefaultHome = true),
+                grants = OnboardingGrantState(
+                    accessibilityEnabled = false,
+                    isDefaultHome = true,
+                    notificationListenerEnabled = true,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun showsWhenOnlyNotificationListenerMissing() {
+        assertTrue(
+            OnboardingLogic.shouldShow(
+                completed = true,
+                replayRequested = false,
+                hasSecondaryDisplay = true,
+                grants = OnboardingGrantState(
+                    accessibilityEnabled = true,
+                    isDefaultHome = true,
+                    notificationListenerEnabled = false,
+                ),
             ),
         )
     }
@@ -90,8 +112,9 @@ class OnboardingLogicTest {
     @Test
     fun pagesIncludePermissionsWhenMissing() {
         val pages = OnboardingLogic.pages(missingGrants)
-        assertEquals(OnboardingStep.DEFAULT_HOME, pages[pages.size - 2])
-        assertEquals(OnboardingStep.ACCESSIBILITY, pages.last())
+        assertEquals(OnboardingStep.DEFAULT_HOME, pages[pages.size - 3])
+        assertEquals(OnboardingStep.ACCESSIBILITY, pages[pages.size - 2])
+        assertEquals(OnboardingStep.NOTIFICATIONS, pages.last())
         assertTrue(OnboardingLogic.isLastPage(pages.lastIndex, pages.size))
     }
 
@@ -101,22 +124,32 @@ class OnboardingLogicTest {
         assertEquals(OnboardingLogic.introSteps, pages)
         assertFalse(pages.contains(OnboardingStep.ACCESSIBILITY))
         assertFalse(pages.contains(OnboardingStep.DEFAULT_HOME))
+        assertFalse(pages.contains(OnboardingStep.NOTIFICATIONS))
     }
 
     @Test
     fun pagesKeepOnlyMissingHomeRole() {
         val pages = OnboardingLogic.pages(
-            OnboardingGrantState(accessibilityEnabled = true, isDefaultHome = false),
+            OnboardingGrantState(
+                accessibilityEnabled = true,
+                isDefaultHome = false,
+                notificationListenerEnabled = true,
+            ),
         )
         assertEquals(OnboardingStep.DEFAULT_HOME, pages.last())
         assertFalse(pages.contains(OnboardingStep.ACCESSIBILITY))
+        assertFalse(pages.contains(OnboardingStep.NOTIFICATIONS))
     }
 
     @Test
     fun permissionRecheck_skipsIntroPages() {
         val pages = OnboardingLogic.pages(missingGrants, includeIntro = false)
         assertEquals(
-            listOf(OnboardingStep.DEFAULT_HOME, OnboardingStep.ACCESSIBILITY),
+            listOf(
+                OnboardingStep.DEFAULT_HOME,
+                OnboardingStep.ACCESSIBILITY,
+                OnboardingStep.NOTIFICATIONS,
+            ),
             pages,
         )
         assertFalse(OnboardingLogic.includeIntroPages(completed = true, replayRequested = false))

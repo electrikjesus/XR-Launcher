@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.filled.Visibility
@@ -160,6 +161,8 @@ fun OnboardingScreen(
                             homeRoleLauncher.launch(OnboardingPermissions.requestHomeIntent(context))
                         OnboardingStep.ACCESSIBILITY ->
                             context.startActivity(OnboardingPermissions.accessibilitySettingsIntent())
+                        OnboardingStep.NOTIFICATIONS ->
+                            context.startActivity(OnboardingPermissions.notificationListenerSettingsIntent())
                         else -> Unit
                     }
                 },
@@ -277,6 +280,7 @@ private fun permissionGranted(step: OnboardingStep, grants: OnboardingGrantState
     when (step) {
         OnboardingStep.DEFAULT_HOME -> grants.isDefaultHome
         OnboardingStep.ACCESSIBILITY -> grants.accessibilityEnabled
+        OnboardingStep.NOTIFICATIONS -> grants.notificationListenerEnabled
         else -> false
     }
 
@@ -287,6 +291,7 @@ private fun iconFor(step: OnboardingStep): ImageVector = when (step) {
     OnboardingStep.TOUCHPAD -> Icons.Default.TouchApp
     OnboardingStep.DEFAULT_HOME -> Icons.Default.Home
     OnboardingStep.ACCESSIBILITY -> Icons.Default.AccessibilityNew
+    OnboardingStep.NOTIFICATIONS -> Icons.Default.Notifications
 }
 
 private fun titleFor(step: OnboardingStep): Int = when (step) {
@@ -296,6 +301,7 @@ private fun titleFor(step: OnboardingStep): Int = when (step) {
     OnboardingStep.TOUCHPAD -> R.string.onboarding_touchpad_title
     OnboardingStep.DEFAULT_HOME -> R.string.onboarding_home_title
     OnboardingStep.ACCESSIBILITY -> R.string.onboarding_accessibility_title
+    OnboardingStep.NOTIFICATIONS -> R.string.onboarding_notifications_title
 }
 
 private fun bodyFor(step: OnboardingStep): Int = when (step) {
@@ -305,10 +311,12 @@ private fun bodyFor(step: OnboardingStep): Int = when (step) {
     OnboardingStep.TOUCHPAD -> R.string.onboarding_touchpad_body
     OnboardingStep.DEFAULT_HOME -> R.string.onboarding_home_body
     OnboardingStep.ACCESSIBILITY -> R.string.onboarding_accessibility_body
+    OnboardingStep.NOTIFICATIONS -> R.string.onboarding_notifications_body
 }
 
 private fun actionLabelFor(step: OnboardingStep): Int = when (step) {
     OnboardingStep.DEFAULT_HOME -> R.string.onboarding_set_default_home
     OnboardingStep.ACCESSIBILITY -> R.string.onboarding_enable_accessibility
+    OnboardingStep.NOTIFICATIONS -> R.string.onboarding_enable_notifications
     else -> R.string.onboarding_next
 }

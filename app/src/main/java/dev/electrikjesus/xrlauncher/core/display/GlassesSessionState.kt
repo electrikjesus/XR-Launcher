@@ -34,6 +34,10 @@ data class LauncherInjectFrame(
 }
 
 object GlassesSessionState {
+    /** Application context for launcher system panels (set from MainActivity). */
+    @Volatile
+    var appContext: android.content.Context? = null
+
     var secondaryDisplayId: Int? = null
     var controlMode: GlassesControlMode = GlassesControlMode.LAUNCHER
 

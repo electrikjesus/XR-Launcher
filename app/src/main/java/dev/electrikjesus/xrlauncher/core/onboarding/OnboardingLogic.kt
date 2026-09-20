@@ -7,14 +7,17 @@ enum class OnboardingStep {
     TOUCHPAD,
     DEFAULT_HOME,
     ACCESSIBILITY,
+    NOTIFICATIONS,
 }
 
 data class OnboardingGrantState(
     val accessibilityEnabled: Boolean,
     val isDefaultHome: Boolean,
+    val notificationListenerEnabled: Boolean = true,
 ) {
     /** Grants the wizard must keep nagging about until the user enables them. */
-    fun allRequiredGranted(): Boolean = accessibilityEnabled && isDefaultHome
+    fun allRequiredGranted(): Boolean =
+        accessibilityEnabled && isDefaultHome && notificationListenerEnabled
 
     fun hasMissingRequired(): Boolean = !allRequiredGranted()
 }
@@ -38,6 +41,7 @@ object OnboardingLogic {
         if (includeIntro) addAll(introSteps)
         if (!grants.isDefaultHome) add(OnboardingStep.DEFAULT_HOME)
         if (!grants.accessibilityEnabled) add(OnboardingStep.ACCESSIBILITY)
+        if (!grants.notificationListenerEnabled) add(OnboardingStep.NOTIFICATIONS)
         // Never return an empty pager — e.g. grants flip mid-session while still visible.
         if (isEmpty()) addAll(introSteps)
     }
@@ -67,7 +71,9 @@ object OnboardingLogic {
         pageCount > 0 && index >= pageCount - 1
 
     fun isPermissionStep(step: OnboardingStep): Boolean =
-        step == OnboardingStep.DEFAULT_HOME || step == OnboardingStep.ACCESSIBILITY
+        step == OnboardingStep.DEFAULT_HOME ||
+            step == OnboardingStep.ACCESSIBILITY ||
+            step == OnboardingStep.NOTIFICATIONS
 
     fun isAccessibilityListed(enabledServices: String?, componentFlatten: String): Boolean {
         if (enabledServices.isNullOrBlank() || componentFlatten.isBlank()) return false

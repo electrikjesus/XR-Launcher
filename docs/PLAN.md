@@ -588,10 +588,11 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
 | 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
-| 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); C = gesture (view static until drag/two-finger/middle pan). Revert to A when an app launches. Persist. | ☑ Partial — HUD eye / hand / mouse; gesture drag-only look; FPS only while launcher is in front |
+| 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); C = gesture (Scheme A: one-finger desk; two-finger pan **or** pinch zoom with mutex lock). Revert to A when an app launches. Persist. | ☑ Partial — HUD eye / hand / mouse; Scheme A two-finger look + pan/zoom lock; one-finger lasso restored |
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
 | 2.25c | **Mouse-look + motion drag.** While FPS mouse-look is on and a grab is active, phone **motion** should drive the same unlocked-cursor desk drag as the touchpad (or a clear look-follow grab). Today motion+FPS registers the press/click but the drag phase moves the cursor without a usable view/grab feel — touchpad path only is reliable. | ☐ Partial — touchpad OK; motion+FPS DnD broken/awkward |
+| 2.25d | **Launcher surface (Play path).** `FLAG_SHOW_WALLPAPER` on host; tray notifications via `NotificationListenerService`; curated QS panels; launcher-owned recents; `AppWidgetHost` desk items follow-on. | ☑ Partial — wallpaper flag + live tray notifications/QS/recents; AppWidgetHost still open |
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
 | 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
@@ -618,12 +619,15 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Do this next. One concern per change.**
 
+**Launcher surface / BumpDesk widgets:**
+0a. **AppWidgetHost on desk** — host live widgets as sphere desk items (BumpDesk `WidgetRenderer` path); picker + persist. Tray notifications / QS / launcher recents and `FLAG_SHOW_WALLPAPER` are landed.
+
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
-0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; wire BumpDesk-style empty-space lasso start through the same absolute path; optional Settings toggle for `HostInputMethod`. ☑ partial: absolute host no longer double-applies cursor into camera; desk layout uses real viewport (not hardcoded 1920×1080); pager magnet disabled on host.
+0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; optional Settings toggle for `HostInputMethod`. ☑ partial: Scheme A gesture look (two-finger pan/zoom lock; one-finger desk/lasso); absolute host no longer double-applies cursor into camera.
 
 **BumpDesk desktop (sphere):**
-1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient). Mouse-look still uses primary drag to look.
+1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient); Scheme A one-finger lasso in GESTURE.
 2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile.
 3. **Radial menu** — ☑ right-click / long-press opens a ring (Open, hotseat, app info, uninstall, All apps, Clear selection). Host menu sits above the pointer catcher.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
@@ -632,7 +636,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
 5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / hand=GESTURE / mouse=FPS (force, not toggle); still open: OS mouse capture.
 6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
-7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility re-shows the guide on each launch (host + phone); App Info Restricted-settings path; permission-only pages after first complete. No privileged wallpaper/storage permission chase — gradient fallback when system wallpaper is unavailable.
+7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility / Notification listener re-shows the guide; App Info Restricted-settings path; no privileged wallpaper/storage APIs — `FLAG_SHOW_WALLPAPER` + gradient GLES surround.
 
 8. **Stop** — Do not start unrelated Phase 6 work in this pass.
 
@@ -717,7 +721,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 | 6.6 | Privacy policy (minimal collection; no analytics or explicit opt-in only). | ☐ |
 | 6.7 | Play listing: screenshots, supported devices, honest “embedding limitations” note. | ☐ |
 | 6.8 | Beta via internal / closed testing; file bugs against `device-matrix.md` gaps. | ☐ |
-| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. Do **not** request root/system/wallpaper privileges — Play launcher path only. | ☑ Partial — host + phone re-show when Home / Accessibility missing; App Info CTA; no privileged wallpaper APIs |
+| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service and notification listener. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility + Notification listener settings from the step. Re-check grants when the user returns. Do **not** request root/system/wallpaper privileges — Play launcher path only (`FLAG_SHOW_WALLPAPER`). | ☑ Partial — host + phone re-show when Home / Accessibility / Notification listener missing; App Info CTA; no privileged wallpaper APIs |
 
 ---
 
@@ -843,7 +847,9 @@ Record major choices here as they are made.
 | 2026-09-19 | **No privileged wallpaper/storage APIs** — Play launcher path only; gradient fallback when system wallpaper is unavailable | Avoided MANAGE_EXTERNAL_STORAGE / root-style wallpaper access |
 | 2026-09-19 | **Gesture look natural scroll:** LookPan sign inverted in GESTURE (drag background / news-feed style); FPS stays classic mouse-look | Gesture drag felt like FPS mouse-look |
 | 2026-09-19 | **Gesture look ignores path icons:** mid-pan does not grab desk/Home icons under the finger; icon drag still works when the press starts on an icon | Crossing icons mid-look stole the pan and started a drag |
+| 2026-09-19 | **Scheme A gesture look:** one-finger = desk (tap/drag/lasso/radial); two-finger only for camera with PAN\|ZOOM mutex on first decisive motion; natural-scroll LookPan | One-finger look blocked lasso; pan+pinch fought |
+| 2026-09-19 | **Launcher surface Play path:** `FLAG_SHOW_WALLPAPER`; `NotificationListenerService` tray; curated QS intents; launcher-owned recents; onboarding for notification access; AppWidgetHost deferred | Tray was stub empty cards; no privileged wallpaper APIs |
 
 ---
 
-*Last updated: 2026-09-19 (gesture look ignore path icons)*
+*Last updated: 2026-09-19 (Scheme A + launcher surface)*

@@ -8,11 +8,13 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import dev.electrikjesus.xrlauncher.accessibility.DisplayPointerAccessibilityService
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.notifications.TrayNotificationListenerService
 
 object OnboardingPermissions {
     fun snapshot(context: Context): OnboardingGrantState = OnboardingGrantState(
         accessibilityEnabled = isAccessibilityEnabled(context),
         isDefaultHome = isDefaultHome(context),
+        notificationListenerEnabled = TrayNotificationListenerService.isEnabled(context),
     )
 
     fun isAccessibilityEnabled(context: Context): Boolean {
@@ -48,6 +50,9 @@ object OnboardingPermissions {
             data = android.net.Uri.fromParts("package", context.packageName, null)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+
+    fun notificationListenerSettingsIntent(): Intent =
+        TrayNotificationListenerService.settingsIntent()
 
     fun requestHomeIntent(context: Context): Intent {
         val roleManager = context.getSystemService(RoleManager::class.java)
