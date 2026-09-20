@@ -1,11 +1,13 @@
 Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** on large screens (Android 14+). Your phone doubles as a **touchpad + motion controller** for the workspace.
 
-**Early development** (`0.1.0`). Primary hardware: RayNeo Air 4 Pro and large-screen Android.
+**0.1.34** — Companion multitouch (scroll / pinch-zoom / look), tray brightness + notification scroll handle, world-locked Recents, wallpaper / HDRI surrounds, host HUD look modes.
 
 ### Highlights
 
 - Phone HOME shell plus companion touchpad / motion pointer for the glasses display
-- 3D spatial workspace on glasses, tablets, and desktop-mode hosts
+- 2-/3-finger companion gestures: scroll, sphere zoom, look pan, right-click tap
+- 3D Home Space on glasses, tablets, and desktop-mode hosts (BumpDesk GLES)
+- Tray QS + notifications with pointer-friendly dismiss / scrub controls
 - Optional RayNeo USB head tracking with calibration
 - Registers as `LAUNCHER` / `HOME` (minSdk 34)
 

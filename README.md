@@ -6,41 +6,55 @@ Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** 
 
 Active development — Home Space desk (BumpDesk-style icons on the sphere), companion mouse-look, and panel launch in progress. See **[docs/PLAN.md](docs/PLAN.md)** for the roadmap.
 
-**Latest:** `v0.1.19` — All Apps pager/return-to-drawer fixes, Hold-Left desk drag, Home→Desktop copy-drag, mouse-look polish.
+**Latest:** [`v0.1.34`](docs/releases/v0.1.34.md) — Companion multitouch, tray/QS polish, world-locked Recents, wallpaper/HDRI, host HUD look modes.
 
 ### Partial / known gaps
 
 | Feature | Status |
 |---------|--------|
-| **Mouse-look + desk drag/drop** | **Partial** — works with **touchpad** long-press / Hold-Left (grab origin → drag → drop). With **motion controls** while mouse-look is on, the click/grab can register but the drag phase moves the cursor without turning the view and does not yet feel correct; improving motion+FPS drag is tracked as **2.25c** in [docs/PLAN.md](docs/PLAN.md). |
+| **Mouse-look + desk drag/drop** | **Partial** — works with **touchpad** long-press / Hold-Left. Motion+FPS drag still awkward (**2.25c**). |
 | **Home sprocket Settings** | Drifted after Home Space changes — repair tracked as **2.29**. |
-| **Lasso / piles / radial menu** | Lasso state exists; draw, piles, and radial UI still TODO. |
+| **Widget touch-through** | AppWidgetHost place/persist landed; touch-through still open. |
 
 **New developer?** Start with **[docs/DEVELOPER.md](docs/DEVELOPER.md)** — architecture, build, debugging, device support, and workflow.
 
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/glasses-posed-20260918.png" alt="Glasses Home Space — All Apps drawer and Home pane" width="720" />
+  <img src="screenshots/tablet-homespace-20260920.png" alt="Tablet Home Space with HUD look modes" width="720" />
 </p>
 
-<p align="center"><em>Glasses: Desktop All Apps drawer (left) and Home pane (right)</em></p>
+<p align="center"><em>Tablet: Home Space with top HUD look modes, Home pane, and tray</em></p>
 
 <p align="center">
-  <img src="screenshots/glasses-homespace-20260918.png" alt="Glasses Home Space looking at Home" width="720" />
+  <img src="screenshots/tablet-mouselook-20260920.png" alt="Mouse-look mode on tablet HUD" width="720" />
 </p>
 
-<p align="center"><em>Glasses: Home Space centered on Home</em></p>
+<p align="center"><em>Tablet: mouse-look selected on the host HUD</em></p>
+
+<p align="center">
+  <img src="screenshots/tablet-edit-perspective-20260920.png" alt="Edit Perspective panel" width="720" />
+</p>
+
+<p align="center"><em>Tablet: Edit → Perspective (panel / sphere / UI scale)</em></p>
+
+<p align="center">
+  <img src="screenshots/tablet-settings-wallpaper-20260920.png" alt="Settings wallpaper options" width="720" />
+</p>
+
+<p align="center"><em>Tablet: Settings — surround wallpaper for the XR room</em></p>
 
 <p align="center">
   <img src="screenshots/phone-companion-20260918.png" alt="Phone companion touchpad with mouse-look control" width="280" />
 </p>
 
-<p align="center"><em>Phone companion: touchpad, mouse-look toggle, Left / Right click</em></p>
+<p align="center"><em>Phone companion: touchpad (now with 2-/3-finger scroll, zoom, look)</em></p>
 
 ## Releases
 
-Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.19`). Debug APKs are built on every push to `main`.
+Signed APKs ship from GitHub Releases when a `v*` tag is pushed (for example `v0.1.34`). Debug APKs are built on every push to `main`.
+
+Full release notes: **[docs/releases/v0.1.34.md](docs/releases/v0.1.34.md)**.
 
 1. Download **`app-release.apk`** from [Releases](https://github.com/electrikjesus/XR-Launcher/releases).
 2. Install with `adb install -r app-release.apk`. Optionally set **XR Launcher** as Home.
@@ -79,12 +93,13 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 | [docs/DEVELOPER.md](docs/DEVELOPER.md) | Architecture, input system, debugging, key files |
 | [docs/PLAN.md](docs/PLAN.md) | Phases, tasks, rules, git workflow |
 | [docs/device-matrix.md](docs/device-matrix.md) | Hardware test results and quirks |
+| [docs/releases/v0.1.34.md](docs/releases/v0.1.34.md) | Latest release notes |
 
 ## Development workflow
 
 - One plan task per branch (`dev/phase1-1.3-…`) and per commit
 - Validate with `./gradlew build` and unit tests before committing
-- Tag stable milestones on `main` (e.g. `v0.1.19`)
+- Tag stable milestones on `main` (e.g. `v0.1.34`)
 
 ## Modes
 
@@ -93,7 +108,7 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 | **Tier 0 — Spatial desktop** | Large screen, no glasses | Mouse, touch, keyboard |
 | **Tier 0c — Phone shell** | Phone only, no glasses | Touch; opens companion when controlling workspace |
 | **Tier 1–3 — XR workspace** | Glasses or spatial headset | Phone touchpad + motion; optional head-mouse on glasses |
-| **Companion** | Phone controlling remote workspace | Touchpad + motion pointer |
+| **Companion** | Phone controlling remote workspace | Touchpad + motion pointer (2-/3-finger scroll/zoom/look) |
 
 ## Hardware focus
 

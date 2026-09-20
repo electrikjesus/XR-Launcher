@@ -904,7 +904,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Companion multitouch:** 2-finger scroll/pinch-zoom, 3-finger look, 2-finger tap right-click | Touchpad lacked scroll/zoom; laptop-trackpad expectations |
 | 2026-09-20 | **Tray QS + notif scroll:** dedupe controls; pointer brightness scrub; grab scroll handle | Parent clickable ate slider; FPS could not scroll notifications |
 | 2026-09-20 | **Recents on Home pane:** world-lock hamburger Recents in GLES capture | Viewport overlay sat on FPS crosshair and stuck to mouse-look |
+| 2026-09-20 | **v0.1.34 release:** tablet screenshots + release notes; tag push | Ship companion multitouch, tray polish, Recents, wallpaper/HDRI |
 
 ---
 
-*Last updated: 2026-09-20 (Recents world-lock)*
+*Last updated: 2026-09-20 (v0.1.34 release)*
