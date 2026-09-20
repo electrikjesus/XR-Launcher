@@ -18,6 +18,8 @@ object DeskGridOverlay {
         val sphereScale: Float = 1f,
         val snapToGrid: Boolean = false,
         val showGridOnMove: Boolean = true,
+        /** Live snap cell under the dragged item (null when not dragging with snap). */
+        val snapTarget: DeskGrid.SnapTarget? = null,
     )
 
     private val _config = MutableStateFlow(Config())
@@ -31,8 +33,17 @@ object DeskGridOverlay {
     }
 
     fun hide() {
-        if (_config.value.visible) {
-            _config.value = _config.value.copy(visible = false)
+        val cur = _config.value
+        if (cur.visible || cur.snapTarget != null) {
+            _config.value = cur.copy(visible = false, snapTarget = null)
+            DeskIconTextureBus.requestRender()
+        }
+    }
+
+    fun clearSnapTarget() {
+        val cur = _config.value
+        if (cur.snapTarget != null) {
+            _config.value = cur.copy(snapTarget = null)
             DeskIconTextureBus.requestRender()
         }
     }

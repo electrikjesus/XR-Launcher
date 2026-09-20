@@ -1186,6 +1186,7 @@ private fun trackDeskDrag(
             obstacles = icons.filter { it.componentKey != draggingKey },
             panes = panes,
         )
+        DeskGridOverlay.clearSnapTarget()
         refreshDeskGridOverlay(moving = DeskWidgetResizeState.isArmed, sphereScale = sphereScale)
     }
     deskGesturePressed = pressed
@@ -1198,13 +1199,47 @@ private fun refreshDeskGridOverlay(
     sphereScale: Float = DeskGridOverlay.config.sphereScale,
 ) {
     val prev = DeskGridOverlay.config
-    val visible = prev.showGridOnMove && (moving || DeskWidgetResizeState.isArmed)
+    val drag = HomeSpaceDeskState.drag?.takeIf { it.pulling }
+    val snapTarget = if (prev.snapToGrid && drag != null) {
+        val existing = HomeSpaceDeskState.placed.firstOrNull {
+            it.app.componentKey == drag.app.componentKey
+        }
+        val halfW = existing?.halfWidth ?: prev.iconHalfWidth
+        val halfH = existing?.halfHeight
+            ?: HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        DeskGrid.snapTarget(
+            yawDeg = drag.yawDeg,
+            pitchDeg = drag.pitchDeg,
+            halfWidth = halfW,
+            halfHeight = halfH,
+            iconHalfWidth = prev.iconHalfWidth,
+            gridScale = prev.gridScale,
+            sphereScale = sphereScale,
+        )
+    } else if (prev.snapToGrid && DeskGroupMoveState.isPulling) {
+        // Highlight under the group centroid.
+        val (cy, cp) = DeskGroupMoveState.centroid(HomeSpaceDeskState.placed)
+            ?: (centerYaw to centerPitch)
+        DeskGrid.snapTarget(
+            yawDeg = cy,
+            pitchDeg = cp,
+            halfWidth = prev.iconHalfWidth,
+            halfHeight = HomeSpaceDesk.labeledIconHalfHeight(prev.iconHalfWidth),
+            iconHalfWidth = prev.iconHalfWidth,
+            gridScale = prev.gridScale,
+            sphereScale = sphereScale,
+        )
+    } else {
+        null
+    }
+    val visible = moving && (prev.showGridOnMove || (prev.snapToGrid && snapTarget != null))
     DeskGridOverlay.update(
         prev.copy(
-            visible = visible,
+            visible = visible || snapTarget != null,
             centerYawDeg = centerYaw,
             centerPitchDeg = centerPitch,
             sphereScale = sphereScale,
+            snapTarget = snapTarget,
         ),
     )
 }

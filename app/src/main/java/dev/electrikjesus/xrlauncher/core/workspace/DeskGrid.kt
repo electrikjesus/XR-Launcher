@@ -39,6 +39,67 @@ object DeskGrid {
             .coerceIn(-55f, 55f)
     }
 
+    /**
+     * Snapped center plus angular half-extents for the item footprint
+     * (1×1 for icons; multi-cell for widgets).
+     */
+    data class SnapTarget(
+        val yawDeg: Float,
+        val pitchDeg: Float,
+        val halfYawDeg: Float,
+        val halfPitchDeg: Float,
+        val cellsW: Int,
+        val cellsH: Int,
+    )
+
+    fun snapTarget(
+        yawDeg: Float,
+        pitchDeg: Float,
+        halfWidth: Float,
+        halfHeight: Float,
+        iconHalfWidth: Float,
+        gridScale: Float,
+        sphereScale: Float,
+    ): SnapTarget {
+        val (yaw, pitch) = snapPose(yawDeg, pitchDeg, iconHalfWidth, gridScale, sphereScale)
+        val (cellsW, cellsH) = cellsForExtents(halfWidth, halfHeight, iconHalfWidth, gridScale)
+        val stepYaw = cellYawDeg(iconHalfWidth, gridScale, sphereScale)
+        val stepPitch = cellPitchDeg(iconHalfWidth, gridScale, sphereScale)
+        return SnapTarget(
+            yawDeg = yaw,
+            pitchDeg = pitch,
+            halfYawDeg = cellsW * stepYaw * 0.5f,
+            halfPitchDeg = cellsH * stepPitch * 0.5f,
+            cellsW = cellsW,
+            cellsH = cellsH,
+        )
+    }
+
+    /** Closed rectangle outline samples for a snap target on the sphere. */
+    fun snapTargetOutline(
+        target: SnapTarget,
+        samplesPerEdge: Int = 8,
+    ): List<Pair<Float, Float>> {
+        val y0 = target.yawDeg - target.halfYawDeg
+        val y1 = target.yawDeg + target.halfYawDeg
+        val p0 = target.pitchDeg - target.halfPitchDeg
+        val p1 = target.pitchDeg + target.halfPitchDeg
+        val n = samplesPerEdge.coerceAtLeast(2)
+        val points = ArrayList<Pair<Float, Float>>(n * 4 + 1)
+        fun edge(ya: Float, pa: Float, yb: Float, pb: Float) {
+            for (i in 0 until n) {
+                val t = i / (n - 1).toFloat()
+                points += (ya + (yb - ya) * t) to (pa + (pb - pa) * t)
+            }
+        }
+        edge(y0, p0, y1, p0)
+        edge(y1, p0, y1, p1)
+        edge(y1, p1, y0, p1)
+        edge(y0, p1, y0, p0)
+        points += points.first()
+        return points
+    }
+
     fun snapHalfExtents(
         halfWidth: Float,
         halfHeight: Float,

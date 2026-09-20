@@ -868,7 +868,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Onboarding:** do not re-show when the only missing grant is default Home | Users often keep another launcher as Home; Home-only nag blocked the workspace |
 | 2026-09-20 | **Desk grid + widget drag-resize:** Settings snap/show-grid/cell scale; radial Resize corner handles; GLES overlay on move | Grow/Shrink broke aspect at clamps; no launcher-style frame resize |
 | 2026-09-20 | **All Apps open drawer:** draw frosted backing panel; tighten pad so plate hugs the grid | Backing was pick-only (invisible); oversized square pad hid the widget plate |
+| 2026-09-20 | **Snap-to-grid UX:** live landing-cell highlight while dragging; snap pose on release | Snap ran silently with no target preview, so drops did not feel snapped |
 
 ---
 
-*Last updated: 2026-09-20 (All Apps drawer backing visible)*
+*Last updated: 2026-09-20 (snap-to-grid highlight)*

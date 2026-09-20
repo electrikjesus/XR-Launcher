@@ -512,36 +512,84 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     /** Angular desk grid while moving / resizing (Settings: show grid on move). */
     private fun drawDeskGrid() {
         val cfg = DeskGridOverlay.config
-        if (!cfg.visible) return
-        val lines = DeskGrid.overlayLines(
-            centerYawDeg = cfg.centerYawDeg,
-            centerPitchDeg = cfg.centerPitchDeg,
-            iconHalfWidth = cfg.iconHalfWidth,
-            gridScale = cfg.gridScale,
-            sphereScale = cfg.sphereScale,
-        )
-        if (lines.isEmpty()) return
+        if (!cfg.visible && cfg.snapTarget == null) return
         val radius = HomeSpaceScene.sphereRadius(homeSpaceSphereScale) * 0.994f
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
         GLES20.glUseProgram(lineProgram)
         GLES20.glUniformMatrix4fv(lineMvpHandle, 1, false, mvpMatrix, 0)
         GLES20.glDisable(GLES20.GL_DEPTH_TEST)
-        GLES20.glLineWidth(1.5f)
         GLES20.glEnableVertexAttribArray(linePositionHandle)
-        GLES20.glUniform4f(lineColorHandle, 0.55f, 0.78f, 1f, 0.28f)
-        lines.forEach { line ->
-            if (line.size < 2) return@forEach
-            val verts = FloatArray(line.size * 3)
-            for (i in line.indices) {
-                val p = HomeSpaceScene.spherePoint(line[i].first, line[i].second, radius)
+
+        if (cfg.visible) {
+            val lines = DeskGrid.overlayLines(
+                centerYawDeg = cfg.centerYawDeg,
+                centerPitchDeg = cfg.centerPitchDeg,
+                iconHalfWidth = cfg.iconHalfWidth,
+                gridScale = cfg.gridScale,
+                sphereScale = cfg.sphereScale,
+            )
+            GLES20.glLineWidth(1.5f)
+            GLES20.glUniform4f(lineColorHandle, 0.55f, 0.78f, 1f, 0.28f)
+            lines.forEach { line ->
+                if (line.size < 2) return@forEach
+                val verts = FloatArray(line.size * 3)
+                for (i in line.indices) {
+                    val p = HomeSpaceScene.spherePoint(line[i].first, line[i].second, radius)
+                    verts[i * 3] = p.x
+                    verts[i * 3 + 1] = p.y
+                    verts[i * 3 + 2] = p.z
+                }
+                val buffer = verts.toFloatBuffer()
+                GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, buffer)
+                GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, line.size)
+            }
+        }
+
+        cfg.snapTarget?.let { target ->
+            val outline = DeskGrid.snapTargetOutline(target)
+            val verts = FloatArray(outline.size * 3)
+            for (i in outline.indices) {
+                val p = HomeSpaceScene.spherePoint(outline[i].first, outline[i].second, radius * 0.993f)
                 verts[i * 3] = p.x
                 verts[i * 3 + 1] = p.y
                 verts[i * 3 + 2] = p.z
             }
+            // Bright outer frame for the landing cell.
+            GLES20.glLineWidth(4.5f)
+            GLES20.glUniform4f(lineColorHandle, 0.35f, 0.95f, 1f, 0.95f)
             val buffer = verts.toFloatBuffer()
             GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, buffer)
-            GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, line.size)
+            GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, outline.size)
+            // Inner fill hatch so the target reads as a solid plate.
+            GLES20.glLineWidth(2f)
+            GLES20.glUniform4f(lineColorHandle, 0.25f, 0.85f, 1f, 0.45f)
+            val hatch = ArrayList<List<Pair<Float, Float>>>(target.cellsW + target.cellsH + 2)
+            val y0 = target.yawDeg - target.halfYawDeg
+            val y1 = target.yawDeg + target.halfYawDeg
+            val p0 = target.pitchDeg - target.halfPitchDeg
+            val p1 = target.pitchDeg + target.halfPitchDeg
+            val divisions = (target.cellsW + target.cellsH).coerceIn(2, 8)
+            for (i in 0..divisions) {
+                val t = i / divisions.toFloat()
+                val yaw = y0 + (y1 - y0) * t
+                hatch += listOf(yaw to p0, yaw to p1)
+                val pitch = p0 + (p1 - p0) * t
+                hatch += listOf(y0 to pitch, y1 to pitch)
+            }
+            hatch.forEach { line ->
+                val hv = FloatArray(line.size * 3)
+                for (i in line.indices) {
+                    val p = HomeSpaceScene.spherePoint(line[i].first, line[i].second, radius * 0.993f)
+                    hv[i * 3] = p.x
+                    hv[i * 3 + 1] = p.y
+                    hv[i * 3 + 2] = p.z
+                }
+                val hb = hv.toFloatBuffer()
+                GLES20.glVertexAttribPointer(linePositionHandle, 3, GLES20.GL_FLOAT, false, 0, hb)
+                GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, line.size)
+            }
         }
+
         GLES20.glDisableVertexAttribArray(linePositionHandle)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
     }

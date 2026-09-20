@@ -284,9 +284,23 @@ object HomeSpaceDeskState {
                 paneBlocks = panes,
                 excludeKey = current.app.componentKey,
             ) ?: return true
+            var placeYaw = resolved.first
+            var placePitch = resolved.second
+            val grid = DeskGridOverlay.config
+            if (grid.snapToGrid) {
+                val snapped = DeskGrid.snapPose(
+                    yawDeg = placeYaw,
+                    pitchDeg = placePitch,
+                    iconHalfWidth = grid.iconHalfWidth,
+                    gridScale = grid.gridScale,
+                    sphereScale = sphereScale,
+                )
+                placeYaw = snapped.first
+                placePitch = snapped.second
+            }
             _piles.value = _piles.value.map { pile ->
                 if (pile.id == current.app.componentKey) {
-                    pile.copy(yawDeg = resolved.first, pitchDeg = resolved.second)
+                    pile.copy(yawDeg = placeYaw, pitchDeg = placePitch)
                 } else {
                     pile
                 }
