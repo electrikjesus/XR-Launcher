@@ -233,18 +233,24 @@ fun CompanionTouchpadScreen(
                     .focusRequester(keyboardFocus),
             )
             Spacer(modifier = Modifier.weight(1f))
-            if (allAppsOverlayVisible) {
-                FilledTonalButton(
-                    onClick = { DisplayLaunchHelper.closeAllAppsOnGlasses() },
-                    shape = MaterialTheme.shapes.extraLarge,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text(stringResource(R.string.all_apps_close_on_glasses))
-                }
+            IconButton(
+                onClick = { DisplayLaunchHelper.toggleAllAppsOnGlasses(context) },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Apps,
+                    contentDescription = stringResource(
+                        if (allAppsOverlayVisible) {
+                            R.string.all_apps_close_on_glasses
+                        } else {
+                            R.string.all_apps_on_glasses
+                        },
+                    ),
+                    tint = if (allAppsOverlayVisible) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
             }
         }
 

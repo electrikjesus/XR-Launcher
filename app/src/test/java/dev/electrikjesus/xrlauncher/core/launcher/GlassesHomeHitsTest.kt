@@ -1,6 +1,8 @@
 package dev.electrikjesus.xrlauncher.core.launcher
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -82,6 +84,22 @@ class GlassesHomeHitsTest {
         GlassesRecentApps.record(sampleApp("x"))
         GlassesRecentApps.clear()
         assertTrue(GlassesRecentApps.list().isEmpty())
+    }
+
+    @Test
+    fun notificationDismissKey_roundTrips() {
+        val key = "0|com.example|123"
+        val dismissHit = GlassesHomeHits.notificationDismissKey(key)
+        assertTrue(GlassesHomeHits.isNotificationDismissHit(dismissHit))
+        assertEquals(key, GlassesHomeHits.notificationKeyFromHit(dismissHit))
+        assertFalse(GlassesHomeHits.isNotificationDismissHit(GlassesHomeHits.notificationItemKey(key)))
+    }
+
+    @Test
+    fun notificationItemKey_roundTrips() {
+        val key = "0|com.example|123"
+        assertEquals(key, GlassesHomeHits.notificationKeyFromHit(GlassesHomeHits.notificationItemKey(key)))
+        assertNull(GlassesHomeHits.notificationKeyFromHit("__other__"))
     }
 
     private fun sampleApp(pkg: String) = LaunchableApp(

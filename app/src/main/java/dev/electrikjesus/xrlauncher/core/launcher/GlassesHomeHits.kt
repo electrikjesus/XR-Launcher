@@ -42,16 +42,25 @@ object GlassesHomeHits {
     const val QS_NOTIFICATIONS = "__xr_qs_notifications__"
     const val NOTIFICATION_LISTENER = "__xr_notification_listener__"
     const val NOTIFICATION_ITEM_PREFIX = "__xr_notif_item_"
+    const val NOTIFICATION_DISMISS_PREFIX = "__xr_notif_dismiss_"
 
     fun notificationItemKey(notificationKey: String): String =
         NOTIFICATION_ITEM_PREFIX + notificationKey
 
+    fun notificationDismissKey(notificationKey: String): String =
+        NOTIFICATION_DISMISS_PREFIX + notificationKey
+
     fun notificationKeyFromHit(hitKey: String): String? =
-        if (hitKey.startsWith(NOTIFICATION_ITEM_PREFIX)) {
-            hitKey.removePrefix(NOTIFICATION_ITEM_PREFIX).ifBlank { null }
-        } else {
-            null
+        when {
+            hitKey.startsWith(NOTIFICATION_DISMISS_PREFIX) ->
+                hitKey.removePrefix(NOTIFICATION_DISMISS_PREFIX).ifBlank { null }
+            hitKey.startsWith(NOTIFICATION_ITEM_PREFIX) ->
+                hitKey.removePrefix(NOTIFICATION_ITEM_PREFIX).ifBlank { null }
+            else -> null
         }
+
+    fun isNotificationDismissHit(hitKey: String): Boolean =
+        hitKey.startsWith(NOTIFICATION_DISMISS_PREFIX)
 
     const val HOME_LABEL = "Home"
     const val ALL_APPS_LABEL = "All apps"
@@ -61,6 +70,7 @@ object GlassesHomeHits {
     const val SETTINGS_LABEL = "Settings"
     const val CLEAR_ALL_LABEL = "Clear all"
     const val CLOSE_LABEL = "Close"
+    const val DISMISS_LABEL = "Dismiss"
     const val EDIT_LABEL = "Edit space"
     const val DONE_LABEL = "Done editing"
     const val PANEL_SMALLER_LABEL = "Smaller panels"
@@ -100,6 +110,15 @@ object GlassesHomeHits {
 
     fun hoverLabel(key: String): String? = when {
         key.startsWith(APP_CLOSE_PREFIX) -> CLOSE_LABEL
+        key.startsWith(NOTIFICATION_DISMISS_PREFIX) -> {
+            val notifKey = key.removePrefix(NOTIFICATION_DISMISS_PREFIX)
+            val title = TrayNotificationBus.notifications.find { it.key == notifKey }?.title
+            if (title.isNullOrBlank()) DISMISS_LABEL else "$DISMISS_LABEL · $title"
+        }
+        key.startsWith(NOTIFICATION_ITEM_PREFIX) -> {
+            val notifKey = key.removePrefix(NOTIFICATION_ITEM_PREFIX)
+            TrayNotificationBus.notifications.find { it.key == notifKey }?.title
+        }
         else -> when (key) {
             HOME -> HOME_LABEL
             ALL_APPS -> ALL_APPS_LABEL

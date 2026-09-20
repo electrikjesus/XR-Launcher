@@ -292,13 +292,18 @@ fun GlassesNotificationsLayer(
                 else -> {
                     notifications.take(8).forEach { notif ->
                         val hitKey = GlassesHomeHits.notificationItemKey(notif.key)
+                        val dismissKey = GlassesHomeHits.notificationDismissKey(notif.key)
+                        val dismissHover = GlassesHomeHits.hoverLabel(dismissKey)
                         GlassesNotificationCard(
                             title = notif.title,
                             body = notif.body.ifBlank { notif.packageName },
                             boundsKey = hitKey,
+                            dismissBoundsKey = dismissKey,
                             hovered = hoveredLabel == notif.title,
+                            dismissHovered = dismissHover != null && hoveredLabel == dismissHover,
                             onBoundsChanged = onBoundsChanged,
                             onClick = { TrayNotificationBus.openKey?.invoke(notif.key) },
+                            onDismiss = { TrayNotificationBus.dismiss(notif.key) },
                         )
                     }
                 }
@@ -617,15 +622,18 @@ private fun GlassesNotificationCard(
     title: String,
     body: String,
     boundsKey: String? = null,
+    dismissBoundsKey: String? = null,
     hovered: Boolean = false,
+    dismissHovered: Boolean = false,
     onBoundsChanged: ((String, Rect) -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null,
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(if (hovered) Color(0x882C2C2E) else CardBg)
+            .background(if (hovered || dismissHovered) Color(0x882C2C2E) else CardBg)
             .then(
                 if (boundsKey != null && onBoundsChanged != null) {
                     Modifier.onGloballyPositioned { onBoundsChanged(boundsKey, it.boundsInRoot()) }
@@ -638,15 +646,40 @@ private fun GlassesNotificationCard(
             )
             .padding(18.dp),
     ) {
-        Text(text = title, color = Color.White, style = MaterialTheme.typography.titleMedium)
-        Text(
-            text = body,
-            color = Color.White.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 6.dp),
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = if (onDismiss != null) 40.dp else 0.dp),
+        ) {
+            Text(text = title, color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = body,
+                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 6.dp),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (onDismiss != null && dismissBoundsKey != null && onBoundsChanged != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (dismissHovered) Color(0xFF4A4A4C) else Color(0xFF2C2C2E))
+                    .onGloballyPositioned { onBoundsChanged(dismissBoundsKey, it.boundsInRoot()) }
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.xr_notification_dismiss),
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
     }
 }
 

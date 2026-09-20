@@ -38,6 +38,12 @@ object TrayNotificationBus {
         clearAllActive?.invoke()
     }
 
+    /** Dismiss one notification locally and via the listener when connected. */
+    fun dismiss(key: String) {
+        _notifications.value = _notifications.value.filterNot { it.key == key }
+        dismissKey?.invoke(key)
+    }
+
     /** Bound by the notification listener when connected. */
     var clearAllActive: (() -> Unit)? = null
     var dismissKey: ((String) -> Unit)? = null

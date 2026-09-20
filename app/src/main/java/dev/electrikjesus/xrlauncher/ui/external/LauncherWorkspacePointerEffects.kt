@@ -546,12 +546,17 @@ private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
         rect != null && !rect.isEmpty && rect.containsWithSlop(point)
     }
     GlassesHomeHits.actionKeyAt(contains)?.let { return it }
-    return itemBounds.keys.firstOrNull { key ->
-        (
-            GlassesHomeHits.appClosePanelId(key) != null ||
-                key.startsWith(GlassesHomeHits.NOTIFICATION_ITEM_PREFIX)
-            ) && contains(key)
-    }
+    // Prefer the smallest matching chrome hit (dismiss X over the full notification card).
+    return itemBounds.entries
+        .filter { (key, _) ->
+            (
+                GlassesHomeHits.appClosePanelId(key) != null ||
+                    key.startsWith(GlassesHomeHits.NOTIFICATION_ITEM_PREFIX) ||
+                    key.startsWith(GlassesHomeHits.NOTIFICATION_DISMISS_PREFIX)
+                ) && contains(key)
+        }
+        .minByOrNull { (_, rect) -> rect.width * rect.height }
+        ?.key
 }
 
 private fun handleHomeSpaceClick(
@@ -646,7 +651,11 @@ private fun handleHomeSpaceClick(
         GlassesHomeHits.EDIT_LOOK_FPS -> onTuneAppearance(HomeSpaceTuneAxis.LOOK_FPS, 0f)
         else -> {
             GlassesHomeHits.notificationKeyFromHit(key)?.let { notifKey ->
-                TrayNotificationBus.openKey?.invoke(notifKey)
+                if (GlassesHomeHits.isNotificationDismissHit(key)) {
+                    TrayNotificationBus.dismiss(notifKey)
+                } else {
+                    TrayNotificationBus.openKey?.invoke(notifKey)
+                }
                 return true
             }
             return false

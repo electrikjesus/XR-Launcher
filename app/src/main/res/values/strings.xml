@@ -242,7 +242,7 @@
     <string name="all_apps_on_glasses">All apps on glasses</string>
     <string name="all_apps_close_on_glasses">Close all apps</string>
     <string name="all_apps_companion_hint">Browse and launch apps on the glasses display</string>
-    <string name="all_apps_companion_page_hint">All Apps is open on glasses — tap Close all apps to return to the launcher.</string>
+    <string name="all_apps_companion_page_hint">All Apps is open on glasses — use the Apps icon above to hide it.</string>
     <string name="all_apps_page_prev">Previous page</string>
     <string name="all_apps_page_next">Next page</string>
     <string name="all_apps_page_status">Page %1$d of %2$d</string>
@@ -294,6 +294,7 @@
     <string name="xr_notifications_access_body">Tap to open Settings and allow XR Launcher to show notifications in this tray.</string>
     <string name="xr_quick_settings">Quick settings</string>
     <string name="xr_clear_all">Clear all</string>
+    <string name="xr_notification_dismiss">Dismiss notification</string>
     <string name="xr_qs_internet">Internet</string>
     <string name="xr_qs_bluetooth">Bluetooth</string>
     <string name="xr_qs_dark_theme">Dark theme</string>
