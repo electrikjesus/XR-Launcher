@@ -287,27 +287,20 @@ object DeskIconBitmaps {
 
     private fun drawDrawerBacking(canvas: Canvas, width: Int, height: Int) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val inset = width * 0.04f
-        val radius = minOf(width, height) * 0.08f
+        // Fill to the mesh edge so hit bounds match what the user sees.
+        val inset = 1.5f
+        val radius = minOf(width, height) * 0.07f
         val rect = RectF(inset, inset, width - inset, height - inset)
-        // Soft outer rim so the panel edge is obvious against wallpaper.
-        paint.color = Color.argb(90, 255, 255, 255)
+        paint.color = Color.argb(80, 255, 255, 255)
         canvas.drawRoundRect(rect, radius, radius, paint)
-        // Frosted body — opaque enough to read as the All Apps widget plate.
-        paint.color = Color.argb(210, 28, 36, 52)
-        val inner = RectF(
-            inset + 3f,
-            inset + 3f,
-            width - inset - 3f,
-            height - inset - 3f,
-        )
-        canvas.drawRoundRect(inner, radius * 0.9f, radius * 0.9f, paint)
-        // Subtle top sheen.
-        paint.color = Color.argb(40, 255, 255, 255)
+        paint.color = Color.argb(215, 28, 36, 52)
+        val inner = RectF(inset + 2f, inset + 2f, width - inset - 2f, height - inset - 2f)
+        canvas.drawRoundRect(inner, radius * 0.92f, radius * 0.92f, paint)
+        paint.color = Color.argb(36, 255, 255, 255)
         canvas.drawRoundRect(
-            RectF(inner.left, inner.top, inner.right, inner.top + height * 0.18f),
-            radius * 0.9f,
-            radius * 0.9f,
+            RectF(inner.left, inner.top, inner.right, inner.top + height * 0.16f),
+            radius * 0.92f,
+            radius * 0.92f,
             paint,
         )
     }

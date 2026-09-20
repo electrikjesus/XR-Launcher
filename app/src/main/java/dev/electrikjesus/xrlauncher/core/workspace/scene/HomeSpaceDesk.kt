@@ -49,9 +49,9 @@ object HomeSpaceDesk {
     /** Extra pitch gap (in row-spacing units) between bottom icon row and pager. */
     const val DRAWER_PAGER_GAP = 0.85f
     /** Padding around grid+pager inside the backing, in icon half-sizes. */
-    const val DRAWER_BACKING_PAD = 0.22f
-    /** Extra horizontal pad so the panel edges clear the side icons. */
-    const val DRAWER_BACKING_WIDTH_PAD = 0.12f
+    const val DRAWER_BACKING_PAD = 0.10f
+    /** Horizontal pad past the icon/chevron outer edge (icon half-sizes). */
+    const val DRAWER_BACKING_WIDTH_PAD = 0.04f
     const val MAX_PAGE_DOTS = 5
     /**
      * Soft cap on open-drawer angular half-height (degrees) so the pager stays
@@ -424,19 +424,23 @@ object HomeSpaceDesk {
         val topEdgePitch = topEdgePitchRaw + pitchShift
         val bottomEdgePitch = bottomEdgePitchRaw + pitchShift
         val gridPitchShift = pitchShift
-        val sideEdgeYaw = (DRAWER_COLS - 1) * 0.5f * openYawStep +
+        // Content half-width from outer icon edges; chevrons sit flush inside that span.
+        val gridHalfYaw = (DRAWER_COLS - 1) * 0.5f * openYawStep +
+            Math.toDegrees((openHalfW / radius).toDouble()).toFloat()
+        val pagerHalfYaw = Math.toDegrees((pagerHalfW / radius).toDouble()).toFloat()
+        val pagerYaw = (gridHalfYaw - pagerHalfYaw).coerceAtLeast(0f)
+        val contentHalfYaw = maxOf(gridHalfYaw, pagerYaw + pagerHalfYaw)
+        val sideEdgeYaw = contentHalfYaw +
             Math.toDegrees(
-                (openHalfW * (1f + DRAWER_BACKING_PAD + DRAWER_BACKING_WIDTH_PAD) / radius).toDouble(),
+                (openHalfW * DRAWER_BACKING_WIDTH_PAD / radius).toDouble(),
             ).toFloat()
         val contentCenterPitch = (topEdgePitch + bottomEdgePitch) * 0.5f
-        var backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
+        val backingHalfW = radius * Math.toRadians(sideEdgeYaw.toDouble()).toFloat()
         var backingHalfH = radius * Math.toRadians(
             ((topEdgePitch - bottomEdgePitch) * 0.5f).toDouble(),
         ).toFloat()
         val maxHalfH = radius * Math.toRadians(DRAWER_MAX_HALF_PITCH_DEG.toDouble()).toFloat()
         backingHalfH = minOf(backingHalfH, maxHalfH)
-        // Keep a modest landscape bias so a tall FOV-fit drawer does not force a huge square.
-        backingHalfW = maxOf(backingHalfW, backingHalfH * 0.92f)
         val backing = iconOf(
             app = AppRef(BACKING_KEY, DRAWER_LABEL, "", Kind.DRAWER_BACKING),
             yawDeg = yaw,
@@ -470,7 +474,7 @@ object HomeSpaceDesk {
             add(
                 iconOf(
                     app = AppRef(PAGE_PREV_KEY, "Previous", "", Kind.PAGE_PREV),
-                    yawDeg = yaw - sideEdgeYaw * 0.78f,
+                    yawDeg = yaw - pagerYaw,
                     pitchDeg = pagerPitchShifted,
                     sphereScale = scale,
                     halfWidth = pagerHalfW,
@@ -495,7 +499,7 @@ object HomeSpaceDesk {
             add(
                 iconOf(
                     app = AppRef(PAGE_NEXT_KEY, "Next", "", Kind.PAGE_NEXT),
-                    yawDeg = yaw + sideEdgeYaw * 0.78f,
+                    yawDeg = yaw + pagerYaw,
                     pitchDeg = pagerPitchShifted,
                     sphereScale = scale,
                     halfWidth = pagerHalfW,
@@ -664,8 +668,8 @@ object HomeSpaceDesk {
             val localX = dx * right.x + dy * right.y + dz * right.z
             val localY = dx * up.x + dy * up.y + dz * up.z
             val slop = when {
-                icon.isPager -> 2.05f
-                icon.isBacking -> 1.22f
+                icon.isPager -> 1.85f
+                icon.isBacking -> 1.0f
                 else -> 1.12f
             }
             if (abs(localX) > icon.halfWidth * slop) return@forEach
@@ -705,8 +709,9 @@ object HomeSpaceDesk {
             val localX = dx * right.x + dy * right.y + dz * right.z
             val localY = dx * up.x + dy * up.y + dz * up.z
             val slop = when {
-                icon.isPager -> 2.6f
-                icon.isBacking -> 1.45f
+                icon.isPager -> 2.15f
+                // Match the visible plate so outside-clicks dismiss at the frosted edge.
+                icon.isBacking -> 1.0f
                 else -> 1.3f
             }
             if (abs(localX) <= icon.halfWidth * slop && abs(localY) <= icon.halfHeight * slop) {

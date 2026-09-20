@@ -7,6 +7,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.abs
 
 class HomeSpaceDeskTest {
     private val apps = listOf(
@@ -190,6 +191,14 @@ class HomeSpaceDeskTest {
         assertTrue(
             "backing should cover the 4-wide icon grid",
             backing.halfWidth > appsOnPage.first().halfWidth * 3.2f,
+        )
+        val leftPager = pager.first { it.kind == HomeSpaceDesk.Kind.PAGE_PREV }
+        val pagerOuter = abs(leftPager.yawDeg - backing.yawDeg) +
+            HomeSpaceDesk.angularHalfYaw(leftPager.halfWidth, 1f)
+        val backingHalfYaw = HomeSpaceDesk.angularHalfYaw(backing.halfWidth, 1f)
+        assertTrue(
+            "backing hugs pager outer edge (margin=${backingHalfYaw - pagerOuter})",
+            backingHalfYaw - pagerOuter in 0f..1.5f,
         )
         assertTrue(
             "row spacing should leave room for labels",
@@ -376,7 +385,7 @@ class HomeSpaceDeskTest {
     }
 
     @Test
-    fun layout_openDrawerBackingIsAtLeastAsWideAsTall() {
+    fun layout_openDrawerBackingHugsIconGridWidth() {
         val many = (0 until 20).map { i ->
             HomeSpaceDesk.AppRef("$i/.Main", "App$i", "p$i")
         }
@@ -389,9 +398,14 @@ class HomeSpaceDeskTest {
             drawerApps = many,
         )
         val backing = open.first { it.isBacking }
+        val apps = open.filter { it.isDesktopApp }
+        val left = apps.minBy { it.yawDeg }
+        val contentOuter = abs(left.yawDeg - backing.yawDeg) +
+            HomeSpaceDesk.angularHalfYaw(left.halfWidth, 1f)
+        val backingHalfYaw = HomeSpaceDesk.angularHalfYaw(backing.halfWidth, 1f)
         assertTrue(
-            "backing stays near-square landscape: w=${backing.halfWidth} h=${backing.halfHeight}",
-            backing.halfWidth + 0.001f >= backing.halfHeight * 0.9f,
+            "backing should only slightly exceed the icon grid (margin=${backingHalfYaw - contentOuter})",
+            backingHalfYaw - contentOuter in 0f..1.25f,
         )
     }
 
@@ -444,10 +458,11 @@ class HomeSpaceDeskTest {
             drawerApps = many,
         )
         val next = open.first { it.kind == HomeSpaceDesk.Kind.PAGE_NEXT }
+        // Slightly off the chevron center but still over the plate / pager grab.
         val off = HomeSpaceDesk.iconOf(
             next.app,
-            yawDeg = next.yawDeg + 4f,
-            pitchDeg = next.pitchDeg - 3f,
+            yawDeg = next.yawDeg - 1.5f,
+            pitchDeg = next.pitchDeg - 1.5f,
             sphereScale = 1f,
             halfWidth = next.halfWidth,
             halfHeight = next.halfHeight,
