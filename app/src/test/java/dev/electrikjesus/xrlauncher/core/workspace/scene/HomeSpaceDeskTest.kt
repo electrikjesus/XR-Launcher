@@ -58,6 +58,51 @@ class HomeSpaceDeskTest {
     }
 
     @Test
+    fun matchedIconHalf_tracksHomePaneIconDpUnderUiScale() {
+        val half = HomeSpaceDesk.matchedIconHalfExtent(
+            uiScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = 0.70f,
+            sphereScale = 1f,
+            density = 2f,
+        )
+        assertEquals(HomeSpaceDesk.ICON_HALF_WIDTH, half, 0.01f)
+        val doubled = HomeSpaceDesk.matchedIconHalfExtent(
+            uiScale = 2f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = 0.70f,
+            sphereScale = 1f,
+            density = 2f,
+        )
+        assertEquals(half * 2f, doubled, 0.001f)
+    }
+
+    @Test
+    fun matchedIconHalf_staysGluedWhenSphereScaleChanges() {
+        val atOne = HomeSpaceDesk.matchedIconHalfExtent(
+            uiScale = 1.2f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = 0.70f,
+            sphereScale = 1f,
+            density = 2f,
+        )
+        val atFar = HomeSpaceDesk.matchedIconHalfExtent(
+            uiScale = 1.2f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = 0.70f,
+            sphereScale = 1.5f,
+            density = 2f,
+        )
+        // Pane world size grows slightly with sphere; desk must follow, not stay fixed.
+        assertTrue(atFar > atOne)
+        assertTrue(atFar / atOne in 1.05f..1.25f)
+    }
+
+    @Test
     fun layout_opensABumpDeskFourByFourDrawer() {
         val closed = HomeSpaceDesk.layout(
             placed = emptyList(),
@@ -91,8 +136,16 @@ class HomeSpaceDeskTest {
         assertEquals(2 + 2, pager.size) // prev + next + 2 page dots for 20 apps
         assertTrue(appsOnPage.first().center.length() < backing.center.length())
         assertTrue(
-            "open drawer icons stay readable vs desktop scale",
-            appsOnPage.first().halfWidth >= HomeSpaceDesk.ICON_HALF_WIDTH * 0.95f,
+            "open drawer icons stay readable (may FOV-fit below full desk face)",
+            appsOnPage.first().halfWidth >=
+                HomeSpaceDesk.matchedIconHalfExtent(
+                    uiScale = 1f,
+                    viewportWidthPx = 1920f,
+                    viewportHeightPx = 1080f,
+                    panelScale = 1f,
+                    sphereScale = 1f,
+                    density = 2f,
+                ) * 0.35f,
         )
         assertTrue(
             "backing should be wider for a squarer widget",
@@ -246,10 +299,24 @@ class HomeSpaceDeskTest {
     }
 
     @Test
-    fun layout_keepsDeskTilesSmallerThanHomeChromeAtUiScaleOne() {
-        assertTrue(HomeSpaceDesk.ICON_HALF_WIDTH < 0.07f)
-        val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1f).first()
-        assertTrue(drawer.halfWidth * 2f < 0.16f)
+    fun layout_deskTilesMatchHomeIconReferenceSize() {
+        val matched = HomeSpaceDesk.matchedIconHalfExtent(
+            uiScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+            panelScale = 0.70f,
+            sphereScale = 1f,
+            density = 2f,
+        )
+        val drawer = HomeSpaceDesk.defaultIcons(
+            1f,
+            1920f,
+            1080f,
+            panelScale = 0.70f,
+            uiScale = 1f,
+        ).first()
+        // Drawer tile is DRAWER_SCALE × matched app face.
+        assertEquals(matched * HomeSpaceDesk.DRAWER_SCALE, drawer.halfWidth, 0.01f)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeSpaceTuneTest {
@@ -23,6 +24,17 @@ class HomeSpaceTuneTest {
             1f,
         )
         assertEquals(WorkspaceAppearance.MAX_SPHERE_SCALE, maxed.sphereScale, 0.001f)
+    }
+
+    @Test
+    fun apply_allowsElementScaleBelowFormerFloor() {
+        val shrunk = HomeSpaceTune.apply(
+            WorkspaceAppearance(uiScale = WorkspaceAppearance.MIN_UI_SCALE + HomeSpaceTune.STEP),
+            HomeSpaceTuneAxis.ELEMENT,
+            -HomeSpaceTune.STEP,
+        )
+        assertEquals(WorkspaceAppearance.MIN_UI_SCALE, shrunk.uiScale, 0.001f)
+        assertTrue(WorkspaceAppearance.MIN_UI_SCALE < 0.75f)
     }
 
     @Test

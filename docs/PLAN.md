@@ -587,7 +587,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.21 | **BumpDesk desktop on the same sphere.** Port movable items: `APP_DRAWER`, drag/drop, `Pile`, lasso, radial menu, live widgets, physics, `DeskRepository`. All Apps pill can stay on the Home widget. | ☑ Partial — desk DND + physics + persist + GLES lasso stroke/selection + radial context menu; still missing piles |
 | 2.22 | **BumpDesk GLES Home Space (blocking).** `perspectiveM` + `setLookAtM`, room. Panes are **pinned widgets** on the inner sphere wall (BumpDesk wall/floor analog). | ☑ Partial — 0.1.9 sphere-ray cursor + tessellated pane meshes; not yet the same class as desktop items |
 | 2.23 | **Keep glasses awake.** `FLAG_KEEP_SCREEN_ON` / `SessionWake`. | ☑ Partial — 0.1.7 on-device keep-awake; override display can still report OFF |
-| 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** 1:1. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
+| 2.24 | **In-scene Edit mode.** Two pages so the focus range stays small: **Perspective** (panel / sphere / icon scale) and **Desktop** (BumpDesk icons, piles, tiles, widgets). Persist via `WorkspaceAppearance`. Desktop icon size tracks **Icons & elements** via pane-matched half-extents (same 92.dp Home face). Min uiScale 0.5. | ☑ Partial — 0.1.16 Look page has FPS toggle; defaults panel 0.70 / sphere 1.00 / icons 1.20 |
 | 2.25 | **Look mode.** A = gradient mouse-look (current). B = FPS capture (cursor centered, deltas rotate view); C = gesture (Scheme A: one-finger desk; two-finger pan **or** pinch zoom with mutex lock). Revert to A when an app launches. Persist. | ☑ Partial — HUD eye / hand / mouse; Scheme A two-finger look + pan/zoom lock; one-finger lasso restored |
 | 2.25a | **FPS mouse-look Hold-Left drag/drop.** Unlock cursor while pressed; finalize desk at endPos before center re-lock; sync move-while-pressed. | ☑ Partial — release ordering fixed; touchpad still lacked a true press until finger-up |
 | 2.25b | **Touchpad touch-and-hold = press.** Long-press on the companion touchpad starts the same Hold-Left gesture (origin); drag while held; release = drop/click. Always use holdable Left (not click-only Button gated on accessibility). | ☑ |
@@ -849,7 +849,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Gesture look ignores path icons:** mid-pan does not grab desk/Home icons under the finger; icon drag still works when the press starts on an icon | Crossing icons mid-look stole the pan and started a drag |
 | 2026-09-19 | **Scheme A gesture look:** one-finger = desk (tap/drag/lasso/radial); two-finger only for camera with PAN\|ZOOM mutex on first decisive motion; natural-scroll LookPan | One-finger look blocked lasso; pan+pinch fought |
 | 2026-09-19 | **Launcher surface Play path:** `FLAG_SHOW_WALLPAPER`; `NotificationListenerService` tray; curated QS intents; launcher-owned recents; onboarding for notification access; AppWidgetHost deferred | Tray was stub empty cards; no privileged wallpaper APIs |
+| 2026-09-19 | **Desk/Home icon glue:** Desktop GLES half-extents from Home 92.dp + live pane geometry/density; Icons & elements min 0.5 | Desk faces ~½ Home icons and drifted vs sphere/panel scale |
 
 ---
 
-*Last updated: 2026-09-19 (Scheme A + launcher surface)*
+*Last updated: 2026-09-19 (desk/Home icon glue)*

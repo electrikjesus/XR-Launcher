@@ -257,11 +257,13 @@ fun GlassesSpatialWorkspaceScreen(
             CompanionPointerBus.setCursorPosition(0.5f, 0.5f)
         }
     }
+    val densityScale = density.density
     LaunchedEffect(
         tuned.panelScale,
         tuned.sphereScale,
         tuned.desktopIcons,
         tuned.uiScale,
+        densityScale,
         launchableApps,
         allAppsOverlayVisible,
         allAppsPage,
@@ -289,6 +291,7 @@ fun GlassesSpatialWorkspaceScreen(
             viewportHeightPx = viewportHeightPx,
             panelScale = tuned.panelScale,
             uiScale = tuned.uiScale,
+            density = densityScale,
             drawerOpen = allAppsOverlayVisible,
             drawerApps = drawerApps,
             drawerPage = allAppsPage,
@@ -358,6 +361,10 @@ fun GlassesSpatialWorkspaceScreen(
                         dtSec = dt,
                         sphereScale = appearance.sphereScale,
                         uiScale = appearance.uiScale,
+                        viewportWidthPx = currentViewportW.value,
+                        viewportHeightPx = currentViewportH.value,
+                        panelScale = appearance.panelScale,
+                        density = densityScale,
                         pinnedObstacles = pinned,
                         panes = panes,
                     )

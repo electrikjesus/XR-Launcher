@@ -238,11 +238,22 @@ object HomeSpaceDeskState {
         dtSec: Float,
         sphereScale: Float,
         uiScale: Float,
+        viewportWidthPx: Float = 1920f,
+        viewportHeightPx: Float = 1080f,
+        panelScale: Float = WorkspaceAppearance.DEFAULT_PANEL_SCALE,
+        density: Float = 2f,
         pinnedObstacles: List<HomeSpaceDesk.Icon>,
         panes: List<HomeSpaceScene.Pane>,
     ) {
-        val halfW = HomeSpaceDesk.iconHalfWidth(uiScale)
-        val halfH = HomeSpaceDesk.iconHalfHeight(uiScale)
+        val halfW = HomeSpaceDesk.iconHalfWidth(
+            uiScale = uiScale,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
+            panelScale = panelScale,
+            sphereScale = sphereScale,
+            density = density,
+        )
+        val halfH = halfW
         val halfYaw = HomeSpaceDesk.angularHalfYaw(halfW, sphereScale)
         val halfPitch = HomeSpaceDesk.angularHalfPitch(halfH, sphereScale)
         val mass = DeskPhysics.massFor(halfW, halfH)

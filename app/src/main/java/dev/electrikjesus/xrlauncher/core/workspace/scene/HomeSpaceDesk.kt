@@ -17,12 +17,17 @@ object HomeSpaceDesk {
     const val HOVER_LIFT = 0.04f
     const val DRAWER_SCALE = 1.15f
     /**
-     * Face size on the sphere at uiScale 1 — large enough that Desktop apps stay
-     * readable under FPS look, while remaining clearly smaller than Home pane cells.
+     * Home pane [AppIconCell] size ([GlassesHomeSpace] grid). Desktop GLES faces are
+     * sized to match this under the same Icons & elements ([WorkspaceAppearance.uiScale]).
      */
-    const val ICON_HALF_WIDTH = 0.064f
-    const val ICON_HALF_HEIGHT = 0.077f
-    const val ICON_HALF_THICK = 0.008f
+    const val MATCH_HOME_ICON_DP = 92f
+    /**
+     * Fallback half-extents at uiScale 1 when viewport/density are unknown — keep in sync
+     * with [matchedIconHalfExtent] at 1920×1080 / panel 0.70 / density 2 / sphere 1.
+     */
+    const val ICON_HALF_WIDTH = 0.162f
+    const val ICON_HALF_HEIGHT = 0.162f
+    const val ICON_HALF_THICK = 0.010f
     const val DRAWER_COLS = 4
     const val DRAWER_ROWS = 4
     const val DRAWER_PAGE_SIZE = DRAWER_COLS * DRAWER_ROWS
@@ -64,11 +69,77 @@ object HomeSpaceDesk {
         return componentKey.removePrefix("__desk_page_").removeSuffix("__").toIntOrNull()
     }
 
+    /**
+     * World half-extent for a square Desktop face that matches a Home pane icon of
+     * [MATCH_HOME_ICON_DP] under the same [uiScale] (Icons & elements).
+     *
+     * Uses the live Home pane geometry so desk and panel icons stay glued when panel /
+     * sphere scale or viewport change — not only when uiScale nudges.
+     */
+    fun matchedIconHalfExtent(
+        uiScale: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float,
+        sphereScale: Float,
+        density: Float,
+        iconDp: Float = MATCH_HOME_ICON_DP,
+    ): Float {
+        val pane = HomeSpaceScene.pane(
+            worldX = 0f,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
+            panelScale = panelScale,
+            sphereScale = sphereScale,
+        )
+        val halfHWorld = pane.corners.maxOf { abs(it.y - pane.center.y) }.coerceAtLeast(1e-4f)
+        val paneHPx = (
+            viewportHeightPx.coerceAtLeast(1f) *
+                HomeSpaceScene.paneHeightFraction(panelScale)
+            ).coerceAtLeast(1f)
+        val iconPx = iconDp *
+            density.coerceAtLeast(0.5f) *
+            uiScale.coerceAtLeast(0.01f)
+        return (iconPx / paneHPx) * halfHWorld
+    }
+
     fun iconHalfWidth(uiScale: Float): Float =
         ICON_HALF_WIDTH * uiScale.coerceAtLeast(0.01f)
 
     fun iconHalfHeight(uiScale: Float): Float =
         ICON_HALF_HEIGHT * uiScale.coerceAtLeast(0.01f)
+
+    fun iconHalfWidth(
+        uiScale: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float,
+        sphereScale: Float,
+        density: Float,
+    ): Float = matchedIconHalfExtent(
+        uiScale = uiScale,
+        viewportWidthPx = viewportWidthPx,
+        viewportHeightPx = viewportHeightPx,
+        panelScale = panelScale,
+        sphereScale = sphereScale,
+        density = density,
+    )
+
+    fun iconHalfHeight(
+        uiScale: Float,
+        viewportWidthPx: Float,
+        viewportHeightPx: Float,
+        panelScale: Float,
+        sphereScale: Float,
+        density: Float,
+    ): Float = iconHalfWidth(
+        uiScale,
+        viewportWidthPx,
+        viewportHeightPx,
+        panelScale,
+        sphereScale,
+        density,
+    )
 
     enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE }
 
@@ -206,6 +277,7 @@ object HomeSpaceDesk {
         viewportHeightPx: Float,
         panelScale: Float = 1f,
         uiScale: Float = 1f,
+        density: Float = 2f,
         drawerOpen: Boolean = false,
         drawerApps: List<AppRef> = emptyList(),
         drawerPage: Int = 0,
@@ -216,9 +288,15 @@ object HomeSpaceDesk {
         drawerPitchDeg: Float = 0f,
     ): List<Icon> {
         val scale = sphereScale.coerceAtLeast(0.01f)
-        val iconScale = uiScale.coerceAtLeast(0.01f)
-        val halfW = iconHalfWidth(iconScale)
-        val halfH = iconHalfHeight(iconScale)
+        val halfW = iconHalfWidth(
+            uiScale = uiScale,
+            viewportWidthPx = viewportWidthPx,
+            viewportHeightPx = viewportHeightPx,
+            panelScale = panelScale,
+            sphereScale = scale,
+            density = density,
+        )
+        val halfH = halfW
         val defaultYaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
         val yaw = drawerYawDeg ?: defaultYaw
         val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
@@ -262,8 +340,26 @@ object HomeSpaceDesk {
         val unplaced = drawerApps.filter { it.kind == Kind.APP && it.componentKey !in placedKeys }
         val pageApps = unplaced.drop(page * DRAWER_PAGE_SIZE).take(DRAWER_PAGE_SIZE)
         val pageCount = ((unplaced.size + DRAWER_PAGE_SIZE - 1) / DRAWER_PAGE_SIZE).coerceAtLeast(1)
-        val openHalfW = halfW * DRAWER_OPEN_ICON_SCALE
-        val openHalfH = halfH * DRAWER_OPEN_ICON_SCALE
+        // Fit open-drawer faces into the pitch FOV budget when Home-matched icons are large.
+        var openHalfW = halfW * DRAWER_OPEN_ICON_SCALE
+        var openHalfH = halfH * DRAWER_OPEN_ICON_SCALE
+        fun drawerHalfPitch(halfW: Float, halfH: Float): Float {
+            val pitchStep = Math.toDegrees((halfH * DRAWER_OPEN_ROW_SPACING / radius).toDouble()).toFloat()
+            val pagerHalfH = halfH * 0.52f
+            val gridTop = (DRAWER_ROWS - 1) * 0.5f * pitchStep
+            val pagerPitch = -gridTop - (DRAWER_PAGER_GAP + 0.5f) * pitchStep
+            val topEdge = gridTop +
+                Math.toDegrees((halfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+            val bottomEdge = pagerPitch -
+                Math.toDegrees((pagerHalfH * (1f + DRAWER_BACKING_PAD) / radius).toDouble()).toFloat()
+            return (topEdge - bottomEdge) * 0.5f
+        }
+        val rawHalfPitch = drawerHalfPitch(openHalfW, openHalfH)
+        if (rawHalfPitch > DRAWER_MAX_HALF_PITCH_DEG) {
+            val fit = (DRAWER_MAX_HALF_PITCH_DEG / rawHalfPitch).coerceIn(0.35f, 1f)
+            openHalfW *= fit
+            openHalfH *= fit
+        }
         val openYawStep = Math.toDegrees((openHalfW * DRAWER_OPEN_COL_SPACING / radius).toDouble()).toFloat()
         val openPitchStep = Math.toDegrees((openHalfH * DRAWER_OPEN_ROW_SPACING / radius).toDouble()).toFloat()
         val pagerHalfW = openHalfW * 0.68f
