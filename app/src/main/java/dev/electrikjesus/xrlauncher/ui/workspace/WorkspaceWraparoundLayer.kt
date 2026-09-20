@@ -69,6 +69,7 @@ fun WorkspaceWraparoundLayer(
                 workspaceWidth = spanX,
                 workspaceHeight = spanY,
                 wallpaperChoice = tuned.wallpaperChoice,
+                hdriAssetId = tuned.hdriAssetId,
                 panelGuideCenters = panelGuideCenters,
                 showWallpaperCylinder = WorkspaceGlesConfig.showWallpaperCylinder,
                 modifier = Modifier.fillMaxSize(),

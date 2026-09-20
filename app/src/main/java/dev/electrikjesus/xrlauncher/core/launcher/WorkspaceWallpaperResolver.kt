@@ -6,10 +6,16 @@ import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
+import dev.electrikjesus.xrlauncher.core.hdri.PolyHavenApi
+import dev.electrikjesus.xrlauncher.core.hdri.PolyHavenHdriStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 
 object WorkspaceWallpaperResolver {
-    fun resolveBitmap(context: Context, choice: WorkspaceWallpaperChoice): Bitmap =
+    suspend fun resolveBitmap(
+        context: Context,
+        choice: WorkspaceWallpaperChoice,
+        hdriAssetId: String = "",
+    ): Bitmap =
         when (choice) {
             WorkspaceWallpaperChoice.SYSTEM -> SystemWallpaperLoader.loadBitmap(context)
             WorkspaceWallpaperChoice.GRADIENT_TWILIGHT -> SystemWallpaperLoader.createFallbackBitmap()
@@ -23,6 +29,11 @@ object WorkspaceWallpaperResolver {
                 mid = "#2A1450",
                 bottom = "#05010A",
             )
+            WorkspaceWallpaperChoice.POLY_HAVEN -> {
+                val id = hdriAssetId.ifBlank { PolyHavenApi.DEFAULT_ASSET_ID }
+                PolyHavenHdriStore.loadBitmap(context, id)
+                    ?: SystemWallpaperLoader.createFallbackBitmap()
+            }
         }
 
     private fun createGradientBitmap(top: String, mid: String, bottom: String): Bitmap {

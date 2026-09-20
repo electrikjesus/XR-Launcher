@@ -71,6 +71,7 @@ object WorkspaceJson {
             if (clamped.deskSnapToGrid) "1" else "0",
             if (clamped.deskShowGridOnMove) "1" else "0",
             clamped.deskGridScale.toCompactString(),
+            clamped.hdriAssetId,
         ).joinToString(PANEL_FIELD_SEP)
     }
 
@@ -103,6 +104,7 @@ object WorkspaceJson {
             deskShowGridOnMove = fields.getOrNull(18)?.let { it != "0" } ?: true,
             deskGridScale = fields.getOrNull(19)?.toFloatOrNull()
                 ?: DeskGrid.DEFAULT_GRID_SCALE,
+            hdriAssetId = fields.getOrNull(20).orEmpty(),
         ).clamped()
     }
 

@@ -18,6 +18,8 @@ data class WorkspaceAppearance(
     val lookPitchDegrees: Float = 0f,
     /** Backdrop preset for the GLES cylinder and Compose wallpaper layer. */
     val wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
+    /** Poly Haven asset id when [wallpaperChoice] is [WorkspaceWallpaperChoice.POLY_HAVEN]. */
+    val hdriAssetId: String = "",
     /** Multiplies pane width/height on the sphere (0.6–1.4). */
     val panelScale: Float = DEFAULT_PANEL_SCALE,
     /** Multiplies pane-sphere and room radius so the same-size panes sit farther from the camera (0.8–2.5). */
@@ -52,6 +54,7 @@ data class WorkspaceAppearance(
         lookYawDegrees = lookYawDegrees.coerceIn(MIN_LOOK_YAW, MAX_LOOK_YAW),
         lookPitchDegrees = lookPitchDegrees.coerceIn(MIN_LOOK_PITCH, MAX_LOOK_PITCH),
         wallpaperChoice = wallpaperChoice,
+        hdriAssetId = hdriAssetId.trim(),
         panelScale = panelScale.coerceIn(MIN_PANEL_SCALE, MAX_PANEL_SCALE),
         sphereScale = sphereScale.coerceIn(MIN_SPHERE_SCALE, MAX_SPHERE_SCALE),
         desktopIcons = desktopIcons,

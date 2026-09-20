@@ -40,6 +40,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
+import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceScene
 import kotlinx.coroutines.launch
 
@@ -108,9 +109,20 @@ fun SettingsScreen(
                 SettingsSectionTitle(stringResource(R.string.settings_wallpaper_section))
                 WorkspaceWallpaperSettingsSection(
                     wallpaperChoice = appearance.wallpaperChoice,
+                    hdriAssetId = appearance.hdriAssetId,
                     onWallpaperChoiceChange = { choice ->
                         scope.launch {
                             workspaceRepository.updateAppearance(appearance.copy(wallpaperChoice = choice))
+                        }
+                    },
+                    onHdriAssetSelected = { assetId ->
+                        scope.launch {
+                            workspaceRepository.updateAppearance(
+                                appearance.copy(
+                                    wallpaperChoice = WorkspaceWallpaperChoice.POLY_HAVEN,
+                                    hdriAssetId = assetId,
+                                ),
+                            )
                         }
                     },
                 )

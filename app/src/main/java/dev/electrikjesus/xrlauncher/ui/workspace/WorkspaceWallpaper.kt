@@ -27,8 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import dev.electrikjesus.xrlauncher.core.launcher.WorkspaceWallpaperResolver
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWallpaperChoice
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceWraparound
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Flat workspace backdrop with cursor parallax — stays outside [WorkspaceWraparoundLayer]
@@ -37,6 +35,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun WorkspaceWallpaper(
     wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
+    hdriAssetId: String = "",
     parallaxX: Float = 0f,
     parallaxY: Float = 0f,
     lookYawDegrees: Float = 0f,
@@ -69,10 +68,9 @@ fun WorkspaceWallpaper(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    androidx.compose.runtime.LaunchedEffect(context, wallpaperChoice, reloadToken) {
-        wallpaper = withContext(Dispatchers.IO) {
-            WorkspaceWallpaperResolver.resolveBitmap(context, wallpaperChoice).asImageBitmap()
-        }
+    androidx.compose.runtime.LaunchedEffect(context, wallpaperChoice, hdriAssetId, reloadToken) {
+        wallpaper = WorkspaceWallpaperResolver.resolveBitmap(context, wallpaperChoice, hdriAssetId)
+            .asImageBitmap()
     }
 
     Box(

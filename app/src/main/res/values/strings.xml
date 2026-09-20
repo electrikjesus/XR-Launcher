@@ -79,6 +79,12 @@
     <string name="settings_wallpaper_twilight">Twilight gradient</string>
     <string name="settings_wallpaper_aurora">Aurora gradient</string>
     <string name="settings_wallpaper_emissive">Emissive gradient</string>
+    <string name="settings_wallpaper_polyhaven">Poly Haven HDRI</string>
+    <string name="settings_wallpaper_polyhaven_browse">Browse Poly Haven HDRIs</string>
+    <string name="settings_wallpaper_polyhaven_picker_title">Poly Haven HDRIs</string>
+    <string name="settings_wallpaper_polyhaven_credit">HDRIs from Poly Haven (CC0)</string>
+    <string name="settings_wallpaper_polyhaven_retry">Retry</string>
+    <string name="settings_wallpaper_polyhaven_selected_badge">Selected</string>
     <string name="settings_wallpaper_selected">%1$s · selected</string>
     <string name="settings_hidden_panels_section">Hidden panels</string>
     <string name="settings_hidden_panels_hint">Restore panels you closed from the workspace.</string>

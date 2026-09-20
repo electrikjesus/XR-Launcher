@@ -30,8 +30,6 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.ui.host.HostBumpDeskMotionBridge
 import dev.electrikjesus.xrlauncher.ui.spatial.gles.CylinderGlRenderer
 import java.util.concurrent.atomic.AtomicReference
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * GLES inner-cylinder scene — wallpaper backdrop, wireframe guides, textured panel quads.
@@ -43,6 +41,7 @@ fun WorkspaceGlesBackdrop(
     workspaceWidth: Float,
     workspaceHeight: Float,
     wallpaperChoice: WorkspaceWallpaperChoice = WorkspaceWallpaperChoice.SYSTEM,
+    hdriAssetId: String = "",
     panelGuideCenters: List<WorkspaceCylinderGrid.SlotCenter> = emptyList(),
     showWallpaperCylinder: Boolean = true,
     surroundRoom: Boolean = false,
@@ -67,10 +66,11 @@ fun WorkspaceGlesBackdrop(
     var wallpaperBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var wallpaperGeneration by remember { mutableIntStateOf(0) }
     var wallpaperUploadEpoch by remember { mutableIntStateOf(0) }
+    val equirectangular = wallpaperChoice == WorkspaceWallpaperChoice.POLY_HAVEN
 
     // Drop the previous preset immediately so we never upload a stale gradient under the
     // new choice's generation key (that used to skip the real SYSTEM bitmap upload).
-    androidx.compose.runtime.LaunchedEffect(wallpaperChoice) {
+    androidx.compose.runtime.LaunchedEffect(wallpaperChoice, hdriAssetId) {
         wallpaperBitmap = null
         wallpaperGeneration++
     }
@@ -109,12 +109,11 @@ fun WorkspaceGlesBackdrop(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    androidx.compose.runtime.LaunchedEffect(context, wallpaperGeneration, wallpaperChoice) {
+    androidx.compose.runtime.LaunchedEffect(context, wallpaperGeneration, wallpaperChoice, hdriAssetId) {
         val choice = wallpaperChoice
-        val bitmap = withContext(Dispatchers.IO) {
-            WorkspaceWallpaperResolver.resolveBitmap(context, choice)
-        }
-        if (choice != wallpaperChoice) return@LaunchedEffect
+        val assetId = hdriAssetId
+        val bitmap = WorkspaceWallpaperResolver.resolveBitmap(context, choice, assetId)
+        if (choice != wallpaperChoice || assetId != hdriAssetId) return@LaunchedEffect
         wallpaperBitmap = bitmap
         wallpaperUploadEpoch++
     }
@@ -203,6 +202,12 @@ fun WorkspaceGlesBackdrop(
             renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.surroundRoom = surroundRoom
             renderer.roomRadius = roomRadius
+            if (renderer.wallpaperEquirectangular != equirectangular) {
+                renderer.wallpaperEquirectangular = equirectangular
+                renderer.rebuildCylinderMesh()
+            } else {
+                renderer.wallpaperEquirectangular = equirectangular
+            }
             renderer.homeSpaceSlots = homeSpaceSlots
             renderer.homeSpacePanelScale = homeSpacePanelScale
             renderer.homeSpaceSphereScale = homeSpaceSphereScale

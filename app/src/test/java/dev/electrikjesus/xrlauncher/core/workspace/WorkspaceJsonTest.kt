@@ -145,6 +145,19 @@ class WorkspaceJsonTest {
     }
 
     @Test
+    fun encodeDecode_preservesPolyHavenHdri() {
+        val workspace = Workspace(
+            appearance = WorkspaceAppearance(
+                wallpaperChoice = WorkspaceWallpaperChoice.POLY_HAVEN,
+                hdriAssetId = "moonless_golf",
+            ),
+        )
+        val decoded = WorkspaceJson.decode(WorkspaceJson.encode(workspace))
+        assertEquals(WorkspaceWallpaperChoice.POLY_HAVEN, decoded.appearance.wallpaperChoice)
+        assertEquals("moonless_golf", decoded.appearance.hdriAssetId)
+    }
+
+    @Test
     fun encodeDecode_preservesMinimizedAndWallpaper() {
         val workspace = Workspace(
             appearance = WorkspaceAppearance(wallpaperChoice = WorkspaceWallpaperChoice.GRADIENT_AURORA),

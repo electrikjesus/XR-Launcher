@@ -6,6 +6,8 @@ enum class WorkspaceWallpaperChoice {
     GRADIENT_TWILIGHT,
     GRADIENT_AURORA,
     GRADIENT_EMISSIVE,
+    /** Equirectangular HDRI from Poly Haven (CC0), sampled as a sphere map. */
+    POLY_HAVEN,
     ;
 
     companion object {

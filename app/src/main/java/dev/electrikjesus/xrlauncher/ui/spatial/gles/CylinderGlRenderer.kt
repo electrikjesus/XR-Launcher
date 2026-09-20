@@ -54,6 +54,8 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     /** Closed 360° room around the camera (BumpDesk-style) so look never shows wallpaper edges. */
     var surroundRoom: Boolean = false
+    /** When true, wallpaper is an equirectangular sphere map (Poly Haven HDRI). */
+    var wallpaperEquirectangular: Boolean = false
     /** GLES surround-room radius; scales with [WorkspaceAppearance.sphereScale]. */
     var roomRadius: Float = GlassesHomeSpace3d.ROOM_RADIUS
     var homeSpaceSlots: List<HomeSpacePaneSlot> = emptyList()
@@ -92,6 +94,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private var wallpaperTexCoordHandle = 0
     private var wallpaperMvpHandle = 0
     private var wallpaperSamplerHandle = 0
+    private var wallpaperEquirectHandle = 0
 
     private var litProgram = 0
     private var litPositionHandle = 0
@@ -188,6 +191,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         wallpaperTexCoordHandle = GLES20.glGetAttribLocation(wallpaperProgram, "aTexCoord")
         wallpaperMvpHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uMvp")
         wallpaperSamplerHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uTexture")
+        wallpaperEquirectHandle = GLES20.glGetUniformLocation(wallpaperProgram, "uEquirectangular")
 
         litProgram = buildProgram(LIT_VERTEX_SHADER, LIT_FRAGMENT_SHADER)
         litPositionHandle = GLES20.glGetAttribLocation(litProgram, "aPosition")
@@ -232,7 +236,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
         if (shouldDrawRoom()) {
             drawWallpaperCylinder()
-            if (surroundRoom) {
+            if (surroundRoom && !wallpaperEquirectangular) {
                 drawRoomCaps()
             }
         }
@@ -744,6 +748,10 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun rebuildWallpaperMesh() {
+        if (surroundRoom && wallpaperEquirectangular) {
+            rebuildEquirectSphereMesh()
+            return
+        }
         val horizSegments = if (surroundRoom) 72 else 56
         val vertSegments = if (surroundRoom) 36 else 28
         val c = curvature.coerceIn(0f, 1f)
@@ -809,6 +817,57 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
             }
         }
 
+        val interleaved = FloatArray(indices.size * 5)
+        indices.forEachIndexed { index, vertexIndex ->
+            val base = vertexIndex * 5
+            interleaved[index * 5] = verts[base]
+            interleaved[index * 5 + 1] = verts[base + 1]
+            interleaved[index * 5 + 2] = verts[base + 2]
+            interleaved[index * 5 + 3] = verts[base + 3]
+            interleaved[index * 5 + 4] = verts[base + 4]
+        }
+        wallpaperMeshBuffer = interleaved.toFloatBuffer()
+        wallpaperMeshVertexCount = indices.size
+    }
+
+    /** Full inward sphere for equirectangular HDRI sampling from world direction. */
+    private fun rebuildEquirectSphereMesh() {
+        val horizSegments = 72
+        val vertSegments = 36
+        val radius = roomRadius.coerceAtLeast(0.5f)
+        val verts = mutableListOf<Float>()
+        for (row in 0..vertSegments) {
+            val v = row / vertSegments.toFloat()
+            val pitch = (v - 0.5f) * Math.PI.toFloat()
+            val cosP = cos(pitch)
+            val sinP = sin(pitch)
+            for (col in 0..horizSegments) {
+                val u = col / horizSegments.toFloat()
+                val yaw = u * 2f * Math.PI.toFloat() - Math.PI.toFloat()
+                verts += radius * cosP * sin(yaw)
+                verts += radius * sinP
+                verts += -radius * cosP * cos(yaw)
+                verts += u
+                verts += v
+            }
+        }
+        val indices = mutableListOf<Int>()
+        val rowStride = horizSegments + 1
+        for (row in 0 until vertSegments) {
+            for (col in 0 until horizSegments) {
+                val topLeft = row * rowStride + col
+                val topRight = topLeft + 1
+                val bottomLeft = (row + 1) * rowStride + col
+                val bottomRight = bottomLeft + 1
+                // Wind so the inward face is visible from the origin.
+                indices += topLeft
+                indices += topRight
+                indices += bottomLeft
+                indices += topRight
+                indices += bottomRight
+                indices += bottomLeft
+            }
+        }
         val interleaved = FloatArray(indices.size * 5)
         indices.forEachIndexed { index, vertexIndex ->
             val base = vertexIndex * 5
@@ -907,6 +966,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, wallpaperTextureId)
         GLES20.glUniform1i(wallpaperSamplerHandle, 0)
+        GLES20.glUniform1i(wallpaperEquirectHandle, if (wallpaperEquirectangular) 1 else 0)
 
         wallpaperMeshBuffer.position(0)
         GLES20.glEnableVertexAttribArray(wallpaperPositionHandle)
@@ -1205,17 +1265,38 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 gl_FragColor = texture2D(uTexture, vTexCoord);
             }
         """
-        private const val WALLPAPER_VERTEX_SHADER = TEXTURED_VERTEX_SHADER
+        private const val WALLPAPER_VERTEX_SHADER = """
+            uniform mat4 uMvp;
+            attribute vec4 aPosition;
+            attribute vec2 aTexCoord;
+            varying vec2 vTexCoord;
+            varying vec3 vWorldPos;
+            void main() {
+                gl_Position = uMvp * aPosition;
+                vWorldPos = aPosition.xyz;
+                vTexCoord = aTexCoord;
+            }
+        """
         private const val WALLPAPER_FRAGMENT_SHADER = """
             precision mediump float;
             uniform sampler2D uTexture;
+            uniform int uEquirectangular;
             varying vec2 vTexCoord;
+            varying vec3 vWorldPos;
             void main() {
-                // GLUtils.texImage2D maps bitmap top → texture v=0; mesh v grows with world Y.
-                vec4 color = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
-                float vertical = smoothstep(0.0, 0.12, vTexCoord.y) *
-                    smoothstep(1.0, 0.88, vTexCoord.y);
-                color.rgb *= mix(0.72, 1.0, vertical);
+                vec4 color;
+                if (uEquirectangular == 1) {
+                    vec3 dir = normalize(vWorldPos);
+                    float u = atan(dir.x, -dir.z) * 0.15915494309 + 0.5;
+                    float v = asin(clamp(dir.y, -1.0, 1.0)) * 0.31830988618 + 0.5;
+                    // GLUtils.texImage2D maps bitmap top → texture v=0.
+                    color = texture2D(uTexture, vec2(u, 1.0 - v));
+                } else {
+                    color = texture2D(uTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));
+                    float vertical = smoothstep(0.0, 0.12, vTexCoord.y) *
+                        smoothstep(1.0, 0.88, vTexCoord.y);
+                    color.rgb *= mix(0.72, 1.0, vertical);
+                }
                 gl_FragColor = color;
             }
         """

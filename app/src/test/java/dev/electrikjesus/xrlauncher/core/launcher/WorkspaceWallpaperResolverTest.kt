@@ -7,8 +7,8 @@ import org.junit.Test
 
 class WorkspaceWallpaperResolverTest {
     @Test
-    fun wallpaperChoice_hasFourPresets() {
-        assertEquals(4, WorkspaceWallpaperChoice.entries.size)
+    fun wallpaperChoice_hasFivePresets() {
+        assertEquals(5, WorkspaceWallpaperChoice.entries.size)
     }
 
     @Test

@@ -399,13 +399,16 @@ fun PointerSensitivitySettingsSection(
 @Composable
 fun WorkspaceWallpaperSettingsSection(
     wallpaperChoice: WorkspaceWallpaperChoice,
+    hdriAssetId: String,
     onWallpaperChoiceChange: (WorkspaceWallpaperChoice) -> Unit,
+    onHdriAssetSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var hasWallpaperAccess by remember {
         mutableStateOf(SystemWallpaperLoader.canReadSystemWallpaper(context))
     }
+    var showHdriPicker by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -447,12 +450,19 @@ fun WorkspaceWallpaperSettingsSection(
                 WorkspaceWallpaperChoice.GRADIENT_TWILIGHT -> stringResource(R.string.settings_wallpaper_twilight)
                 WorkspaceWallpaperChoice.GRADIENT_AURORA -> stringResource(R.string.settings_wallpaper_aurora)
                 WorkspaceWallpaperChoice.GRADIENT_EMISSIVE -> stringResource(R.string.settings_wallpaper_emissive)
+                WorkspaceWallpaperChoice.POLY_HAVEN -> stringResource(R.string.settings_wallpaper_polyhaven)
             }
             OutlinedButton(
-                onClick = { onWallpaperChoiceChange(choice) },
+                onClick = {
+                    if (choice == WorkspaceWallpaperChoice.POLY_HAVEN) {
+                        showHdriPicker = true
+                    } else {
+                        onWallpaperChoiceChange(choice)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                enabled = wallpaperChoice != choice,
+                enabled = wallpaperChoice != choice || choice == WorkspaceWallpaperChoice.POLY_HAVEN,
             ) {
                 Text(
                     text = if (wallpaperChoice == choice) {
@@ -463,6 +473,30 @@ fun WorkspaceWallpaperSettingsSection(
                 )
             }
         }
+        if (wallpaperChoice == WorkspaceWallpaperChoice.POLY_HAVEN) {
+            Text(
+                text = stringResource(R.string.settings_wallpaper_polyhaven_credit),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = { showHdriPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Text(stringResource(R.string.settings_wallpaper_polyhaven_browse))
+            }
+        }
+    }
+    if (showHdriPicker) {
+        PolyHavenHdriPickerDialog(
+            selectedAssetId = hdriAssetId,
+            onSelect = { hdri ->
+                onHdriAssetSelected(hdri.id)
+                showHdriPicker = false
+            },
+            onDismiss = { showHdriPicker = false },
+        )
     }
 }
 

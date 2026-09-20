@@ -633,6 +633,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c9. **Wallpaper choice switch + snap default** — ☑ SYSTEM re-uploads after gradient (no stale GLES texture); `deskSnapToGrid` defaults **on**.
 0c10. **Radial world-lock in mouse-look** — ☑ Menu pins to enactment sphere pose; FPS crosshair aims wedges via `updatePointer`; left-click activates via `RadialMenuPointerBridge`.
 0c11. **Phone wallpaper on XR room** — ☑ Declare `MANAGE_EXTERNAL_STORAGE` (Android 14+ `WallpaperManager` lock); Settings grant CTA; `WallpaperColors` approx when denied; resume reloads SYSTEM; GLES sample flips Y (`GLUtils` top→v=0).
+0c12. **Poly Haven HDRI backdrops** — ☑ `POLY_HAVEN` choice + asset id; live API picker (attribution); CDN 2:1 equirect cache; GLES sphere + direction sample.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -892,7 +893,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Radial world-lock (FPS):** pin menu to enactment sphere pose; aim wedges with crosshair; left-click activates | Menu used screen anchors at cursor center and stuck to mouse-look |
 | 2026-09-20 | **Phone wallpaper on XR:** MANAGE_EXTERNAL_STORAGE + grant CTA; WallpaperColors approx without access | API 36 getDrawable always failed → silent twilight fallback |
 | 2026-09-20 | **Wallpaper Y flip:** GLES sample `1-v` to match GLUtils bitmap upload | Phone wallpaper appeared upside-down on the surround room |
+| 2026-09-20 | **Poly Haven HDRI:** Settings picker via live API; equirect sphere sample; cached CDN 2K×1K | Wanted sphere-mapped HDR backdrops beyond phone wallpaper |
 
 ---
 
-*Last updated: 2026-09-20 (wallpaper Y flip)*
+*Last updated: 2026-09-20 (Poly Haven HDRI)*

@@ -446,6 +446,7 @@ fun GlassesSpatialWorkspaceScreen(
             workspaceWidth = 1f,
             workspaceHeight = 1f,
             wallpaperChoice = tuned.wallpaperChoice,
+            hdriAssetId = tuned.hdriAssetId,
             showWallpaperCylinder = true,
             surroundRoom = true,
             roomRadius = HomeSpaceScene.roomRadius(tuned.sphereScale),
