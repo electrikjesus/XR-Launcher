@@ -4,11 +4,11 @@
     <string name="search_apps">Search apps</string>
     <string name="control_glasses">Control glasses</string>
     <string name="host_glasses_attach_title">Glasses connected</string>
-    <string name="host_glasses_attach_body">A second display is available. What should XR Launcher show on the glasses?</string>
-    <string name="host_glasses_attach_open_home">Home Space on glasses</string>
-    <string name="host_glasses_attach_open_home_hint">Open the spatial workspace on the glasses. This tablet keeps its own Home Space.</string>
-    <string name="host_glasses_attach_leave">Leave glasses unused</string>
-    <string name="host_glasses_attach_leave_hint">Do nothing in XR Launcher. Android or another app can use the display.</string>
+    <string name="host_glasses_attach_body">Choose what to use on the glasses display.</string>
+    <string name="host_glasses_attach_xr_ui">XR Glasses UI</string>
+    <string name="host_glasses_attach_xr_ui_hint">Open XR Launcher Home Space on the glasses. This tablet keeps its own Home Space.</string>
+    <string name="host_glasses_attach_android_desktop">Android Desktop UI</string>
+    <string name="host_glasses_attach_android_desktop_hint">Leave Android Desktop on the glasses and open the companion touchpad on this tablet.</string>
     <string name="phone_connect_glasses_hint">Connect XR glasses or a display to open the spatial workspace. Your phone becomes the touchpad.</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>

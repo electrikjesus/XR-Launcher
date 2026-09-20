@@ -6,10 +6,10 @@ package dev.electrikjesus.xrlauncher.core.display
  */
 object HostGlassesAttachLogic {
     enum class Choice {
-        /** Launch [ExternalDisplayActivity] Home Space on the glasses. */
-        OPEN_HOME_SPACE,
-        /** Leave the glasses display alone (OEM desktop / blank / other apps). */
-        LEAVE_UNUSED,
+        /** XR Launcher Home Space on the glasses ([ExternalDisplayActivity]). */
+        XR_GLASSES_UI,
+        /** Leave glasses on OEM Android Desktop; open companion touchpad on the tablet. */
+        ANDROID_DESKTOP,
     }
 
     /**

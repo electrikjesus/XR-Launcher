@@ -351,7 +351,7 @@ fun HostHomeSpaceScreen(
                 HostGlassesDisplayDialogLayer(
                     onChoice = { choice ->
                         when (choice) {
-                            HostGlassesAttachLogic.Choice.OPEN_HOME_SPACE -> {
+                            HostGlassesAttachLogic.Choice.XR_GLASSES_UI -> {
                                 HomeSpaceDialogState.close()
                                 DisplayLaunchHelper.openGlassesSession(
                                     context = context,
@@ -359,11 +359,16 @@ fun HostHomeSpaceScreen(
                                     openCompanion = false,
                                 )
                             }
-                            HostGlassesAttachLogic.Choice.LEAVE_UNUSED -> {
+                            HostGlassesAttachLogic.Choice.ANDROID_DESKTOP -> {
                                 HostGlassesAttachPromptState.dismiss(secondaryDisplayIds)
                                 HomeSpaceDialogState.close()
+                                DisplayLaunchHelper.openCompanionController(context)
                             }
                         }
+                    },
+                    onDismiss = {
+                        HostGlassesAttachPromptState.dismiss(secondaryDisplayIds)
+                        HomeSpaceDialogState.close()
                     },
                 )
             }

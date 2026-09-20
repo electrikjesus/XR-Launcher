@@ -625,7 +625,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c. **Desktop grid** — ☑ Snap to grid + show-grid-on-move + cell scale in Settings / Edit Desktop; GLES overlay while moving/resizing; live landing-cell highlight on drag.
 0c2. **All Apps open drawer plate** — ☑ Frosted backing hugs icon/chevron span; outside-click dismiss matches the visible plate edge (no extra hit slop).
 0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
-0c4. **Host + glasses attach** — ☑ Detect secondary display while Expanded Home Space is up; prompt Home Space on glasses vs leave unused; drop Companion USB chooser duplicate.
+0c4. **Host + glasses attach** — ☑ Detect secondary display while Expanded Home Space is up; prompt **XR Glasses UI** vs **Android Desktop** (+ companion on tablet); drop Companion USB chooser duplicate.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -874,8 +874,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Snap-to-grid UX:** live landing-cell highlight while dragging; snap pose on release | Snap ran silently with no target preview, so drops did not feel snapped |
 | 2026-09-20 | **All Apps plate fit:** chevrons flush to grid edge; thin width pad; backing hit/dismiss slop = 1.0 | Plate wider than icons/arrows; outside-click had to go past the frosted edge |
 | 2026-09-20 | **All Apps tile snap + Home focus:** snap drawer pose on release; host Home shortcut looks at drawer | Grid highlight moved but tile ignored snap; Home open left the expanded widget off-screen |
-| 2026-09-20 | **Host glasses attach prompt:** ask Home Space vs leave unused; remove Companion USB_DEVICE_ATTACHED filter | Plug-in showed two identical XR Launcher chooser entries; glasses stayed blank |
+| 2026-09-20 | **Host glasses attach prompt:** XR Glasses UI vs Android Desktop (+ companion on tablet); remove Companion USB filter | Plug-in showed two identical chooser entries; glasses stayed blank |
 
 ---
 
-*Last updated: 2026-09-20 (host glasses attach prompt)*
+*Last updated: 2026-09-20 (host glasses attach: XR vs Desktop)*

@@ -35,6 +35,7 @@ private val ChipBg = Color(0xFF3A3A3C)
 @Composable
 fun BoxScope.HostGlassesDisplayDialogLayer(
     onChoice: (HostGlassesAttachLogic.Choice) -> Unit,
+    onDismiss: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -44,7 +45,7 @@ fun BoxScope.HostGlassesDisplayDialogLayer(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = { onChoice(HostGlassesAttachLogic.Choice.LEAVE_UNUSED) },
+                onClick = onDismiss,
             ),
     )
     Column(
@@ -74,14 +75,14 @@ fun BoxScope.HostGlassesDisplayDialogLayer(
             color = Color.White.copy(alpha = 0.72f),
         )
         ChoiceRow(
-            title = stringResource(R.string.host_glasses_attach_open_home),
-            hint = stringResource(R.string.host_glasses_attach_open_home_hint),
-            onClick = { onChoice(HostGlassesAttachLogic.Choice.OPEN_HOME_SPACE) },
+            title = stringResource(R.string.host_glasses_attach_xr_ui),
+            hint = stringResource(R.string.host_glasses_attach_xr_ui_hint),
+            onClick = { onChoice(HostGlassesAttachLogic.Choice.XR_GLASSES_UI) },
         )
         ChoiceRow(
-            title = stringResource(R.string.host_glasses_attach_leave),
-            hint = stringResource(R.string.host_glasses_attach_leave_hint),
-            onClick = { onChoice(HostGlassesAttachLogic.Choice.LEAVE_UNUSED) },
+            title = stringResource(R.string.host_glasses_attach_android_desktop),
+            hint = stringResource(R.string.host_glasses_attach_android_desktop_hint),
+            onClick = { onChoice(HostGlassesAttachLogic.Choice.ANDROID_DESKTOP) },
         )
     }
 }
