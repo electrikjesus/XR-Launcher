@@ -48,5 +48,13 @@ enum class GlassesLookMode {
             "gesture" -> GESTURE
             else -> GRADIENT
         }
+
+        /**
+         * Multiplier for pointer LookPan deltas.
+         * GESTURE uses natural-scroll / drag-the-background (invert).
+         * FPS keeps classic mouse-look (finger right looks right).
+         */
+        fun lookPanSign(mode: GlassesLookMode = effective()): Float =
+            if (mode == GESTURE) -1f else 1f
     }
 }

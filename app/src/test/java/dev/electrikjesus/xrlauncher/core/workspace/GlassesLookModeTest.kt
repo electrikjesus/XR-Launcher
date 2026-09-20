@@ -13,6 +13,13 @@ class GlassesLookModeTest {
     }
 
     @Test
+    fun lookPanSign_invertsOnlyGestureMode() {
+        assertEquals(-1f, GlassesLookMode.lookPanSign(GlassesLookMode.GESTURE), 0f)
+        assertEquals(1f, GlassesLookMode.lookPanSign(GlassesLookMode.FPS), 0f)
+        assertEquals(1f, GlassesLookMode.lookPanSign(GlassesLookMode.GRADIENT), 0f)
+    }
+
+    @Test
     fun fromPersisted_readsFps() {
         assertEquals(GlassesLookMode.FPS, GlassesLookMode.fromPersisted("fps"))
         assertEquals(GlassesLookMode.GESTURE, GlassesLookMode.fromPersisted("gesture"))

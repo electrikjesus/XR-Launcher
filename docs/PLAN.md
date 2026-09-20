@@ -57,7 +57,7 @@ There is one scene graph. Do not keep a “panel renderer” and a “desktop re
 5. **2.23** — Keep-awake (partial).
 6. **2.26–2.28** — Expanded host defaults into this same Home Space + top HUD (companion chrome + Settings); do not keep a second large-screen shell forever.
 
-**Do not implement 6.9 onboarding in this pass.**
+**Do not chase root, signature, or privileged system permissions.** Play-distributed builds stay on the normal launcher / accessibility path (HOME role + user-enabled display pointer). Do not add `MANAGE_EXTERNAL_STORAGE`, `READ_WALLPAPER_INTERNAL`, or other privileged wallpaper/storage APIs — use gradient fallbacks when the system wallpaper is unavailable.
 
 **Large-screen host (planned 2.26–2.28):** On `WindowSizeClass.Expanded` with no glasses, the default HOME surface is this **same GLES Home Space**, not the legacy Compose `SpatialDesktopScreen` Subspace shell. Screen-locked HUD: companion-style icons along the **top** (input / mouse-look / recenter [/ keyboard] + Settings); Edit stays **bottom-end**. Compact phone remains Tier 0c (`PhoneShellScreen` / companion).
 
@@ -71,7 +71,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 
 ### Product & permissions
 
-1. **Play Store first.** Do not depend on signature, system, or root-only APIs. If a feature requires `CREATE_VIRTUAL_DEVICE`, Shell, or `MANAGE_ACTIVITY_TASKS`, it is out of scope for the main product path.
+1. **Play Store first.** Do not depend on signature, system, or root-only APIs. If a feature requires `CREATE_VIRTUAL_DEVICE`, Shell, `MANAGE_ACTIVITY_TASKS`, `MANAGE_EXTERNAL_STORAGE`, or other privileged wallpaper/storage APIs, it is out of scope for the main product path. Assume Play treats us as a launcher for HOME role and normal accessibility; never require root or OEM privileges.
 2. **Launch by default, embed when possible.** Start apps with standard `Intent` + display targeting. Use `ActivityPanelEntity` / activity embedding only when the platform grants `EMBED_ACTIVITY` and the target app opts in.
 3. **Zero dangerous permissions in v1.** No `QUERY_ALL_PACKAGES`. Discover apps via `ACTION_MAIN` + `CATEGORY_LAUNCHER`. Defer `PACKAGE_USAGE_STATS` to a later phase and disclose it clearly if added.
 4. **Graceful degradation.** Every spatial feature must have a fallback. Never assume glasses or Full Space APIs exist. **No glasses on large screen → Tier 0 GLES Home Space (2.26).** **No glasses on phone → Tier 0c compact shell**, with optional companion mode.
@@ -632,7 +632,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
 5. **Polish host pointer** — ☑ partial: free-circle yaw; FPS drag look via `pointerInteropFilter` catcher; HUD eye=GRADIENT / hand=GESTURE / mouse=FPS (force, not toggle); still open: OS mouse capture.
 6. **2.29 — Repair Settings content** — ☑ Partial: host Settings dialog is Home Space-trimmed; back/scroll/clicks work (catcher removed while modal); wallpaper choice re-uploads to the surround room. Still open: phone SettingsActivity full audit.
-7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility re-shows the guide on each launch (host + phone); App Info Restricted-settings path; permission-only pages after first complete. System wallpaper is not a Play-grantable permission on API 14+.
+7. **6.9 — Onboarding permissions** — ☑ Partial: missing Home / Accessibility re-shows the guide on each launch (host + phone); App Info Restricted-settings path; permission-only pages after first complete. No privileged wallpaper/storage permission chase — gradient fallback when system wallpaper is unavailable.
 
 8. **Stop** — Do not start unrelated Phase 6 work in this pass.
 
@@ -717,7 +717,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 | 6.6 | Privacy policy (minimal collection; no analytics or explicit opt-in only). | ☐ |
 | 6.7 | Play listing: screenshots, supported devices, honest “embedding limitations” note. | ☐ |
 | 6.8 | Beta via internal / closed testing; file bugs against `device-matrix.md` gaps. | ☐ |
-| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. | ☑ Partial — host + phone re-show when Home / Accessibility missing; App Info CTA; system wallpaper is not a Play-grantable permission on API 14+ (gradient fallback) |
+| 6.9 | **Onboarding permissions audit.** Wizard checks **every** permission we use, including the desktop-cursor accessibility service. Copy must tell the user to enable **restricted settings** from this app’s **App Info** page first, then turn on Accessibility from there (sideload / unknown-source installs hide the service until that unlock). Open App Info + Accessibility settings from the step. Re-check grants when the user returns. Do **not** request root/system/wallpaper privileges — Play launcher path only. | ☑ Partial — host + phone re-show when Home / Accessibility missing; App Info CTA; no privileged wallpaper APIs |
 
 ---
 
@@ -840,7 +840,9 @@ Record major choices here as they are made.
 | 2026-09-19 | **Stale Edit hits:** ignore Edit +/- unless Edit is open, and clear those bounds when the card hides | A Home pager miss landed on a leftover Icons & elements minus rect and shrank uiScale |
 | 2026-09-19 | **Gesture look:** third HUD icon; camera ignores cursor/touch position; drag, two-finger, and middle pan look; empty drag is look, not lasso | Edge look and mouse-look both aim where the pointer rests |
 | 2026-09-19 | **Onboarding 6.9 partial:** re-show each launch when Home or Accessibility missing (host + phone); App Info Restricted-settings CTA; permission-only pages after first complete | Completed flag hid the wizard forever; host Expanded never showed it |
+| 2026-09-19 | **No privileged wallpaper/storage APIs** — Play launcher path only; gradient fallback when system wallpaper is unavailable | Avoided MANAGE_EXTERNAL_STORAGE / root-style wallpaper access |
+| 2026-09-19 | **Gesture look natural scroll:** LookPan sign inverted in GESTURE (drag background / news-feed style); FPS stays classic mouse-look | Gesture drag felt like FPS mouse-look |
 
 ---
 
-*Last updated: 2026-09-19 (onboarding permission recheck)*
+*Last updated: 2026-09-19 (gesture natural scroll)*

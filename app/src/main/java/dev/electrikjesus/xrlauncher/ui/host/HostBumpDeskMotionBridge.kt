@@ -205,16 +205,18 @@ object HostBumpDeskMotionBridge {
             }
             is BumpDeskHostAction.LookPan -> {
                 val grabbing = HomeSpaceDeskState.hasActiveGesture() || DeskLassoState.active
-                if (GlassesLookMode.effective() == GlassesLookMode.GESTURE && grabbing) {
+                val mode = GlassesLookMode.effective()
+                if (mode == GlassesLookMode.GESTURE && grabbing) {
                     Unit
                 } else {
+                    val sign = GlassesLookMode.lookPanSign(mode)
                     GlassesHomeLook.addLookDegrees(
-                        yawDeltaDeg = HomeSpaceScene.fpsYawDegreesDelta(
+                        yawDeltaDeg = sign * HomeSpaceScene.fpsYawDegreesDelta(
                             deltaXNorm = action.dxPx / viewportW,
                             viewportWidthPx = viewportW,
                             viewportHeightPx = viewportH,
                         ),
-                        pitchDeltaDeg = HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH),
+                        pitchDeltaDeg = sign * HomeSpaceScene.fpsPitchDelta(action.dyPx / viewportH),
                     )
                 }
             }
