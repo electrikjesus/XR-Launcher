@@ -27,14 +27,25 @@ object DeskIconBitmaps {
 
     fun create(context: Context, icon: HomeSpaceDesk.Icon): Bitmap {
         val withLabel = drawsLabel(icon) || icon.kind == HomeSpaceDesk.Kind.PILE_FOLDER
-        val width = ICON_SIZE
-        val height = if (withLabel) ICON_SIZE + LABEL_HEIGHT else ICON_SIZE
+        val (width, height) = when {
+            icon.isBacking -> {
+                val aspect = (icon.halfWidth / icon.halfHeight.coerceAtLeast(1e-3f))
+                    .coerceIn(0.55f, 2.4f)
+                if (aspect >= 1f) {
+                    ((ICON_SIZE * aspect).toInt().coerceIn(ICON_SIZE, 512)) to ICON_SIZE
+                } else {
+                    ICON_SIZE to ((ICON_SIZE / aspect).toInt().coerceIn(ICON_SIZE, 512))
+                }
+            }
+            withLabel -> ICON_SIZE to (ICON_SIZE + LABEL_HEIGHT)
+            else -> ICON_SIZE to ICON_SIZE
+        }
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.TRANSPARENT)
 
         when {
-            icon.isBacking -> Unit // pick/physics only — no GLES panel
+            icon.isBacking -> drawDrawerBacking(canvas, width, height)
             icon.kind == HomeSpaceDesk.Kind.PAGE_PREV -> drawChevron(canvas, width, ICON_SIZE, left = true)
             icon.kind == HomeSpaceDesk.Kind.PAGE_NEXT -> drawChevron(canvas, width, ICON_SIZE, left = false)
             icon.kind == HomeSpaceDesk.Kind.PAGE -> drawPageDot(canvas, width, ICON_SIZE, icon.label)
@@ -272,6 +283,33 @@ object DeskIconBitmaps {
         canvas.drawCircle(cx, cy, r * 0.72f, paint)
         paint.style = Paint.Style.FILL
         canvas.drawCircle(cx, cy, r * 0.35f, paint)
+    }
+
+    private fun drawDrawerBacking(canvas: Canvas, width: Int, height: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val inset = width * 0.04f
+        val radius = minOf(width, height) * 0.08f
+        val rect = RectF(inset, inset, width - inset, height - inset)
+        // Soft outer rim so the panel edge is obvious against wallpaper.
+        paint.color = Color.argb(90, 255, 255, 255)
+        canvas.drawRoundRect(rect, radius, radius, paint)
+        // Frosted body — opaque enough to read as the All Apps widget plate.
+        paint.color = Color.argb(210, 28, 36, 52)
+        val inner = RectF(
+            inset + 3f,
+            inset + 3f,
+            width - inset - 3f,
+            height - inset - 3f,
+        )
+        canvas.drawRoundRect(inner, radius * 0.9f, radius * 0.9f, paint)
+        // Subtle top sheen.
+        paint.color = Color.argb(40, 255, 255, 255)
+        canvas.drawRoundRect(
+            RectF(inner.left, inner.top, inner.right, inner.top + height * 0.18f),
+            radius * 0.9f,
+            radius * 0.9f,
+            paint,
+        )
     }
 
     private fun drawAppDrawer(canvas: Canvas, width: Int, iconSize: Int) {

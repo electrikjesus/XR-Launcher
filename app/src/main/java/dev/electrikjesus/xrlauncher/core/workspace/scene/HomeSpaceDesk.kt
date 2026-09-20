@@ -49,9 +49,9 @@ object HomeSpaceDesk {
     /** Extra pitch gap (in row-spacing units) between bottom icon row and pager. */
     const val DRAWER_PAGER_GAP = 0.85f
     /** Padding around grid+pager inside the backing, in icon half-sizes. */
-    const val DRAWER_BACKING_PAD = 0.45f
-    /** Extra horizontal pad; backing is then forced at least as wide as tall (square+). */
-    const val DRAWER_BACKING_WIDTH_PAD = 0.35f
+    const val DRAWER_BACKING_PAD = 0.22f
+    /** Extra horizontal pad so the panel edges clear the side icons. */
+    const val DRAWER_BACKING_WIDTH_PAD = 0.12f
     const val MAX_PAGE_DOTS = 5
     /**
      * Soft cap on open-drawer angular half-height (degrees) so the pager stays
@@ -435,8 +435,8 @@ object HomeSpaceDesk {
         ).toFloat()
         val maxHalfH = radius * Math.toRadians(DRAWER_MAX_HALF_PITCH_DEG.toDouble()).toFloat()
         backingHalfH = minOf(backingHalfH, maxHalfH)
-        // Force square-or-wider so the open drawer never reads as a tall strip.
-        backingHalfW = maxOf(backingHalfW, backingHalfH)
+        // Keep a modest landscape bias so a tall FOV-fit drawer does not force a huge square.
+        backingHalfW = maxOf(backingHalfW, backingHalfH * 0.92f)
         val backing = iconOf(
             app = AppRef(BACKING_KEY, DRAWER_LABEL, "", Kind.DRAWER_BACKING),
             yawDeg = yaw,

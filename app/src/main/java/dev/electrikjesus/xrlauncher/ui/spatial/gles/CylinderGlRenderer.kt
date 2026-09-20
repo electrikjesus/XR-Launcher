@@ -385,11 +385,11 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         deskIconBuffers.clear()
         deskIconVertexCounts.clear()
         deskIcons.forEach { icon ->
-            if (icon.isBacking) return@forEach // collision/pick only — no stretched panel texture
-            val lift = if (icon.componentKey == deskHoveredKey) {
-                HomeSpaceDesk.HOVER_LIFT
-            } else {
-                0f
+            // Backing draws as a visible All Apps panel; apps/pager sit in front via lift.
+            val lift = when {
+                icon.isBacking -> 0f
+                icon.componentKey == deskHoveredKey -> HomeSpaceDesk.HOVER_LIFT
+                else -> 0f
             }
             val mesh = HomeSpaceDesk.iconMesh(icon, lift)
             deskIconBuffers[icon.componentKey] = mesh.interleaved.toFloatBuffer()
@@ -456,10 +456,18 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
                 buffer,
                 count,
                 textureId,
-                ambient = if (hovered || selected || handleLit) 0.96f else 0.92f,
+                ambient = when {
+                    icon.isBacking -> 0.88f
+                    hovered || selected || handleLit -> 0.96f
+                    else -> 0.92f
+                },
                 useTexture = true,
                 highlight = hovered || selected || handleLit,
-                diffuseGain = if (hovered || selected || handleLit) 0.22f else 0.12f,
+                diffuseGain = when {
+                    icon.isBacking -> 0.08f
+                    hovered || selected || handleLit -> 0.22f
+                    else -> 0.12f
+                },
             )
         }
         GLES20.glDisableVertexAttribArray(litPositionHandle)

@@ -867,7 +867,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Break Apart anti-orbit:** sized yaw spacing, static settle vs panes/obstacles, physics max-separation + rest-on-pinned | Top pile member ran left forever around the sphere after break |
 | 2026-09-20 | **Onboarding:** do not re-show when the only missing grant is default Home | Users often keep another launcher as Home; Home-only nag blocked the workspace |
 | 2026-09-20 | **Desk grid + widget drag-resize:** Settings snap/show-grid/cell scale; radial Resize corner handles; GLES overlay on move | Grow/Shrink broke aspect at clamps; no launcher-style frame resize |
+| 2026-09-20 | **All Apps open drawer:** draw frosted backing panel; tighten pad so plate hugs the grid | Backing was pick-only (invisible); oversized square pad hid the widget plate |
 
 ---
 
-*Last updated: 2026-09-20 (desk grid + widget resize)*
+*Last updated: 2026-09-20 (All Apps drawer backing visible)*

@@ -188,8 +188,8 @@ class HomeSpaceDeskTest {
                 ) * 0.35f,
         )
         assertTrue(
-            "backing should be wider for a squarer widget",
-            backing.halfWidth > appsOnPage.first().halfWidth * 3.8f,
+            "backing should cover the 4-wide icon grid",
+            backing.halfWidth > appsOnPage.first().halfWidth * 3.2f,
         )
         assertTrue(
             "row spacing should leave room for labels",
@@ -390,8 +390,8 @@ class HomeSpaceDeskTest {
         )
         val backing = open.first { it.isBacking }
         assertTrue(
-            "backing should be square-or-wider: w=${backing.halfWidth} h=${backing.halfHeight}",
-            backing.halfWidth + 0.001f >= backing.halfHeight,
+            "backing stays near-square landscape: w=${backing.halfWidth} h=${backing.halfHeight}",
+            backing.halfWidth + 0.001f >= backing.halfHeight * 0.9f,
         )
     }
 
