@@ -388,4 +388,13 @@ object HomeSpaceDeskState {
         _placed.value = next
         return true
     }
+
+    /** Remove placed Desktop icons by component key (lasso / radial selection). */
+    fun removeByKeys(componentKeys: Set<String>): Boolean {
+        if (componentKeys.isEmpty()) return false
+        val next = _placed.value.filter { it.app.componentKey !in componentKeys }
+        if (next.size == _placed.value.size) return false
+        _placed.value = next
+        return true
+    }
 }

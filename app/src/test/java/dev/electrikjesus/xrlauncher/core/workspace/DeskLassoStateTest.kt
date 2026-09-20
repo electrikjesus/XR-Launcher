@@ -55,4 +55,23 @@ class DeskLassoStateTest {
         assertFalse(DeskLassoState.finish(emptyList()))
         assertTrue(DeskLassoState.selectedKeys.isEmpty())
     }
+
+    @Test
+    fun completePending_returnsCapturedKeys() {
+        val inside = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef("a/.Main", "Alpha", "a"),
+            yawDeg = 0f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+        )
+        DeskLassoState.begin(-20f, -10f)
+        DeskLassoState.extend(20f, -10f)
+        DeskLassoState.extend(20f, 10f)
+        DeskLassoState.extend(-20f, 10f)
+        assertTrue(DeskLassoState.notePointerUp())
+        val captured = DeskLassoState.completePending(listOf(inside))
+        assertEquals(setOf("a/.Main"), captured)
+        assertEquals(setOf("a/.Main"), DeskLassoState.selectedKeys)
+        assertFalse(DeskLassoState.active)
+    }
 }

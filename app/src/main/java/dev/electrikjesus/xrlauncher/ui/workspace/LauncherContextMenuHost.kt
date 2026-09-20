@@ -29,6 +29,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AppSystemActions
 import dev.electrikjesus.xrlauncher.core.launcher.LaunchableApp
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuState
 import dev.electrikjesus.xrlauncher.core.workspace.LauncherContextMenuTarget
 import dev.electrikjesus.xrlauncher.core.workspace.PanelKind
@@ -242,6 +243,20 @@ private fun panelRadialActions(
 @Composable
 private fun desktopRadialActions(showClear: Boolean): List<RadialAction> {
     val dismiss = { LauncherContextMenuState.dismiss() }
+    val selected = DeskLassoState.selectedKeys
+    if (selected.isNotEmpty()) {
+        return listOf(
+            RadialAction(stringResource(R.string.context_menu_clear_selection)) {
+                dismiss()
+                DeskLassoState.clearSelection()
+            },
+            RadialAction(stringResource(R.string.context_menu_remove_from_desktop)) {
+                dismiss()
+                HomeSpaceDeskState.removeByKeys(selected)
+                DeskLassoState.clearSelection()
+            },
+        )
+    }
     val actions = mutableListOf(
         RadialAction(stringResource(R.string.context_menu_open_all_apps)) {
             dismiss()

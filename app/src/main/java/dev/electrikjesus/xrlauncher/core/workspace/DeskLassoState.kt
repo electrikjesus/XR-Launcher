@@ -59,17 +59,19 @@ object DeskLassoState {
         return true
     }
 
-    fun completePending(icons: List<HomeSpaceDesk.Icon>) {
-        if (!pendingFinish) return
+    fun completePending(icons: List<HomeSpaceDesk.Icon>): Set<String> {
+        if (!pendingFinish) return emptySet()
         pendingFinish = false
         val poly = _points.value
         _points.value = emptyList()
         if (poly.size < MIN_POINTS || !spansEnough(poly)) {
             DeskIconTextureBus.requestRender()
-            return
+            return emptySet()
         }
-        _selectedKeys.value = capture(poly, icons)
+        val captured = capture(poly, icons)
+        _selectedKeys.value = captured
         DeskIconTextureBus.requestRender()
+        return captured
     }
 
     /**

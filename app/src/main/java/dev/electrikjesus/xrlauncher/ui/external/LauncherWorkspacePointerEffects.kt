@@ -938,7 +938,10 @@ private fun trackDeskDrag(
         val iconsForLasso = DeskIconTextureBus.icons().ifEmpty {
             HomeSpaceDesk.defaultIcons(sphereScale, rootWidthPx, rootHeightPx, panelScale)
         }
-        DeskLassoState.completePending(iconsForLasso)
+        val captured = DeskLassoState.completePending(iconsForLasso)
+        if (captured.isNotEmpty()) {
+            LauncherContextMenuState.openDesktop(cursorX, cursorY)
+        }
         val drag = HomeSpaceDeskState.drag
         val draggingKey = drag?.app?.componentKey
         val icons = iconsForLasso

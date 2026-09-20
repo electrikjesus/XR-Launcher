@@ -627,8 +627,8 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0e. **Host BumpDesk input next** — ☐ OS mouse capture / pointer-lock option for FPS look; optional Settings toggle for `HostInputMethod`. ☑ partial: Scheme A gesture look (two-finger pan/zoom lock; one-finger desk/lasso); absolute host no longer double-applies cursor into camera.
 
 **BumpDesk desktop (sphere):**
-1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient); Scheme A one-finger lasso in GESTURE.
-2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile.
+1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop in normal look (gradient); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (clear / remove from Desktop).
+2. **Lasso → pile** — when ≥2 icons captured, create a Smart Pile (radial action once piles land).
 3. **Radial menu** — ☑ right-click / long-press opens a ring (Open, hotseat, app info, uninstall, All apps, Clear selection). Host menu sits above the pointer catcher.
 4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
 
@@ -852,7 +852,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Desk/Home icon glue:** Desktop GLES half-extents from Home 92.dp + live pane geometry/density; Icons & elements min 0.5 | Desk faces ~½ Home icons and drifted vs sphere/panel scale |
 | 2026-09-19 | **Home pane icon gamma:** pane lit shader uses desk-flat ambient/diffuse (0.92 / 0.12) | Strong pane diffuse (0.28 / 1.35) made Home icons look higher-contrast than Desktop |
 | 2026-09-19 | **Pinch aborts lasso:** second finger cancels desk hold/lasso without finalize; 2-finger MOVE always enters pinch | One-finger slop started lasso before POINTER_DOWN; endLeftButton finalized stroke |
+| 2026-09-19 | **Lasso release opens radial:** non-empty capture opens Desktop context ring (clear / remove from desk) | Selection highlighted but no group actions on finger-up |
 
 ---
 
-*Last updated: 2026-09-19 (pinch aborts lasso)*
+*Last updated: 2026-09-19 (lasso release radial)*
