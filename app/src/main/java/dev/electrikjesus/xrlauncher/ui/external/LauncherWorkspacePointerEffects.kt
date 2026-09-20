@@ -861,7 +861,15 @@ private fun trackDeskDrag(
             sphereScale = sphereScale,
         )
         // Grab on Left-down even if the touchpad finger was already moving (missed rising edge).
-        if (!HomeSpaceDeskState.hasActiveGesture() && !DeskLassoState.active) {
+        // Gesture look: once a press continues without an icon grab, do not pick up icons
+        // crossed mid-pan — that would steal the look gesture.
+        val gestureLookIgnoresPathIcons =
+            GlassesLookMode.effective() == GlassesLookMode.GESTURE && deskGesturePressed
+        if (
+            !HomeSpaceDeskState.hasActiveGesture() &&
+            !DeskLassoState.active &&
+            !gestureLookIgnoresPathIcons
+        ) {
             val deskIcon = deskIconAt(cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale)
             when {
                 deskIcon != null -> HomeSpaceDeskState.press(

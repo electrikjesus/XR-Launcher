@@ -842,7 +842,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Onboarding 6.9 partial:** re-show each launch when Home or Accessibility missing (host + phone); App Info Restricted-settings CTA; permission-only pages after first complete | Completed flag hid the wizard forever; host Expanded never showed it |
 | 2026-09-19 | **No privileged wallpaper/storage APIs** — Play launcher path only; gradient fallback when system wallpaper is unavailable | Avoided MANAGE_EXTERNAL_STORAGE / root-style wallpaper access |
 | 2026-09-19 | **Gesture look natural scroll:** LookPan sign inverted in GESTURE (drag background / news-feed style); FPS stays classic mouse-look | Gesture drag felt like FPS mouse-look |
+| 2026-09-19 | **Gesture look ignores path icons:** mid-pan does not grab desk/Home icons under the finger; icon drag still works when the press starts on an icon | Crossing icons mid-look stole the pan and started a drag |
 
 ---
 
-*Last updated: 2026-09-19 (gesture natural scroll)*
+*Last updated: 2026-09-19 (gesture look ignore path icons)*
