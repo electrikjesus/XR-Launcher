@@ -52,4 +52,8 @@ object DisplayPointerInjector {
             mapViaLauncherFrame,
         ) ?: false
     }
+
+    /** Cursor is over a PIP / foreign app window that Compose cannot hit. */
+    fun shouldInjectOverForeignWindow(normalizedX: Float, normalizedY: Float): Boolean =
+        service?.shouldInjectOverForeignWindow(normalizedX, normalizedY) == true
 }

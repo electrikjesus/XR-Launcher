@@ -167,7 +167,7 @@ Companion touchpad / buttons
         ↓
 CompanionPointerBus.deliverLeftClick
         ↓
-   launcherBackgrounded?
+   inject? (backgrounded OR cursor over PIP/foreign window)
     /              \
   yes              no
    ↓                ↓
@@ -180,7 +180,9 @@ Important session flags in `GlassesSessionState`:
 
 - `launcherForeground` — launcher is interactive on glasses (not cleared on `onStop`; phone can steal focus while glasses still show launcher).
 - `launcherBackgrounded` — user launched another app; inject path active, return bubble shown.
-- `launcherInjectFrame` — window bounds on glasses display for mapping overlay cursor and inject coords.
+- `launcherInjectFrame` — window bounds on glasses display for mapping overlay cursor (and legacy inject coords).
+
+PIP / other-app windows that sit on top of a still-resumed launcher are detected via `AccessibilityWindowInfo` (`isInPictureInPictureMode` / foreign package) so Compose-dead chrome still gets `dispatchGesture`.
 
 ### Accessibility pointer service
 

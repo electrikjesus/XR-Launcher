@@ -629,6 +629,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c5. **Home = desk surface** — ☑ Home pane is chrome only (clock/pills); no Compose app grid; Home face accepts Desktop apps/widgets (drops + physics); Tray/app panes still block. All Apps drawer stays **5×4**.
 0c6. **Return-to-XR bubble size** — ☑ Settings slider (48–128 dp, default 80) for the bottom-corner overlay circle over apps.
 0c7. **Wallpaper on glasses only** — ☑ Companion uses opaque theme (no `windowShowWallpaper`); GLES surround stays on glasses/XR / host Home Space.
+0c8. **PIP / foreign-window pointer inject** — ☑ When launcher is still resumed under PIP, inject `dispatchGesture` if the cursor hits a PIP or other-app window (Compose cannot).
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -883,7 +884,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Home = desk surface (correct):** Home chrome only; desk items place/stay on Home yaw; no mirrored Compose grid; drawer remains 5×4 | Prior Home grid duplicated Desktop icons instead of accepting placements |
 | 2026-09-20 | **Return bubble size Settings:** 48–128 dp slider (default 80) for the XR overlay circle over apps | Hard-coded 56 dp was too small to hit on glasses |
 | 2026-09-20 | **Wallpaper on glasses only:** companion opaque theme; no system wallpaper behind touchpad | Companion inherited Theme.XRLauncher `windowShowWallpaper` |
+| 2026-09-20 | **PIP pointer inject:** inject when cursor over PIP/foreign window even if launcher resumed | Inject was gated only on `launcherBackgrounded`; PIP left Compose-dead |
 
 ---
 
-*Last updated: 2026-09-20 (companion wallpaper bleed fix)*
+*Last updated: 2026-09-20 (PIP/foreign window pointer inject)*

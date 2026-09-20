@@ -3,9 +3,11 @@ package dev.electrikjesus.xrlauncher.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.accessibility.AccessibilityWindowInfo
 import dev.electrikjesus.xrlauncher.core.display.GlassesControlMode
 import dev.electrikjesus.xrlauncher.core.display.DisplayLaunchHelper
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
@@ -13,6 +15,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.display.LauncherInjectFrame
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.core.input.ForeignWindowInjectLogic
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
 import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import kotlinx.coroutines.CoroutineScope
@@ -79,6 +82,59 @@ class DisplayPointerAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
+
+    /**
+     * True when the cursor sits over a PIP or another app window on the glasses
+     * display — Compose hit-testing cannot reach those, so we must inject.
+     */
+    fun shouldInjectOverForeignWindow(normalizedX: Float, normalizedY: Float): Boolean {
+        val displayId = GlassesSessionState.secondaryDisplayId ?: return false
+        val displayManager = getSystemService(DisplayManager::class.java)
+        val display = displayManager.getDisplay(displayId) ?: return false
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(metrics)
+        val (x, y) = normalizedToDisplayPixels(
+            normalizedX,
+            normalizedY,
+            metrics,
+            mapViaLauncherFrame = false,
+        )
+        val hits = windows.orEmpty().map { window ->
+            val bounds = Rect()
+            window.getBoundsInScreen(bounds)
+            val isPip = window.isInPictureInPictureMode
+            val pkg = if (isPip || window.type != AccessibilityWindowInfo.TYPE_APPLICATION) {
+                null
+            } else {
+                runCatching { window.root?.packageName?.toString() }.getOrNull()
+            }
+            ForeignWindowInjectLogic.WindowHit(
+                displayId = window.displayId,
+                type = window.type,
+                left = bounds.left,
+                top = bounds.top,
+                right = bounds.right,
+                bottom = bounds.bottom,
+                isPictureInPicture = isPip,
+                packageName = pkg,
+            )
+        }
+        val inject = ForeignWindowInjectLogic.shouldInjectAt(
+            displayId = displayId,
+            xPx = x.toInt(),
+            yPx = y.toInt(),
+            ourPackageName = packageName,
+            windows = hits,
+        )
+        if (inject) {
+            Log.d(
+                TAG,
+                "foreign/PIP under cursor display=$displayId px=($x,$y) norm=($normalizedX,$normalizedY)",
+            )
+        }
+        return inject
+    }
 
     fun dispatchClick(
         displayId: Int,

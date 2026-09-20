@@ -385,15 +385,19 @@ object CompanionPointerBus {
         _cursor.value = fpsReleaseCursor(endPos)
         when {
             deskConsumesClick || lassoConsumesClick -> { }
-            moved && primaryGesture && pointerInjectionAvailable() ->
-                DisplayPointerInjector.dispatchDrag(
-                    GlassesSessionState.secondaryDisplayId!!,
-                    startX,
-                    startY,
-                    endPos.x,
-                    endPos.y,
-                    mapViaLauncherFrame = GlassesSessionState.launcherForeground,
-                )
+            moved && primaryGesture && pointerInjectionAvailable() -> {
+                val overForeign = DisplayPointerInjector.shouldInjectOverForeignWindow(endPos.x, endPos.y)
+                if (GlassesSessionState.launcherBackgrounded || overForeign) {
+                    DisplayPointerInjector.dispatchDrag(
+                        GlassesSessionState.secondaryDisplayId!!,
+                        startX,
+                        startY,
+                        endPos.x,
+                        endPos.y,
+                        mapViaLauncherFrame = false,
+                    )
+                }
+            }
             !moved && primaryGesture -> deliverLeftClick(
                 x = if (usesFpsCenterLock()) 0.5f else endPos.x,
                 y = if (usesFpsCenterLock()) 0.5f else endPos.y,
@@ -429,12 +433,19 @@ object CompanionPointerBus {
         GlassesSessionState.secondaryDisplayId != null &&
             DisplayPointerInjector.isAvailable
 
-    /** Inject OS gestures when accessibility is active and launcher was explicitly backgrounded. */
-    private fun shouldInjectPointerOnGlasses(): Boolean =
-        pointerInjectionAvailable() && GlassesSessionState.launcherBackgrounded
+    /**
+     * Inject OS gestures when accessibility is active and either the launcher was
+     * backgrounded (full-app takeover) or the cursor is over a PIP / foreign window
+     * sitting on top of the still-resumed XR UI.
+     */
+    private fun shouldInjectPointerOnGlasses(x: Float, y: Float): Boolean {
+        if (!pointerInjectionAvailable()) return false
+        if (GlassesSessionState.launcherBackgrounded) return true
+        return DisplayPointerInjector.shouldInjectOverForeignWindow(x, y)
+    }
 
     private fun deliverLeftClick(x: Float, y: Float) {
-        val inject = shouldInjectPointerOnGlasses()
+        val inject = shouldInjectPointerOnGlasses(x, y)
         Log.d(
             POINTER_LOG_TAG,
             "deliverLeftClick norm=($x,$y) inject=$inject foreground=${GlassesSessionState.launcherForeground} " +
@@ -449,7 +460,7 @@ object CompanionPointerBus {
     }
 
     private fun deliverRightClick(x: Float, y: Float) {
-        if (shouldInjectPointerOnGlasses()) {
+        if (shouldInjectPointerOnGlasses(x, y)) {
             injectClickAt(x, y, PointerButton.RIGHT)
         } else {
             emitClick(PointerClick(button = PointerButton.RIGHT, x = x, y = y))
@@ -459,7 +470,14 @@ object CompanionPointerBus {
 
     private fun injectClickAt(x: Float, y: Float, button: PointerButton) {
         val displayId = GlassesSessionState.secondaryDisplayId ?: return
-        DisplayPointerInjector.dispatchClick(displayId, x, y, button, GlassesSessionState.launcherForeground)
+        // Full-display pixels — PIP and backgrounded apps sit outside the launcher frame.
+        DisplayPointerInjector.dispatchClick(
+            displayId = displayId,
+            normalizedX = x,
+            normalizedY = y,
+            button = button,
+            mapViaLauncherFrame = false,
+        )
     }
 
     private fun pulsePressed() {
