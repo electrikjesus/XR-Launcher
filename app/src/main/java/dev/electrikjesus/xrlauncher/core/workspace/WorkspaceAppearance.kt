@@ -28,7 +28,7 @@ data class WorkspaceAppearance(
     val desktopTiles: Boolean = true,
     val desktopWidgets: Boolean = true,
     /** Snap apps / widgets to the angular desk grid on drop and resize. */
-    val deskSnapToGrid: Boolean = false,
+    val deskSnapToGrid: Boolean = true,
     /** Draw the desk grid while moving or resizing an item. */
     val deskShowGridOnMove: Boolean = true,
     /** Multiplies icon-sized grid cells (0.75–1.5). */

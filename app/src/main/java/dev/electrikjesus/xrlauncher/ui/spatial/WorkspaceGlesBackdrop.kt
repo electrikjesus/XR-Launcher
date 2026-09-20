@@ -66,6 +66,14 @@ fun WorkspaceGlesBackdrop(
     val context = LocalContext.current.applicationContext
     var wallpaperBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var wallpaperGeneration by remember { mutableIntStateOf(0) }
+    var wallpaperUploadEpoch by remember { mutableIntStateOf(0) }
+
+    // Drop the previous preset immediately so we never upload a stale gradient under the
+    // new choice's generation key (that used to skip the real SYSTEM bitmap upload).
+    androidx.compose.runtime.LaunchedEffect(wallpaperChoice) {
+        wallpaperBitmap = null
+        wallpaperGeneration++
+    }
 
     DisposableEffect(context, wallpaperChoice) {
         if (wallpaperChoice != WorkspaceWallpaperChoice.SYSTEM) {
@@ -87,9 +95,13 @@ fun WorkspaceGlesBackdrop(
     }
 
     androidx.compose.runtime.LaunchedEffect(context, wallpaperGeneration, wallpaperChoice) {
-        wallpaperBitmap = withContext(Dispatchers.IO) {
-            WorkspaceWallpaperResolver.resolveBitmap(context, wallpaperChoice)
+        val choice = wallpaperChoice
+        val bitmap = withContext(Dispatchers.IO) {
+            WorkspaceWallpaperResolver.resolveBitmap(context, choice)
         }
+        if (choice != wallpaperChoice) return@LaunchedEffect
+        wallpaperBitmap = bitmap
+        wallpaperUploadEpoch++
     }
 
     val renderer = remember { CylinderGlRenderer() }
@@ -164,12 +176,14 @@ fun WorkspaceGlesBackdrop(
             renderer.curvature = curvature
             renderer.workspaceWidth = workspaceWidth
             renderer.workspaceHeight = workspaceHeight
-            // Include choice ordinal so a preset switch always re-uploads (generation alone
-            // only bumps for SYSTEM wallpaper broadcasts).
-            renderer.setWallpaperBitmap(
-                wallpaperBitmap,
-                wallpaperChoice.ordinal * 1_000_000L + wallpaperGeneration,
-            )
+            // Monotonic uploadEpoch so a finished load always re-uploads even when the
+            // choice ordinal + wallpaperGeneration pair collided with a stale frame.
+            wallpaperBitmap?.let { bitmap ->
+                renderer.setWallpaperBitmap(
+                    bitmap,
+                    wallpaperChoice.ordinal * 1_000_000L + wallpaperUploadEpoch,
+                )
+            }
             renderer.panelGuideCenters = panelGuideCenters
             renderer.showWallpaperCylinder = showWallpaperCylinder
             renderer.surroundRoom = surroundRoom

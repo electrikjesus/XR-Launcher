@@ -12,6 +12,7 @@ class WorkspaceJsonTest {
         assertEquals(1.20f, WorkspaceAppearance.default().uiScale, 0.001f)
         assertEquals(0.70f, WorkspaceAppearance.default().panelScale, 0.001f)
         assertEquals(1.0f, WorkspaceAppearance.default().sphereScale, 0.001f)
+        assertEquals(true, WorkspaceAppearance.default().deskSnapToGrid)
     }
 
     @Test

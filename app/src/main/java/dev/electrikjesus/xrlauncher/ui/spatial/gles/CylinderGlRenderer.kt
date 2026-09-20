@@ -136,6 +136,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
 
     private var wallpaperTextureId: Int = 0
     private var uploadedWallpaperGeneration: Long = -1L
+    private var uploadedWallpaperBitmap: Bitmap? = null
 
     private data class GlTextureEntry(
         val textureId: Int,
@@ -1072,7 +1073,15 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
     private fun uploadPendingWallpaper() {
         val bitmap = pendingWallpaper ?: return
         val generation = pendingWallpaperGeneration
-        if (generation == uploadedWallpaperGeneration && wallpaperTextureId != 0) return
+        // Also compare bitmap identity: a choice switch can reuse the same generation
+        // key while Compose still holds the previous preset bitmap for one frame.
+        if (
+            generation == uploadedWallpaperGeneration &&
+            bitmap === uploadedWallpaperBitmap &&
+            wallpaperTextureId != 0
+        ) {
+            return
+        }
         if (wallpaperTextureId == 0) {
             wallpaperTextureId = createTextureId()
         }
@@ -1084,6 +1093,7 @@ class CylinderGlRenderer : GLSurfaceView.Renderer {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
         uploadedWallpaperGeneration = generation
+        uploadedWallpaperBitmap = bitmap
     }
 
     private fun uploadPendingTextures() {

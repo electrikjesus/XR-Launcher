@@ -16,7 +16,7 @@ object DeskGridOverlay {
         val iconHalfWidth: Float = 0.162f,
         val gridScale: Float = DeskGrid.DEFAULT_GRID_SCALE,
         val sphereScale: Float = 1f,
-        val snapToGrid: Boolean = false,
+        val snapToGrid: Boolean = true,
         val showGridOnMove: Boolean = true,
         /** Live snap cell under the dragged item (null when not dragging with snap). */
         val snapTarget: DeskGrid.SnapTarget? = null,
