@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace
 
+import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -99,5 +100,42 @@ class DeskPileOpsTest {
         assertTrue(HomeSpaceDeskState.breakPile(id))
         assertTrue(HomeSpaceDeskState.piles.isEmpty())
         assertEquals(2, HomeSpaceDeskState.placed.size)
+        // Released at rest — no leftover velocity that physics could orbit.
+        assertTrue(HomeSpaceDeskState.placed.all { it.velYawDeg == 0f && it.velPitchDeg == 0f })
+    }
+
+    @Test
+    fun breakApartYawStep_coversIconAngularSize() {
+        val halfW = HomeSpaceDesk.ICON_HALF_WIDTH
+        val halfYaw = HomeSpaceDesk.angularHalfYaw(halfW, sphereScale = 1f)
+        val step = DeskPileOps.breakApartYawStepDeg(
+            sphereScale = 1f,
+            halfWidth = halfW,
+            memberCount = 3,
+        )
+        assertTrue(step >= halfYaw * 2f)
+    }
+
+    @Test
+    fun breakApart_spacesMembersAndZerosVelocity() {
+        val pile = DeskPile(
+            id = "pile_test",
+            mode = DeskPileMode.STACK,
+            name = "Pile",
+            members = listOf(
+                HomeSpaceDesk.AppRef("a/.Main", "A", "a"),
+                HomeSpaceDesk.AppRef("b/.Main", "B", "b"),
+                HomeSpaceDesk.AppRef("c/.Main", "C", "c"),
+            ),
+            yawDeg = -40f,
+            pitchDeg = 5f,
+        )
+        val step = DeskPileOps.breakApartYawStepDeg(1f, HomeSpaceDesk.ICON_HALF_WIDTH, 3)
+        val released = DeskPileOps.breakApart(pile, emptyList(), yawStepDeg = step)
+        assertEquals(3, released.size)
+        assertTrue(released.all { it.velYawDeg == 0f && it.velPitchDeg == 0f })
+        val yaws = released.map { it.yawDeg }.sorted()
+        assertTrue(yaws[1] - yaws[0] >= step - 0.01f)
+        assertTrue(yaws[2] - yaws[1] >= step - 0.01f)
     }
 }

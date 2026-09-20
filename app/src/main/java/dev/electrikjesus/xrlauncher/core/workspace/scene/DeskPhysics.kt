@@ -13,6 +13,8 @@ object DeskPhysics {
     const val WALL_BOUNCE = 0.35f
     /** Degrees/sec^2 of soft "settle" toward zero pitch bias — unused; keep for tuning. */
     const val MAX_SPEED_DEG = 90f
+    /** Cap how far one collision may shove a body per pair resolve (avoids sphere orbit). */
+    private const val MAX_SEPARATION_DEG = 12f
 
     data class Body(
         val key: String,
@@ -29,6 +31,14 @@ object DeskPhysics {
     fun massFor(halfWidth: Float, halfHeight: Float): Float {
         val s = (halfWidth + halfHeight) * 0.5f
         return (s * s * 40f).coerceIn(0.35f, 4f)
+    }
+
+    /** Shortest signed yaw delta in (-180, 180]. */
+    fun shortestYawDelta(fromDeg: Float, toDeg: Float): Float {
+        var d = fromDeg - toDeg
+        while (d > 180f) d -= 360f
+        while (d <= -180f) d += 360f
+        return d
     }
 
     fun step(
@@ -58,6 +68,15 @@ object DeskPhysics {
                 resolve(bodies[i], bodies[j], manipulated)
             }
         }
+
+        // Kill runaway slides after collision resolution (e.g. deep pane embed).
+        bodies.forEach { body ->
+            if (body.pinned || body === manipulated) return@forEach
+            if (abs(body.velYawDeg) >= MAX_SPEED_DEG * 0.98f) {
+                body.velYawDeg = 0f
+                body.velPitchDeg = 0f
+            }
+        }
     }
 
     private fun resolve(a: Body, b: Body, manipulated: Body?) {
@@ -65,7 +84,7 @@ object DeskPhysics {
         val bCanMove = !b.pinned && b !== manipulated
         if (!aCanMove && !bCanMove) return
 
-        val dy = a.yawDeg - b.yawDeg
+        val dy = shortestYawDelta(a.yawDeg, b.yawDeg)
         val dp = a.pitchDeg - b.pitchDeg
         val minYaw = a.halfYawDeg + b.halfYawDeg
         val minPitch = a.halfPitchDeg + b.halfPitchDeg
@@ -79,13 +98,22 @@ object DeskPhysics {
         val ny: Float
         val overlap: Float
         if (useYaw) {
-            nx = if (dy >= 0f) 1f else -1f
+            // Identical centers: stable direction from keys so we don't flip every frame.
+            nx = when {
+                dy > 0f -> 1f
+                dy < 0f -> -1f
+                else -> if (a.key >= b.key) 1f else -1f
+            }
             ny = 0f
-            overlap = overlapYaw
+            overlap = overlapYaw.coerceAtMost(MAX_SEPARATION_DEG)
         } else {
             nx = 0f
-            ny = if (dp >= 0f) 1f else -1f
-            overlap = overlapPitch
+            ny = when {
+                dp > 0f -> 1f
+                dp < 0f -> -1f
+                else -> if (a.key >= b.key) 1f else -1f
+            }
+            overlap = overlapPitch.coerceAtMost(MAX_SEPARATION_DEG)
         }
 
         val totalMass = a.mass + b.mass
@@ -111,7 +139,18 @@ object DeskPhysics {
         val relYaw = a.velYawDeg - b.velYawDeg
         val relPitch = a.velPitchDeg - b.velPitchDeg
         val velAlong = relYaw * nx + relPitch * ny
-        if (velAlong >= 0f) return
+        if (velAlong >= 0f) {
+            // At rest but still overlapping a pinned body — do not invent velocity.
+            if (aCanMove && b.pinned) {
+                a.velYawDeg = 0f
+                a.velPitchDeg = 0f
+            }
+            if (bCanMove && a.pinned) {
+                b.velYawDeg = 0f
+                b.velPitchDeg = 0f
+            }
+            return
+        }
         val invMass = (if (aCanMove) 1f / a.mass else 0f) + (if (bCanMove) 1f / b.mass else 0f)
         if (invMass <= 1e-6f) return
         val j = -(1f + RESTITUTION) * velAlong / invMass

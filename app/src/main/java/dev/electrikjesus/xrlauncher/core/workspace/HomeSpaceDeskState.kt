@@ -43,6 +43,12 @@ object HomeSpaceDeskState {
     val pilesFlow: StateFlow<List<DeskPile>> = _piles.asStateFlow()
     val piles: List<DeskPile> get() = _piles.value
 
+    /** Last tickPhysics context — used by breakPile so released icons clear panes. */
+    private var lastSphereScale: Float = 1f
+    private var lastIconHalfW: Float = HomeSpaceDesk.ICON_HALF_WIDTH
+    private var lastPanes: List<HomeSpaceScene.Pane> = emptyList()
+    private var lastPinnedObstacles: List<HomeSpaceDesk.Icon> = emptyList()
+
     private val _drag = MutableStateFlow<Drag?>(null)
     val dragFlow: StateFlow<Drag?> = _drag.asStateFlow()
     val drag: Drag? get() = _drag.value
@@ -321,6 +327,10 @@ object HomeSpaceDeskState {
             density = density,
         )
         val labeledHalfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        lastSphereScale = sphereScale
+        lastIconHalfW = halfW
+        lastPanes = panes
+        lastPinnedObstacles = pinnedObstacles
         val groupKeys = DeskGroupMoveState.armedKeys.takeIf { DeskGroupMoveState.isDragging }.orEmpty()
         val bodies = ArrayList<DeskPhysics.Body>(_placed.value.size + pinnedObstacles.size + panes.size)
         _placed.value.forEach { item ->
@@ -416,6 +426,10 @@ object HomeSpaceDeskState {
         _drag.value = null
         _drawerPose.value = null
         pendingChrome = null
+        lastSphereScale = 1f
+        lastIconHalfW = HomeSpaceDesk.ICON_HALF_WIDTH
+        lastPanes = emptyList()
+        lastPinnedObstacles = emptyList()
         DeskGroupMoveState.clear()
     }
 
@@ -628,8 +642,139 @@ object HomeSpaceDeskState {
     fun breakPile(pileId: String): Boolean {
         val pile = _piles.value.firstOrNull { it.id == pileId } ?: return false
         _piles.value = _piles.value.filter { it.id != pileId }
-        _placed.value = DeskPileOps.breakApart(pile, _placed.value)
+        val halfW = lastIconHalfW
+        val sphereScale = lastSphereScale
+        val yawStep = DeskPileOps.breakApartYawStepDeg(
+            sphereScale = sphereScale,
+            halfWidth = halfW,
+            memberCount = pile.members.size,
+        )
+        val releasedKeys = pile.members.map { it.componentKey }.toSet()
+        var next = DeskPileOps.breakApart(pile, _placed.value, yawStepDeg = yawStep)
+        // Static separation against desk icons / panes / drawer — no velocity impulses.
+        next = settleBrokenApart(next, releasedKeys, halfW, sphereScale)
+        _placed.value = next
         return true
+    }
+
+    /**
+     * Push freshly released pile members off overlaps without imparting velocity.
+     * Prevents DeskPhysics from ratcheting a deeply nested icon around the sphere.
+     */
+    private fun settleBrokenApart(
+        placed: List<HomeSpaceDesk.Placed>,
+        releasedKeys: Set<String>,
+        halfW: Float,
+        sphereScale: Float,
+    ): List<HomeSpaceDesk.Placed> {
+        val labeledHalfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
+        val mutable = placed.toMutableList()
+        val panes = lastPanes
+        val pinned = lastPinnedObstacles
+        repeat(10) {
+            var moved = false
+            for (i in mutable.indices) {
+                val item = mutable[i]
+                if (item.app.componentKey !in releasedKeys) continue
+                val itemHalfW = item.halfWidth ?: halfW
+                val itemHalfH = item.halfHeight ?: labeledHalfH
+                val halfYaw = HomeSpaceDesk.angularHalfYaw(itemHalfW, sphereScale)
+                val halfPitch = HomeSpaceDesk.angularHalfPitch(itemHalfH, sphereScale)
+                var yaw = item.yawDeg
+                var pitch = item.pitchDeg
+
+                // Clear Home / Tray / app panes (large AABBs that otherwise orbit icons).
+                panes.forEach { pane ->
+                    if (yaw !in pane.yawMin..pane.yawMax || pitch !in pane.pitchMin..pane.pitchMax) {
+                        return@forEach
+                    }
+                    val toMin = kotlin.math.abs(yaw - pane.yawMin)
+                    val toMax = kotlin.math.abs(pane.yawMax - yaw)
+                    yaw = if (toMin <= toMax) {
+                        pane.yawMin - halfYaw - 0.75f
+                    } else {
+                        pane.yawMax + halfYaw + 0.75f
+                    }
+                    moved = true
+                }
+
+                // Clear All Apps tile / open drawer / other pinned blockers.
+                pinned.forEach { other ->
+                    val oHalfYaw = HomeSpaceDesk.angularHalfYaw(other.halfWidth, sphereScale)
+                    val oHalfPitch = HomeSpaceDesk.angularHalfPitch(other.halfHeight, sphereScale)
+                    if (!HomeSpaceDesk.overlapsAngular(
+                            yaw, pitch, halfYaw, halfPitch,
+                            other.yawDeg, other.pitchDeg, oHalfYaw, oHalfPitch,
+                        )
+                    ) {
+                        return@forEach
+                    }
+                    val dy = DeskPhysics.shortestYawDelta(yaw, other.yawDeg)
+                    val dp = pitch - other.pitchDeg
+                    val needY = halfYaw + oHalfYaw + 0.75f
+                    val needP = halfPitch + oHalfPitch + 0.75f
+                    if (kotlin.math.abs(dy) * needP >= kotlin.math.abs(dp) * needY) {
+                        yaw = other.yawDeg + needY * when {
+                            dy > 0f -> 1f
+                            dy < 0f -> -1f
+                            else -> 1f
+                        }
+                    } else {
+                        pitch = (other.pitchDeg + needP * if (dp >= 0f) 1f else -1f)
+                            .coerceIn(-55f, 55f)
+                    }
+                    moved = true
+                }
+
+                mutable.forEachIndexed { j, other ->
+                    if (i == j) return@forEachIndexed
+                    val oHalfYaw = HomeSpaceDesk.angularHalfYaw(other.halfWidth ?: halfW, sphereScale)
+                    val oHalfPitch = HomeSpaceDesk.angularHalfPitch(
+                        other.halfHeight ?: labeledHalfH,
+                        sphereScale,
+                    )
+                    if (!HomeSpaceDesk.overlapsAngular(
+                            yaw, pitch, halfYaw, halfPitch,
+                            other.yawDeg, other.pitchDeg, oHalfYaw, oHalfPitch,
+                        )
+                    ) {
+                        return@forEachIndexed
+                    }
+                    val dy = DeskPhysics.shortestYawDelta(yaw, other.yawDeg)
+                    val dp = pitch - other.pitchDeg
+                    val needY = halfYaw + oHalfYaw + 0.5f
+                    val needP = halfPitch + oHalfPitch + 0.5f
+                    if (kotlin.math.abs(dy) * needP >= kotlin.math.abs(dp) * needY) {
+                        yaw = other.yawDeg + needY * when {
+                            dy > 0f -> 1f
+                            dy < 0f -> -1f
+                            else -> if (item.app.componentKey >= other.app.componentKey) 1f else -1f
+                        }
+                    } else {
+                        pitch = (other.pitchDeg + needP * if (dp >= 0f) 1f else -1f)
+                            .coerceIn(-55f, 55f)
+                    }
+                    moved = true
+                }
+                if (yaw != item.yawDeg || pitch != item.pitchDeg) {
+                    mutable[i] = item.copy(
+                        yawDeg = yaw,
+                        pitchDeg = pitch,
+                        velYawDeg = 0f,
+                        velPitchDeg = 0f,
+                    )
+                }
+            }
+            if (!moved) return mutable
+        }
+        // Final guarantee: released icons are at rest even if still slightly tight.
+        return mutable.map { item ->
+            if (item.app.componentKey in releasedKeys) {
+                item.copy(velYawDeg = 0f, velPitchDeg = 0f)
+            } else {
+                item
+            }
+        }
     }
 
     /** Collapse any expanded / fanned pile (empty-desk dismiss). */

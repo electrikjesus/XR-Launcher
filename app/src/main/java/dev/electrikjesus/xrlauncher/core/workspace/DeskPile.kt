@@ -87,7 +87,7 @@ object DeskPileOps {
 
     fun collapse(pile: DeskPile): DeskPile = pile.copy(expanded = false, fannedOut = false)
 
-    /** Release members back onto the desk around the pile pose. */
+    /** Release members back onto the desk around the pile pose, at rest. */
     fun breakApart(
         pile: DeskPile,
         placed: List<HomeSpaceDesk.Placed>,
@@ -99,9 +99,26 @@ object DeskPileOps {
                 app = app,
                 yawDeg = pile.yawDeg + t * yawStepDeg,
                 pitchDeg = pile.pitchDeg,
+                velYawDeg = 0f,
+                velPitchDeg = 0f,
             )
         }
         return placed + released
+    }
+
+    /**
+     * Angular yaw step so broken-apart icons do not start deeply overlapping
+     * (deep overlap + pinned panes can ratchet an icon around the sphere forever).
+     */
+    fun breakApartYawStepDeg(
+        sphereScale: Float,
+        halfWidth: Float,
+        memberCount: Int,
+    ): Float {
+        val halfYaw = HomeSpaceDesk.angularHalfYaw(halfWidth, sphereScale)
+        // 2× half + pad; grow slightly with count so large stacks stay clear.
+        val pad = 0.85f + (memberCount - 2).coerceAtLeast(0) * 0.05f
+        return (halfYaw * 2f + pad).coerceIn(4f, 18f)
     }
 
     fun pruneMembers(

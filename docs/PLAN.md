@@ -621,7 +621,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 
 **Launcher surface / BumpDesk widgets:**
 0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Grow / Shrink** (1.25×) for selected widgets. Still open: touch-through / drag resize handles.
-0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** (2×2 preview, expand grid) or **Stack** (layered face, expand fan); persist in `desk_json`; break/open still light.
+0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** / **Stack**; Fan Out; **Break Apart** settles with angular spacing + pane clear (no sphere-orbit runaway); leaf / rename still open.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -863,7 +863,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Lasso Move + group handle:** arm selection, centroid grab handle, rigid yaw/pitch offsets (BumpDesk prepareGroupMove) | Multi-select could only rearrange, not translate as a group |
 | 2026-09-20 | **Create Pile Folder vs Stack:** real `DeskPile` objects (2×2 folder preview / layered stack); expand toggle; desk_json piles segment | Folder and Stack arrange stand-ins both just jumped icons |
 | 2026-09-20 | **Pile polish:** icon-sized faces (not widget extents); hide face when open; radial Fan Out / Break Apart | Piles read ~4× large; collapsed face stayed under fan; no undo/fan menu |
+| 2026-09-20 | **Break Apart anti-orbit:** sized yaw spacing, static settle vs panes/obstacles, physics max-separation + rest-on-pinned | Top pile member ran left forever around the sphere after break |
 
 ---
 
-*Last updated: 2026-09-20 (pile size + Fan/Break Apart)*
+*Last updated: 2026-09-20 (Break Apart anti-orbit)*
