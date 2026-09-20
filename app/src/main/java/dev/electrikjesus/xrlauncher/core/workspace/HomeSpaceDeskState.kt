@@ -160,7 +160,7 @@ object HomeSpaceDeskState {
     fun release(
         onDesktop: Boolean,
         halfWidth: Float = HomeSpaceDesk.ICON_HALF_WIDTH,
-        halfHeight: Float = HomeSpaceDesk.ICON_HALF_HEIGHT,
+        halfHeight: Float = HomeSpaceDesk.labeledIconHalfHeight(HomeSpaceDesk.ICON_HALF_WIDTH),
         sphereScale: Float = 1f,
         obstacles: List<HomeSpaceDesk.Icon> = emptyList(),
         panes: List<HomeSpaceScene.Pane> = emptyList(),

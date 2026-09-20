@@ -10,15 +10,24 @@ import android.graphics.Typeface
 import dev.electrikjesus.xrlauncher.core.launcher.AppIconCache
 import dev.electrikjesus.xrlauncher.core.workspace.scene.HomeSpaceDesk
 
-/** Icon + label atlas for GLES desk boxes (BumpDesk combined-bitmap layout). */
+/**
+ * Icon (+ optional label) atlas for GLES desk faces.
+ *
+ * Labeled bitmaps are taller than wide (BumpDesk `1.25` / `1.38` heightMult). The desk mesh
+ * [HomeSpaceDesk.labeledIconHalfHeight] must match [LABELED_ASPECT] or round icons look oval.
+ */
 object DeskIconBitmaps {
-    private const val ICON_SIZE = 160
-    private const val LABEL_HEIGHT = 40
+    const val ICON_SIZE = 160
+    const val LABEL_HEIGHT = 40
+    /** Texture height / width for app + label faces (= BumpDesk APP heightMult). */
+    const val LABELED_ASPECT = (ICON_SIZE + LABEL_HEIGHT).toFloat() / ICON_SIZE.toFloat()
+
     private const val APP_PAD = 8
 
     fun create(context: Context, icon: HomeSpaceDesk.Icon): Bitmap {
+        val withLabel = drawsLabel(icon)
         val width = ICON_SIZE
-        val height = ICON_SIZE + LABEL_HEIGHT
+        val height = if (withLabel) ICON_SIZE + LABEL_HEIGHT else ICON_SIZE
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.TRANSPARENT)
@@ -32,11 +41,7 @@ object DeskIconBitmaps {
             else -> drawAppIcon(canvas, context, icon.packageName, width, ICON_SIZE)
         }
 
-        if (!icon.isBacking &&
-            icon.kind != HomeSpaceDesk.Kind.PAGE &&
-            icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
-            icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
-        ) {
+        if (withLabel) {
             val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
                 textSize = 22f
@@ -49,6 +54,12 @@ object DeskIconBitmaps {
         }
         return bitmap
     }
+
+    fun drawsLabel(icon: HomeSpaceDesk.Icon): Boolean =
+        !icon.isBacking &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
+            icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT
 
     private fun drawAppIcon(
         canvas: Canvas,

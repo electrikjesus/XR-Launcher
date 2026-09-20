@@ -222,7 +222,9 @@ class HomeSpaceDeskStateTest {
             pitchDeg = 0f,
             sphereScale = 1f,
             halfWidth = HomeSpaceDesk.ICON_HALF_WIDTH * HomeSpaceDesk.DRAWER_SCALE,
-            halfHeight = HomeSpaceDesk.ICON_HALF_HEIGHT * HomeSpaceDesk.DRAWER_SCALE,
+            halfHeight = HomeSpaceDesk.labeledIconHalfHeight(
+                HomeSpaceDesk.ICON_HALF_WIDTH * HomeSpaceDesk.DRAWER_SCALE,
+            ),
         )
         val fromDrawer = HomeSpaceDesk.iconOf(app, yawDeg = -40f, pitchDeg = 0f, sphereScale = 1f, lift = 0.15f)
         HomeSpaceDeskState.press(fromDrawer, 0.5f, 0.5f)

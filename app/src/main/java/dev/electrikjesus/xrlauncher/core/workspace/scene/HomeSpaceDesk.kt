@@ -28,6 +28,12 @@ object HomeSpaceDesk {
     const val ICON_HALF_WIDTH = 0.162f
     const val ICON_HALF_HEIGHT = 0.162f
     const val ICON_HALF_THICK = 0.010f
+    /**
+     * World height/width for Desktop app faces that include a label strip.
+     * Must match [dev.electrikjesus.xrlauncher.ui.spatial.gles.DeskIconBitmaps.LABELED_ASPECT]
+     * (BumpDesk APP heightMult ≈ 1.25) or round icons read as vertical ovals.
+     */
+    const val LABELED_ICON_ASPECT = 1.25f
     const val DRAWER_COLS = 4
     const val DRAWER_ROWS = 4
     const val DRAWER_PAGE_SIZE = DRAWER_COLS * DRAWER_ROWS
@@ -140,6 +146,10 @@ object HomeSpaceDesk {
         sphereScale,
         density,
     )
+
+    /** Half-height for icon+label Desktop faces (square icon circle stays round). */
+    fun labeledIconHalfHeight(iconHalfWidth: Float): Float =
+        iconHalfWidth * LABELED_ICON_ASPECT
 
     enum class Kind { APP_DRAWER, APP, DRAWER_BACKING, PAGE_PREV, PAGE_NEXT, PAGE }
 
@@ -296,12 +306,12 @@ object HomeSpaceDesk {
             sphereScale = scale,
             density = density,
         )
-        val halfH = halfW
+        // Labeled APP / APP_DRAWER textures are taller than wide — stretch mesh height so
+        // the circular icon region stays round (BumpDesk heightMult).
+        val labeledHalfH = labeledIconHalfHeight(halfW)
         val defaultYaw = yawDegrees(viewportWidthPx, viewportHeightPx, panelScale, scale)
         val yaw = drawerYawDeg ?: defaultYaw
         val radius = HomeSpaceScene.innerSphereRadius(scale).coerceAtLeast(0.01f)
-        val yawStep = Math.toDegrees((halfW * 2.35f / radius).toDouble()).toFloat()
-        val pitchStep = Math.toDegrees((halfH * 2.35f / radius).toDouble()).toFloat()
         val drawerDragging = draggingKey == DRAWER_KEY
         val drawer = iconOf(
             app = AppRef(
@@ -314,7 +324,7 @@ object HomeSpaceDesk {
             pitchDeg = if (drawerDragging) dragPitchDeg else drawerPitchDeg,
             sphereScale = scale,
             halfWidth = halfW * DRAWER_SCALE,
-            halfHeight = halfH * DRAWER_SCALE,
+            halfHeight = labeledHalfH * DRAWER_SCALE,
             lift = if (drawerDragging) HOVER_LIFT else 0f,
         )
         val placedIcons = placed.filter { it.app.kind == Kind.APP }.map { item ->
@@ -329,7 +339,7 @@ object HomeSpaceDesk {
                 pitchDeg = pose.pitchDeg,
                 sphereScale = scale,
                 halfWidth = halfW,
-                halfHeight = halfH,
+                halfHeight = labeledHalfH,
                 lift = if (item.app.componentKey == draggingKey) HOVER_LIFT else 0f,
             )
         }
@@ -342,10 +352,10 @@ object HomeSpaceDesk {
         val pageCount = ((unplaced.size + DRAWER_PAGE_SIZE - 1) / DRAWER_PAGE_SIZE).coerceAtLeast(1)
         // Fit open-drawer faces into the pitch FOV budget when Home-matched icons are large.
         var openHalfW = halfW * DRAWER_OPEN_ICON_SCALE
-        var openHalfH = halfH * DRAWER_OPEN_ICON_SCALE
+        var openHalfH = labeledIconHalfHeight(openHalfW)
         fun drawerHalfPitch(halfW: Float, halfH: Float): Float {
             val pitchStep = Math.toDegrees((halfH * DRAWER_OPEN_ROW_SPACING / radius).toDouble()).toFloat()
-            val pagerHalfH = halfH * 0.52f
+            val pagerHalfH = halfW * 0.52f // pagers are square (no label strip)
             val gridTop = (DRAWER_ROWS - 1) * 0.5f * pitchStep
             val pagerPitch = -gridTop - (DRAWER_PAGER_GAP + 0.5f) * pitchStep
             val topEdge = gridTop +
@@ -362,8 +372,9 @@ object HomeSpaceDesk {
         }
         val openYawStep = Math.toDegrees((openHalfW * DRAWER_OPEN_COL_SPACING / radius).toDouble()).toFloat()
         val openPitchStep = Math.toDegrees((openHalfH * DRAWER_OPEN_ROW_SPACING / radius).toDouble()).toFloat()
+        // Pagers use square textures (no label) — keep mesh square so chevrons/dots stay round.
         val pagerHalfW = openHalfW * 0.68f
-        val pagerHalfH = openHalfH * 0.52f
+        val pagerHalfH = pagerHalfW
         val dotHalf = openHalfW * 0.36f
         // Grid row centers: +1.5 … -1.5 steps. Pager one clear gap below the bottom row.
         val gridTopPitch = (DRAWER_ROWS - 1) * 0.5f * openPitchStep

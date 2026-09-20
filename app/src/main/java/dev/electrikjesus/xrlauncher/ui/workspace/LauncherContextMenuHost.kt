@@ -255,7 +255,7 @@ private fun desktopRadialActions(showClear: Boolean): List<RadialAction> {
         val halfH = DeskIconTextureBus.icons()
             .firstOrNull { it.componentKey in selected }
             ?.halfHeight
-            ?: HomeSpaceDesk.ICON_HALF_HEIGHT
+            ?: HomeSpaceDesk.labeledIconHalfHeight(halfW)
         fun arrange(mode: DeskArrangeMode) {
             dismiss()
             HomeSpaceDeskState.arrangeSelected(

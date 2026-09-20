@@ -992,7 +992,7 @@ private fun trackDeskDrag(
         val halfW = icons.firstOrNull { it.componentKey == draggingKey }?.halfWidth
             ?: HomeSpaceDesk.ICON_HALF_WIDTH
         val halfH = icons.firstOrNull { it.componentKey == draggingKey }?.halfHeight
-            ?: HomeSpaceDesk.ICON_HALF_HEIGHT
+            ?: HomeSpaceDesk.labeledIconHalfHeight(halfW)
         val onDesktop = pane == null
         HomeSpaceDeskState.release(
             onDesktop = onDesktop,

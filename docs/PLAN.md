@@ -630,7 +630,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 1. **Lasso draw + selection chrome** — ☑ GLES line strip for the active stroke; selected desk icons use the hover highlight. Hold-Left on empty desktop waits for touch-slop before the stroke (BumpDesk pending); Scheme A one-finger lasso in GESTURE. Release with a capture opens the radial (arrange / clear / remove).
 2. **Lasso → pile / arrange** — ☑ Partial: radial Stack (pile stand-in), Folder layout, Row, Column, Grid rearrange selected desk icons around their centroid. True Smart Pile objects still open.
 3. **Radial menu** — ☑ right-click / empty long-press / lasso release open a ring; host catcher drops while open so chips receive clicks. Selection ≥2: Stack / Folder / Row / Column / Grid + Clear / Remove. Empty: All apps.
-4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate.
+4. **Desk icon size polish** — ☑ round faces restored (on-canvas adaptive bake + Home `CircleShape`); open-drawer = Desktop scale; no GLES plate; labeled mesh height matches texture aspect (1.25) so circles are not vertical ovals.
 
 **Large-screen host:**
 4. **2.26–2.28** — ☑ Expanded → GLES Home Space + top HUD + immersive Settings/Edit dialogs.
@@ -854,7 +854,8 @@ Record major choices here as they are made.
 | 2026-09-19 | **Pinch aborts lasso:** second finger cancels desk hold/lasso without finalize; 2-finger MOVE always enters pinch | One-finger slop started lasso before POINTER_DOWN; endLeftButton finalized stroke |
 | 2026-09-19 | **Lasso release opens radial:** non-empty capture opens Desktop context ring (clear / remove from desk) | Selection highlighted but no group actions on finger-up |
 | 2026-09-19 | **Empty long-press + arrange radial:** pending lasso until slop; long-press / secondary open radial; catcher drops while menu open; Stack/Folder/Row/Column/Grid rearrange | Long-press started lasso; catcher ate radial clicks; no BumpDesk layout actions |
+| 2026-09-19 | **Labeled desk mesh aspect:** APP/drawer halfHeight = halfWidth × 1.25 to match icon+label atlas; pager bitmaps stay square | 160×200 texture on square mesh squashed circles into vertical ovals |
 
 ---
 
-*Last updated: 2026-09-19 (empty long-press + arrange radial)*
+*Last updated: 2026-09-19 (desk icon aspect)*

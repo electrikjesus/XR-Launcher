@@ -1,5 +1,6 @@
 package dev.electrikjesus.xrlauncher.core.workspace.scene
 
+import dev.electrikjesus.xrlauncher.ui.spatial.gles.DeskIconBitmaps
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -55,6 +56,45 @@ class HomeSpaceDeskTest {
         val atUi = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f, uiScale = 1.2f).first()
         assertEquals(atOne.halfWidth * 1.2f, atUi.halfWidth, 0.001f)
         assertEquals(atOne.halfHeight * 1.2f, atUi.halfHeight, 0.001f)
+    }
+
+    @Test
+    fun labeledDeskIcons_useTallerMeshSoRoundFacesStayRound() {
+        assertEquals(
+            DeskIconBitmaps.LABELED_ASPECT,
+            HomeSpaceDesk.LABELED_ICON_ASPECT,
+            0.001f,
+        )
+        val drawer = HomeSpaceDesk.defaultIcons(1f, 1920f, 1080f).first { it.isAppDrawer }
+        assertEquals(
+            drawer.halfWidth * HomeSpaceDesk.LABELED_ICON_ASPECT,
+            drawer.halfHeight,
+            0.001f,
+        )
+        val placed = HomeSpaceDesk.layout(
+            placed = listOf(
+                HomeSpaceDesk.Placed(
+                    HomeSpaceDesk.AppRef("a/.Main", "A", "a"),
+                    yawDeg = 10f,
+                    pitchDeg = -5f,
+                ),
+            ),
+            sphereScale = 1f,
+            viewportWidthPx = 1920f,
+            viewportHeightPx = 1080f,
+        )
+        val app = placed.first { it.isDesktopApp }
+        assertEquals(app.halfWidth * HomeSpaceDesk.LABELED_ICON_ASPECT, app.halfHeight, 0.001f)
+        val face = HomeSpaceDesk.inwardFace(app)
+        fun dist(a: Vec3, b: Vec3): Float {
+            val dx = a.x - b.x
+            val dy = a.y - b.y
+            val dz = a.z - b.z
+            return kotlin.math.sqrt(dx * dx + dy * dy + dz * dz)
+        }
+        val width = dist(face.bl, face.br)
+        val height = dist(face.bl, face.tl)
+        assertEquals(HomeSpaceDesk.LABELED_ICON_ASPECT, height / width, 0.01f)
     }
 
     @Test
