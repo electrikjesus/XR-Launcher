@@ -312,7 +312,8 @@ fun GlassesSpatialWorkspaceScreen(
             drawerYawDeg = deskDrawerPose?.first,
             drawerPitchDeg = deskDrawerPose?.second ?: 0f,
         )
-        val halfW = icons.firstOrNull { it.isDesktopApp || it.isWidget }?.halfWidth
+        val halfW = icons.firstOrNull { it.isDesktopApp }?.halfWidth
+            ?: icons.firstOrNull { it.isAppDrawer }?.let { it.halfWidth / HomeSpaceDesk.DRAWER_SCALE }
             ?: HomeSpaceDesk.ICON_HALF_WIDTH
         val halfH = HomeSpaceDesk.labeledIconHalfHeight(halfW)
         val withPiles = DeskPileLayout.appendIcons(

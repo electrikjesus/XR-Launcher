@@ -19,10 +19,14 @@ data class DeskPile(
     val yawDeg: Float,
     val pitchDeg: Float,
     val expanded: Boolean = false,
+    /** BumpDesk [Pile.isFannedOut] — members spread in an arc without folder-grid expand. */
+    val fannedOut: Boolean = false,
 ) {
     val componentKey: String get() = id
     val isFolder: Boolean get() = mode == DeskPileMode.FOLDER
     val isStack: Boolean get() = mode == DeskPileMode.STACK
+    /** Collapsed preview face is hidden while members are shown. */
+    val showsMembers: Boolean get() = expanded || fannedOut
 
     fun kind(): HomeSpaceDesk.Kind = when (mode) {
         DeskPileMode.STACK -> HomeSpaceDesk.Kind.PILE_STACK
@@ -75,9 +79,13 @@ object DeskPileOps {
         return pile to remaining
     }
 
-    fun toggleExpanded(pile: DeskPile): DeskPile = pile.copy(expanded = !pile.expanded)
+    fun toggleExpanded(pile: DeskPile): DeskPile =
+        pile.copy(expanded = !pile.expanded, fannedOut = false)
 
-    fun collapse(pile: DeskPile): DeskPile = pile.copy(expanded = false)
+    fun toggleFan(pile: DeskPile): DeskPile =
+        pile.copy(fannedOut = !pile.fannedOut, expanded = false)
+
+    fun collapse(pile: DeskPile): DeskPile = pile.copy(expanded = false, fannedOut = false)
 
     /** Release members back onto the desk around the pile pose. */
     fun breakApart(

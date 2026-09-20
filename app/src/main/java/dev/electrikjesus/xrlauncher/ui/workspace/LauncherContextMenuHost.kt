@@ -21,6 +21,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.DeskArrangeMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskGroupMoveState
 import dev.electrikjesus.xrlauncher.core.workspace.DeskIconTextureBus
 import dev.electrikjesus.xrlauncher.core.workspace.DeskLassoState
+import dev.electrikjesus.xrlauncher.core.workspace.DeskPile
 import dev.electrikjesus.xrlauncher.core.workspace.DeskPileMode
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetController
 import dev.electrikjesus.xrlauncher.core.workspace.DeskWidgetUtils
@@ -223,6 +224,10 @@ private fun desktopMenuItems(
 ): List<RadialMenuItem> {
     val dismiss = { LauncherContextMenuState.dismiss() }
     if (selected.isNotEmpty()) {
+        val selectedPile = HomeSpaceDeskState.piles.firstOrNull { it.id in selected }
+        if (selectedPile != null) {
+            return pileMenuItems(context, selectedPile, dismiss)
+        }
         val halfW = DeskIconTextureBus.icons()
             .firstOrNull { it.componentKey in selected }
             ?.halfWidth
@@ -357,6 +362,57 @@ private fun desktopMenuItems(
         ) {
             dismiss()
             GlassesSessionState.showAllAppsOverlay()
+        },
+    )
+}
+
+/** BumpDesk [MenuManager.showPileMenu]. */
+private fun pileMenuItems(
+    context: android.content.Context,
+    pile: DeskPile,
+    dismiss: () -> Unit,
+): List<RadialMenuItem> {
+    val fanLabel = if (pile.fannedOut) {
+        context.getString(R.string.context_menu_pile_collapse_fan)
+    } else {
+        context.getString(R.string.context_menu_pile_fan)
+    }
+    val expandLabel = if (pile.expanded) {
+        context.getString(R.string.context_menu_pile_collapse)
+    } else {
+        context.getString(R.string.context_menu_pile_expand)
+    }
+    return listOf(
+        RadialMenuItem(
+            label = expandLabel,
+            iconRes = android.R.drawable.ic_menu_view,
+        ) {
+            dismiss()
+            HomeSpaceDeskState.togglePileExpanded(pile.id)
+            DeskLassoState.clearSelection()
+        },
+        RadialMenuItem(
+            label = fanLabel,
+            iconRes = android.R.drawable.ic_menu_sort_alphabetically,
+        ) {
+            dismiss()
+            HomeSpaceDeskState.togglePileFan(pile.id)
+            DeskLassoState.clearSelection()
+        },
+        RadialMenuItem(
+            label = context.getString(R.string.context_menu_pile_break_apart),
+            iconRes = android.R.drawable.ic_menu_revert,
+        ) {
+            dismiss()
+            HomeSpaceDeskState.breakPile(pile.id)
+            DeskLassoState.clearSelection()
+        },
+        RadialMenuItem(
+            label = context.getString(R.string.context_menu_clear_selection),
+            iconRes = android.R.drawable.ic_menu_close_clear_cancel,
+        ) {
+            dismiss()
+            DeskLassoState.clearSelection()
         },
     )
 }

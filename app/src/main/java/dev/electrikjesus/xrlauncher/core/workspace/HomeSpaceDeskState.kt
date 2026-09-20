@@ -600,9 +600,25 @@ object HomeSpaceDeskState {
         val pile = _piles.value.firstOrNull { it.id == pileId } ?: return false
         _piles.value = _piles.value.map {
             when {
-                it.id == pileId -> DeskPileOps.toggleExpanded(it)
-                // Only one expanded pile at a time (BumpDesk collapseNonPinnedPiles).
-                it.expanded -> DeskPileOps.collapse(it)
+                it.id == pileId -> if (pile.showsMembers) {
+                    DeskPileOps.collapse(it)
+                } else {
+                    it.copy(expanded = true, fannedOut = false)
+                }
+                // Only one open pile at a time (BumpDesk collapseNonPinnedPiles).
+                it.showsMembers -> DeskPileOps.collapse(it)
+                else -> it
+            }
+        }
+        return true
+    }
+
+    fun togglePileFan(pileId: String): Boolean {
+        val pile = _piles.value.firstOrNull { it.id == pileId } ?: return false
+        _piles.value = _piles.value.map {
+            when {
+                it.id == pileId -> DeskPileOps.toggleFan(it)
+                it.showsMembers -> DeskPileOps.collapse(it)
                 else -> it
             }
         }

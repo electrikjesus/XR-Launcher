@@ -58,8 +58,28 @@ class DeskPileOpsTest {
         val id = HomeSpaceDeskState.piles.first().id
         assertTrue(HomeSpaceDeskState.togglePileExpanded(id))
         assertTrue(HomeSpaceDeskState.piles.first().expanded)
+        assertTrue(HomeSpaceDeskState.piles.first().showsMembers)
         assertTrue(HomeSpaceDeskState.togglePileExpanded(id))
         assertFalse(HomeSpaceDeskState.piles.first().expanded)
+        assertFalse(HomeSpaceDeskState.piles.first().showsMembers)
+    }
+
+    @Test
+    fun togglePileFan_hidesCollapsedFace() {
+        HomeSpaceDeskState.restore(
+            DeskLayout(
+                items = listOf(
+                    DeskPlacedItem("a/.Main", "A", "a", -8f, 0f),
+                    DeskPlacedItem("b/.Main", "B", "b", 8f, 0f),
+                ),
+            ),
+        )
+        HomeSpaceDeskState.createPile(setOf("a/.Main", "b/.Main"), DeskPileMode.FOLDER)
+        val id = HomeSpaceDeskState.piles.first().id
+        assertTrue(HomeSpaceDeskState.togglePileFan(id))
+        assertTrue(HomeSpaceDeskState.piles.first().fannedOut)
+        assertFalse(HomeSpaceDeskState.piles.first().expanded)
+        assertTrue(HomeSpaceDeskState.piles.first().showsMembers)
     }
 
     @Test

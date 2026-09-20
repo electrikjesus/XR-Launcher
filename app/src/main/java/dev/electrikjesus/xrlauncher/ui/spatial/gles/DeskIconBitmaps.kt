@@ -68,7 +68,7 @@ object DeskIconBitmaps {
             !icon.isWidget &&
             !icon.isGroupHandle &&
             !icon.isPileBacking &&
-            icon.kind != HomeSpaceDesk.Kind.PILE_FOLDER &&
+            !icon.isPileFace &&
             icon.kind != HomeSpaceDesk.Kind.PAGE &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_PREV &&
             icon.kind != HomeSpaceDesk.Kind.PAGE_NEXT

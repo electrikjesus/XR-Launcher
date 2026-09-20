@@ -321,6 +321,20 @@ private fun handleRightClick(
                 deskPitchDeg = deskHit.pitchDeg,
             )
         }
+        deskHit?.isPileFace == true ||
+            DeskPileLayout.pileIdFromBackingKey(deskHit?.componentKey.orEmpty()) != null -> {
+            val pileId = when {
+                deskHit!!.isPileFace -> deskHit.componentKey
+                else -> DeskPileLayout.pileIdFromBackingKey(deskHit.componentKey)!!
+            }
+            DeskLassoState.setSelection(setOf(pileId))
+            LauncherContextMenuState.openDesktop(
+                anchorX = click.x,
+                anchorY = click.y,
+                deskYawDeg = deskHit.yawDeg,
+                deskPitchDeg = deskHit.pitchDeg,
+            )
+        }
         else -> {
             val panel = findPanelAt(point, panelBounds, panels)
             if (panel != null) {

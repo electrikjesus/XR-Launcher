@@ -862,7 +862,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Empty-desk radial clears selection** — and drag-press clears prior lasso/widget keys | Stale widget selection showed Grow/Shrink after move + empty click |
 | 2026-09-20 | **Lasso Move + group handle:** arm selection, centroid grab handle, rigid yaw/pitch offsets (BumpDesk prepareGroupMove) | Multi-select could only rearrange, not translate as a group |
 | 2026-09-20 | **Create Pile Folder vs Stack:** real `DeskPile` objects (2×2 folder preview / layered stack); expand toggle; desk_json piles segment | Folder and Stack arrange stand-ins both just jumped icons |
+| 2026-09-20 | **Pile polish:** icon-sized faces (not widget extents); hide face when open; radial Fan Out / Break Apart | Piles read ~4× large; collapsed face stayed under fan; no undo/fan menu |
 
 ---
 
-*Last updated: 2026-09-20 (DeskPile Folder/Stack)*
+*Last updated: 2026-09-20 (pile size + Fan/Break Apart)*

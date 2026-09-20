@@ -34,38 +34,28 @@ object DeskPileLayout {
             val yaw = if (pile.id == draggingKey) dragYawDeg else pile.yawDeg
             val pitch = if (pile.id == draggingKey) dragPitchDeg else pile.pitchDeg
             val faceLift = if (pile.id == draggingKey) HomeSpaceDesk.HOVER_LIFT else 0f
-            out += HomeSpaceDesk.iconOf(
-                app = HomeSpaceDesk.AppRef(
-                    componentKey = pile.id,
-                    label = pile.name,
-                    packageName = pile.members.firstOrNull()?.packageName.orEmpty(),
-                    kind = pile.kind(),
-                ),
-                yawDeg = yaw,
-                pitchDeg = pitch,
-                sphereScale = scale,
-                halfWidth = halfWidth * if (pile.isFolder) 1.15f else 1f,
-                halfHeight = halfHeight * if (pile.isFolder) 1.15f else 1f,
-                lift = faceLift,
-            )
-            if (!pile.expanded) return@forEach
-            when (pile.mode) {
-                DeskPileMode.STACK -> {
-                    val step = yawStep(STACK_FAN_SPACING)
-                    pile.members.forEachIndexed { index, app ->
-                        val t = index - (pile.members.size - 1) * 0.5f
-                        out += HomeSpaceDesk.iconOf(
-                            app = app,
-                            yawDeg = yaw + t * step,
-                            pitchDeg = pitch + 4f,
-                            sphereScale = scale,
-                            halfWidth = halfWidth,
-                            halfHeight = halfHeight,
-                            lift = HomeSpaceDesk.ICON_STACK_LIFT,
-                        )
-                    }
-                }
-                DeskPileMode.FOLDER -> {
+            // Collapsed preview only — hide under members when expanded / fanned (BumpDesk).
+            if (!pile.showsMembers) {
+                out += HomeSpaceDesk.iconOf(
+                    app = HomeSpaceDesk.AppRef(
+                        componentKey = pile.id,
+                        label = pile.name,
+                        packageName = pile.members.firstOrNull()?.packageName.orEmpty(),
+                        kind = pile.kind(),
+                    ),
+                    yawDeg = yaw,
+                    pitchDeg = pitch,
+                    sphereScale = scale,
+                    // Match Desktop APP faces — never inherit widget half-extents.
+                    // Stack is a square atlas; folder keeps the labeled strip aspect.
+                    halfWidth = halfWidth,
+                    halfHeight = if (pile.isFolder) halfHeight else halfWidth,
+                    lift = faceLift,
+                )
+                return@forEach
+            }
+            when {
+                pile.expanded && pile.isFolder -> {
                     val cols = ceil(sqrt(pile.members.size.toDouble())).toInt().coerceAtLeast(1)
                     val stepY = yawStep(FOLDER_GRID_SPACING)
                     val stepP = pitchStep(FOLDER_GRID_SPACING)
@@ -101,6 +91,37 @@ object DeskPileLayout {
                             .coerceAtLeast(halfWidth * 2f),
                         halfHeight = (Math.toRadians(halfPitch.toDouble()) * radius).toFloat()
                             .coerceAtLeast(halfHeight * 2f),
+                        lift = HomeSpaceDesk.BACKING_LIFT,
+                    )
+                }
+                else -> {
+                    // Stack expand or Fan Out — members in a yaw arc (BumpDesk isFannedOut).
+                    val step = yawStep(STACK_FAN_SPACING)
+                    pile.members.forEachIndexed { index, app ->
+                        val t = index - (pile.members.size - 1) * 0.5f
+                        out += HomeSpaceDesk.iconOf(
+                            app = app,
+                            yawDeg = yaw + t * step,
+                            pitchDeg = pitch + 4f,
+                            sphereScale = scale,
+                            halfWidth = halfWidth,
+                            halfHeight = halfHeight,
+                            lift = HomeSpaceDesk.ICON_STACK_LIFT,
+                        )
+                    }
+                    // Invisible grab target at the pile origin to collapse / drag the group.
+                    out += HomeSpaceDesk.iconOf(
+                        app = HomeSpaceDesk.AppRef(
+                            componentKey = pile.id + ":backing",
+                            label = pile.name,
+                            packageName = "",
+                            kind = HomeSpaceDesk.Kind.PILE_BACKING,
+                        ),
+                        yawDeg = yaw,
+                        pitchDeg = pitch,
+                        sphereScale = scale,
+                        halfWidth = halfWidth * 0.7f,
+                        halfHeight = halfWidth * 0.7f,
                         lift = HomeSpaceDesk.BACKING_LIFT,
                     )
                 }

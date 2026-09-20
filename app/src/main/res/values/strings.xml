@@ -92,6 +92,11 @@
     <string name="context_menu_arrange_column">Column</string>
     <string name="context_menu_arrange_grid">Grid</string>
     <string name="context_menu_move_group">Move</string>
+    <string name="context_menu_pile_expand">Expand</string>
+    <string name="context_menu_pile_collapse">Collapse</string>
+    <string name="context_menu_pile_fan">Fan Out</string>
+    <string name="context_menu_pile_collapse_fan">Collapse Fan</string>
+    <string name="context_menu_pile_break_apart">Break Apart</string>
     <string name="context_menu_selection_count">%1$d selected</string>
     <string name="context_menu_widget">Widget · %1$s</string>
     <string name="launcher_return_bubble_label">XR</string>
