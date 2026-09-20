@@ -240,7 +240,21 @@ object HomeSpaceDeskState {
                 paneBlocks = panes,
                 excludeKey = current.app.componentKey,
             ) ?: return true
-            _drawerPose.value = resolved.first to resolved.second
+            var placeYaw = resolved.first
+            var placePitch = resolved.second
+            val grid = DeskGridOverlay.config
+            if (grid.snapToGrid) {
+                val snapped = DeskGrid.snapPose(
+                    yawDeg = placeYaw,
+                    pitchDeg = placePitch,
+                    iconHalfWidth = grid.iconHalfWidth,
+                    gridScale = grid.gridScale,
+                    sphereScale = sphereScale,
+                )
+                placeYaw = snapped.first
+                placePitch = snapped.second
+            }
+            _drawerPose.value = placeYaw to placePitch
             return true
         }
         val wasOnDesktop = _placed.value.any { it.app.componentKey == current.app.componentKey }

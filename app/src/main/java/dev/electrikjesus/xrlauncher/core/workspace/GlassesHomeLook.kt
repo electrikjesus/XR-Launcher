@@ -149,6 +149,20 @@ object GlassesHomeLook {
         panNorm = pane
     }
 
+    /**
+     * Face the expanded All Apps drawer on the Desktop wall.
+     * Prefer the live tile pose when the user has moved it; otherwise Desktop pane.
+     */
+    fun lookAtAllAppsDrawer(yawDeg: Float? = null, pitchDeg: Float = 0f) {
+        if (yawDeg != null) {
+            lookYawDegrees = yawDeg
+            lookPitch = pitchDeg
+        } else {
+            lookAt(PANE_LEFT)
+            lookPitch = 0f
+        }
+    }
+
     /** Desktop / All Apps wall, including empty space left of the drawer. */
     fun lookingAtDesktop(): Boolean = panNorm <= PANE_LEFT + 0.28f
 

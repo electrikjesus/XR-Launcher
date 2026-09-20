@@ -624,6 +624,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** / **Stack**; Fan Out; **Break Apart** settles with angular spacing + pane clear (no sphere-orbit runaway); leaf / rename still open.
 0c. **Desktop grid** — ☑ Snap to grid + show-grid-on-move + cell scale in Settings / Edit Desktop; GLES overlay while moving/resizing; live landing-cell highlight on drag.
 0c2. **All Apps open drawer plate** — ☑ Frosted backing hugs icon/chevron span; outside-click dismiss matches the visible plate edge (no extra hit slop).
+0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -871,7 +872,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **All Apps open drawer:** draw frosted backing panel; tighten pad so plate hugs the grid | Backing was pick-only (invisible); oversized square pad hid the widget plate |
 | 2026-09-20 | **Snap-to-grid UX:** live landing-cell highlight while dragging; snap pose on release | Snap ran silently with no target preview, so drops did not feel snapped |
 | 2026-09-20 | **All Apps plate fit:** chevrons flush to grid edge; thin width pad; backing hit/dismiss slop = 1.0 | Plate wider than icons/arrows; outside-click had to go past the frosted edge |
+| 2026-09-20 | **All Apps tile snap + Home focus:** snap drawer pose on release; host Home shortcut looks at drawer | Grid highlight moved but tile ignored snap; Home open left the expanded widget off-screen |
 
 ---
 
-*Last updated: 2026-09-20 (All Apps plate fit / dismiss)*
+*Last updated: 2026-09-20 (All Apps tile snap + Home focus)*

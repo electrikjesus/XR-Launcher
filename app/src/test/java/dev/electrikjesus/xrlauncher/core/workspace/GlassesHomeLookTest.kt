@@ -26,9 +26,19 @@ class GlassesHomeLookTest {
     }
 
     @Test
-    fun centerCursor_doesNotPan() {
-        GlassesHomeLook.tickEdgePan(cursorX = 0.5f, deltaSeconds = 1f)
-        assertEquals(0f, GlassesHomeLook.panNorm, 0.001f)
+    fun lookAtAllAppsDrawer_usesYawDegreesWhenProvided() {
+        GlassesHomeLook.lastPaneArcDegrees = 72f
+        GlassesHomeLook.lookAtAllAppsDrawer(yawDeg = -48f, pitchDeg = 4f)
+        assertEquals(-48f, GlassesHomeLook.lookYawDegrees, 0.001f)
+        assertEquals(4f, GlassesHomeLook.lookPitch, 0.001f)
+        assertEquals(-48f / 72f, GlassesHomeLook.panNorm, 0.001f)
+    }
+
+    @Test
+    fun lookAtAllAppsDrawer_fallsBackToDesktopPane() {
+        GlassesHomeLook.lookAtAllAppsDrawer(yawDeg = null)
+        assertEquals(GlassesHomeLook.PANE_LEFT, GlassesHomeLook.panNorm, 0.001f)
+        assertEquals(0f, GlassesHomeLook.lookPitch, 0.001f)
     }
 
     @Test

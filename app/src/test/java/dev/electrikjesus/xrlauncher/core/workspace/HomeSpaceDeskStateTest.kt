@@ -16,6 +16,7 @@ class HomeSpaceDeskStateTest {
     fun reset() {
         HomeSpaceDeskState.clear()
         AllAppsPaginationState.reset()
+        DeskGridOverlay.update(DeskGridOverlay.Config())
     }
 
     @Test
@@ -163,6 +164,35 @@ class HomeSpaceDeskStateTest {
         assertEquals(-12f, HomeSpaceDeskState.drawerPose!!.first, 0.01f)
         assertEquals(6f, HomeSpaceDeskState.drawerPose!!.second, 0.01f)
         assertTrue(HomeSpaceDeskState.placed.isEmpty())
+    }
+
+    @Test
+    fun pullAllAppsTile_snapsToGridWhenEnabled() {
+        DeskGridOverlay.update(
+            DeskGridOverlay.Config(
+                snapToGrid = true,
+                iconHalfWidth = 0.1f,
+                gridScale = 1f,
+                sphereScale = 1f,
+            ),
+        )
+        val drawer = HomeSpaceDesk.iconOf(
+            HomeSpaceDesk.AppRef(
+                HomeSpaceDesk.DRAWER_KEY,
+                HomeSpaceDesk.DRAWER_LABEL,
+                "",
+                HomeSpaceDesk.Kind.APP_DRAWER,
+            ),
+            yawDeg = -40f,
+            pitchDeg = 0f,
+            sphereScale = 1f,
+        )
+        HomeSpaceDeskState.press(drawer, 0.5f, 0.5f)
+        HomeSpaceDeskState.move(0.7f, 0.4f, yawDeg = -11f, pitchDeg = 5f)
+        assertTrue(HomeSpaceDeskState.release(onDesktop = true, sphereScale = 1f))
+        val expected = DeskGrid.snapPose(-11f, 5f, 0.1f, 1f, 1f)
+        assertEquals(expected.first, HomeSpaceDeskState.drawerPose!!.first, 0.01f)
+        assertEquals(expected.second, HomeSpaceDeskState.drawerPose!!.second, 0.01f)
     }
 
     @Test

@@ -486,6 +486,7 @@ private fun handleLeftClick(
     if (hitAllAppsLauncher) {
         Log.d(LOG_TAG, "left-click hit all-apps launcher")
         onOpenAllApps()
+        focusAllAppsDrawerOnHost()
         return
     }
     if (overlayVisible) {
@@ -509,6 +510,14 @@ private fun handleLeftClick(
     logClickMiss(point, itemBounds)
     DeskLassoState.clearSelection()
     HomeSpaceDeskState.collapseOpenPiles()
+}
+
+/** Host Home Space only — turn to the expanded drawer; glasses keep the current look. */
+private fun focusAllAppsDrawerOnHost() {
+    if (!GlassesSessionState.hostImmersiveSession) return
+    if (!GlassesSessionState.deskDrawerOpen) return
+    val pose = HomeSpaceDeskState.drawerPose
+    GlassesHomeLook.lookAtAllAppsDrawer(yawDeg = pose?.first, pitchDeg = pose?.second ?: 0f)
 }
 
 private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
@@ -547,7 +556,10 @@ private fun handleHomeSpaceClick(
             GlassesSessionState.hideHomeOverlays()
             GlassesHomeLook.lookHome()
         }
-        GlassesHomeHits.ALL_APPS -> onOpenAllApps()
+        GlassesHomeHits.ALL_APPS -> {
+            onOpenAllApps()
+            focusAllAppsDrawerOnHost()
+        }
         GlassesHomeHits.RECENTS ->
             GlassesSessionState.toggleHomeOverlay(GlassesHomeOverlay.RECENTS)
         GlassesHomeHits.NOTIFICATIONS, GlassesHomeHits.QUICK_SETTINGS ->
