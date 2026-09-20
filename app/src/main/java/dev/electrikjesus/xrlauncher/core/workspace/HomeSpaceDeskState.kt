@@ -632,6 +632,15 @@ object HomeSpaceDeskState {
         return true
     }
 
+    /** Collapse any expanded / fanned pile (empty-desk dismiss). */
+    fun collapseOpenPiles(): Boolean {
+        if (_piles.value.none { it.showsMembers }) return false
+        _piles.value = _piles.value.map {
+            if (it.showsMembers) DeskPileOps.collapse(it) else it
+        }
+        return true
+    }
+
     /**
      * BumpDesk lasso layout: rearrange selected Desktop icons (row / column / grid).
      */

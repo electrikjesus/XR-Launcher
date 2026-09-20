@@ -505,6 +505,7 @@ private fun handleLeftClick(
     }
     logClickMiss(point, itemBounds)
     DeskLassoState.clearSelection()
+    HomeSpaceDeskState.collapseOpenPiles()
 }
 
 private fun homeHitKey(point: Offset, itemBounds: Map<String, Rect>): String? {
@@ -1009,8 +1010,9 @@ private fun trackDeskDrag(
                     !openDrawerClickZone(
                         cursorX, cursorY, rootWidthPx, rootHeightPx, panelScale, sphereScale,
                     ) -> {
-                    // Empty press dismisses an armed group move (BumpDesk).
+                    // Empty press dismisses an armed group move / open pile (BumpDesk).
                     DeskGroupMoveState.clear()
+                    HomeSpaceDeskState.collapseOpenPiles()
                     deskLassoPending = true
                     pendingLassoCursorX = cursorX
                     pendingLassoCursorY = cursorY

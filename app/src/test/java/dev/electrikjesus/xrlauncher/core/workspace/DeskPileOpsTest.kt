@@ -80,6 +80,8 @@ class DeskPileOpsTest {
         assertTrue(HomeSpaceDeskState.piles.first().fannedOut)
         assertFalse(HomeSpaceDeskState.piles.first().expanded)
         assertTrue(HomeSpaceDeskState.piles.first().showsMembers)
+        assertTrue(HomeSpaceDeskState.collapseOpenPiles())
+        assertFalse(HomeSpaceDeskState.piles.first().showsMembers)
     }
 
     @Test
