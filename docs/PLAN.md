@@ -635,6 +635,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c11. **Phone wallpaper on XR room** — ☑ Declare `MANAGE_EXTERNAL_STORAGE` (Android 14+ `WallpaperManager` lock); Settings grant CTA; `WallpaperColors` approx when denied; resume reloads SYSTEM; GLES sample flips Y (`GLUtils` top→v=0).
 0c12. **Poly Haven HDRI backdrops** — ☑ `POLY_HAVEN` choice + asset id; live API picker (attribution); CDN 2:1 equirect cache; GLES sphere + direction sample.
 0c13. **Companion Apps toggle + notification dismiss X** — ☑ Toolbar Apps icon toggles All Apps; each tray notification has a pointer-hit X dismiss.
+0c14. **Companion toolbar icon contrast** — ☑ Explicit `onBackground` / teal selected tints on every top-bar icon.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -896,7 +897,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Wallpaper Y flip:** GLES sample `1-v` to match GLUtils bitmap upload | Phone wallpaper appeared upside-down on the surround room |
 | 2026-09-20 | **Poly Haven HDRI:** Settings picker via live API; equirect sphere sample; cached CDN 2K×1K | Wanted sphere-mapped HDR backdrops beyond phone wallpaper |
 | 2026-09-20 | **Companion Apps icon + notif X:** toolbar toggles All Apps; per-notification dismiss hits | Close-all-apps button ate touchpad space; FPS could not dismiss tray items |
+| 2026-09-20 | **Companion toolbar contrast:** every top icon uses onBackground; selected = teal secondary | Some toolbar icons had no tint and washed out on the dark chrome |
 
 ---
 
-*Last updated: 2026-09-20 (companion Apps + notif dismiss)*
+*Last updated: 2026-09-20 (companion toolbar contrast)*

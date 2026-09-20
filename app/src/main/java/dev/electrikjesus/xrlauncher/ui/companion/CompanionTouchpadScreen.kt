@@ -131,6 +131,8 @@ fun CompanionTouchpadScreen(
             .systemBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
+        val toolbarIconTint = MaterialTheme.colorScheme.onBackground
+        val toolbarIconSelectedTint = MaterialTheme.colorScheme.secondary
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -139,6 +141,7 @@ fun CompanionTouchpadScreen(
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = stringResource(R.string.companion_show_controls),
+                    tint = toolbarIconTint,
                 )
             }
             IconButton(
@@ -151,9 +154,9 @@ fun CompanionTouchpadScreen(
                     imageVector = Icons.Default.TouchApp,
                     contentDescription = stringResource(R.string.companion_cursor_touchpad),
                     tint = if (xrInputMode == GlassesXrInputMode.COMPANION) {
-                        MaterialTheme.colorScheme.primary
+                        toolbarIconSelectedTint
                     } else {
-                        MaterialTheme.colorScheme.onSurface
+                        toolbarIconTint
                     },
                 )
             }
@@ -168,10 +171,11 @@ fun CompanionTouchpadScreen(
                 Icon(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = stringResource(R.string.companion_cursor_head),
-                    tint = if (xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
+                    tint = when {
+                        !rayNeoUsbAttached -> toolbarIconTint.copy(alpha = 0.38f)
+                        xrInputMode == GlassesXrInputMode.GLASSES_HEAD_TRACKING ->
+                            toolbarIconSelectedTint
+                        else -> toolbarIconTint
                     },
                 )
             }
@@ -196,9 +200,9 @@ fun CompanionTouchpadScreen(
                     imageVector = Icons.Default.Mouse,
                     contentDescription = stringResource(R.string.companion_mouselook),
                     tint = if (lookMode == GlassesLookMode.FPS) {
-                        MaterialTheme.colorScheme.primary
+                        toolbarIconSelectedTint
                     } else {
-                        MaterialTheme.colorScheme.onSurface
+                        toolbarIconTint
                     },
                 )
             }
@@ -211,6 +215,7 @@ fun CompanionTouchpadScreen(
                 Icon(
                     imageVector = Icons.Default.FilterCenterFocus,
                     contentDescription = stringResource(R.string.recenter),
+                    tint = toolbarIconTint,
                 )
             }
             IconButton(
@@ -223,6 +228,7 @@ fun CompanionTouchpadScreen(
                 Icon(
                     imageVector = Icons.Default.Keyboard,
                     contentDescription = stringResource(R.string.companion_show_keyboard),
+                    tint = toolbarIconTint,
                 )
             }
             BasicTextField(
@@ -246,9 +252,9 @@ fun CompanionTouchpadScreen(
                         },
                     ),
                     tint = if (allAppsOverlayVisible) {
-                        MaterialTheme.colorScheme.primary
+                        toolbarIconSelectedTint
                     } else {
-                        MaterialTheme.colorScheme.onSurface
+                        toolbarIconTint
                     },
                 )
             }
