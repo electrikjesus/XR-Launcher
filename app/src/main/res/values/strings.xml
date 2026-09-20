@@ -67,7 +67,7 @@
     <string name="settings_head_tracking_section">Head tracking</string>
     <string name="settings_head_tracking_scales_hint">Yaw and pitch sensitivity when glasses head tracking is active.</string>
     <string name="settings_wallpaper_section">Wallpaper</string>
-    <string name="settings_wallpaper_hint">Surround backdrop for the Home Space room.</string>
+    <string name="settings_wallpaper_hint">Surround backdrop for the glasses / XR Home Space room only — not the companion touchpad.</string>
     <string name="settings_look_section">Look</string>
     <string name="settings_look_home_space_hint">Eye = edge look. Hand = two-finger pan or pinch zoom (one locks the other); one finger is desk. Mouse = free look. Panel and icon size stay in Edit.</string>
     <string name="settings_look_deadzone_hint">Center band where the cursor does not move look. The sine curve starts at the edge of that band.</string>

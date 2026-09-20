@@ -48,7 +48,7 @@
             android:exported="false"
             android:label="@string/companion_touchpad"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.XRLauncher" />
+            android:theme="@style/Theme.XRLauncher.Companion" />
 
         <activity
             android:name=".external.ExternalDisplayActivity"

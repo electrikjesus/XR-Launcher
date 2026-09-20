@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.XRLauncher" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Launcher-style: system wallpaper composites behind transparent layers. -->
+        <!-- Phone/host HOME: system wallpaper composites behind transparent layers. -->
         <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+    <!-- Companion touchpad: opaque — wallpaper belongs on glasses/XR GLES only. -->
+    <style name="Theme.XRLauncher.Companion" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@color/glasses_background</item>
+        <item name="android:colorBackground">@color/glasses_background</item>
+        <item name="android:statusBarColor">@color/glasses_background</item>
+        <item name="android:navigationBarColor">@color/glasses_background</item>
     </style>
     <style name="Theme.XRLauncher.Glasses" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/glasses_background</item>
