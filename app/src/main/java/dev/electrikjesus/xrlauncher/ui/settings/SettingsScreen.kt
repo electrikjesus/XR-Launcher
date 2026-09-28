@@ -37,6 +37,7 @@ import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
 import dev.electrikjesus.xrlauncher.core.launcher.LauncherReturnBubbleStore
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HostPaneArrowsStore
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceLookOffset
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
@@ -60,6 +61,8 @@ fun SettingsScreen(
     val context = LocalContext.current.applicationContext
     LauncherReturnBubbleStore.init(context)
     AllAppsGridConfigStore.init(context)
+    HostPaneArrowsStore.init(context)
+    val paneArrowsEnabled by HostPaneArrowsStore.enabled.collectAsState()
     val scope = rememberCoroutineScope()
     val workspace by workspaceRepository.workspace.collectAsState(initial = null)
     val appearance = workspace?.appearance?.clamped() ?: WorkspaceAppearance.default()
@@ -149,6 +152,13 @@ fun SettingsScreen(
                     sizeDp = returnBubbleSizeDp,
                     onSizeDpChange = { LauncherReturnBubbleStore.saveSizeDp(context, it) },
                     onReset = { LauncherReturnBubbleStore.resetToDefaults(context) },
+                )
+            }
+            item {
+                SettingsSectionTitle(stringResource(R.string.settings_pane_arrows_section))
+                PaneArrowsSettingsSection(
+                    enabled = paneArrowsEnabled,
+                    onEnabledChange = { HostPaneArrowsStore.setEnabled(context, it) },
                 )
             }
             item {

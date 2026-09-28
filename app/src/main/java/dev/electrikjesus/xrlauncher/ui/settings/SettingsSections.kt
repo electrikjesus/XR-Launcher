@@ -295,6 +295,35 @@ fun ReturnBubbleSettingsSection(
 }
 
 @Composable
+fun PaneArrowsSettingsSection(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_pane_arrows_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { onEnabledChange(!enabled) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(
+                stringResource(
+                    if (enabled) R.string.settings_pane_arrows_on else R.string.settings_pane_arrows_off,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
 fun DeskGridSettingsSection(
     snapToGrid: Boolean,
     showGridOnMove: Boolean,

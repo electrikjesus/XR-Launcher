@@ -34,6 +34,8 @@ class GlassesHomeHitsTest {
     fun isScreenLockedChromeKey_marksHudAndEditToggleOnly() {
         assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HUD_SETTINGS))
         assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_TOGGLE))
+        assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HUD_PANE_PREV))
+        assertTrue(GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HUD_PANE_NEXT))
         assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.HOME))
         assertTrue(!GlassesHomeHits.isScreenLockedChromeKey(GlassesHomeHits.EDIT_CLOSE))
         assertTrue(GlassesHomeHits.isEditBodyKey(GlassesHomeHits.EDIT_ELEMENT_MINUS))

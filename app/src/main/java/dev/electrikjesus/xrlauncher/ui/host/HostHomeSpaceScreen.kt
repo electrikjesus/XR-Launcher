@@ -43,7 +43,9 @@ import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingLogic
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingPermissions
 import dev.electrikjesus.xrlauncher.core.onboarding.OnboardingStore
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialog
+import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
+import dev.electrikjesus.xrlauncher.core.workspace.HostPaneArrowsStore
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HotseatResolver
@@ -91,6 +93,8 @@ fun HostHomeSpaceScreen(
     var includeOnboardingIntro by remember { mutableStateOf(true) }
     val dismissedDisplayIds by HostGlassesAttachPromptState.dismissedDisplayIdsFlow.collectAsState()
     val hostDialog by HomeSpaceDialogState.dialogFlow.collectAsState()
+    HostPaneArrowsStore.init(context)
+    val paneArrowsEnabled by HostPaneArrowsStore.enabled.collectAsState()
     val rayNeoUsbAttached = GlassesSessionState.rayNeoUsbAttached ||
         RayNeoHeadTrackingController.isRayNeoAttached(context)
     DisposableEffect(lifecycleOwner) {
@@ -321,6 +325,18 @@ fun HostHomeSpaceScreen(
                 workspaceRepository = workspaceRepository,
                 onBoundsChanged = { key, rect -> itemBounds[key] = rect },
                 onOpenSettings = onOpenSettings,
+            )
+        }
+        LaunchedEffect(paneArrowsEnabled) {
+            if (!paneArrowsEnabled) {
+                itemBounds.remove(GlassesHomeHits.HUD_PANE_PREV)
+                itemBounds.remove(GlassesHomeHits.HUD_PANE_NEXT)
+            }
+        }
+        if (paneArrowsEnabled) {
+            HostPaneNavArrows(
+                hoveredLabel = cursor.hoveredLabel,
+                onBoundsChanged = { key, rect -> itemBounds[key] = rect },
             )
         }
         val editing by GlassesSessionState.homeSpaceEditFlow.collectAsState()

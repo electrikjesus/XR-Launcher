@@ -273,6 +273,12 @@
     <string name="xr_edit_on">On</string>
     <string name="xr_edit_off">Off</string>
     <string name="context_menu_open_all_apps">All apps</string>
+    <string name="settings_pane_arrows_section">Panel navigation</string>
+    <string name="settings_pane_arrows_hint">Large-screen Home Space: show arrows on the left and right edges that glide the view to the previous or next panel.</string>
+    <string name="settings_pane_arrows_on">Navigation arrows · on</string>
+    <string name="settings_pane_arrows_off">Navigation arrows · off</string>
+    <string name="host_pane_prev">Previous panel</string>
+    <string name="host_pane_next">Next panel</string>
     <string name="settings_desk_grid_section">Desktop grid</string>
     <string name="settings_desk_grid_hint">Snap icons and widgets to an angular cell grid. Show the grid while moving or resizing.</string>
     <string name="settings_desk_snap_to_grid">Snap to grid</string>

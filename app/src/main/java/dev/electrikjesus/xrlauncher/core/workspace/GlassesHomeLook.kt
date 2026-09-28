@@ -123,7 +123,7 @@ object GlassesHomeLook {
         appPlanes.forEachIndexed { index, plane ->
             slots += HomeSpacePaneSlot(plane.panelId, appPane(index))
         }
-        slots += HomeSpacePaneSlot("tray", trayPane())
+        slots += HomeSpacePaneSlot("tray", PANE_RIGHT + appPlanes.size)
         return slots
     }
 

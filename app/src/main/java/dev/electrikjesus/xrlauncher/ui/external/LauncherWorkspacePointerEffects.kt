@@ -39,6 +39,7 @@ import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDeskState
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpacePaneNav
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTune
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceTuneAxis
 import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceEditPage
@@ -633,6 +634,8 @@ private fun handleHomeSpaceClick(
             GlassesHomeLook.lookAt(GlassesHomeLook.trayPane())
         GlassesHomeHits.SETTINGS -> onOpenSettings()
         GlassesHomeHits.HUD_SETTINGS -> onOpenSettings()
+        GlassesHomeHits.HUD_PANE_PREV -> HomeSpacePaneNav.step(-1)
+        GlassesHomeHits.HUD_PANE_NEXT -> HomeSpacePaneNav.step(1)
         GlassesHomeHits.HUD_RECENTER -> {
             CompanionPointerBus.recenterCursor()
             GlassesHomeLook.lookHome()

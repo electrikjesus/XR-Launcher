@@ -639,6 +639,9 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c15. **Companion 2/3-finger gestures** — ☑ 2-finger scroll (a11y swipe) / pinch-zoom sphere; 3-finger look; 2-finger tap = right-click.
 0c16. **Tray QS + notif scroll handle** — ☑ Deduped QS chrome; brightness scrub for pointer; notification grab-scroll handle.
 0c17. **Recents world-lock** — ☑ Hamburger Recents lives on the Home pane GLES capture (not a viewport overlay stuck to FPS crosshair).
+0c18. **Host Edit in top HUD** — ☑ Edit icon beside Settings; bottom-end pill stays on glasses only.
+0c19. **All Apps drawer padding** — ☑ Roughly square frosted plate with outside padding around the grid and pager.
+0c20. **Host pane navigation arrows** — ☑ Settings toggle (off by default) shows left/right edge arrows on the large-screen Home Space; a click eases the look ~0.4 s to center the previous / next stop (Desktop · Home · app planes · Tray), full-circle aware.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -911,6 +914,8 @@ Record major choices here as they are made.
 
 | 2026-09-28 | **All Apps drawer breathing room:** column spacing 3.0, pager gap 0.6, backing pad 0.5 / side pad 0.6 half-sizes; test keeps the plate roughly square | UBook X screenshot showed a tall, snug plate with the top row poking past the edge |
 
+| 2026-09-28 | **Host pane arrows:** `HostPaneArrowsStore` toggle in shared Settings; `HomeSpacePaneNav` eases `panNorm` to the neighbor stop; screen-locked `HUD_PANE_PREV/NEXT` keys | Tablet users wanted one-click panel-to-panel navigation instead of dragging the look |
+
 ---
 
-*Last updated: 2026-09-28 (All Apps drawer padding)*
+*Last updated: 2026-09-28 (host pane navigation arrows)*

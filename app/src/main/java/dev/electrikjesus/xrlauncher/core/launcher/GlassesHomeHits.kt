@@ -37,6 +37,8 @@ object GlassesHomeHits {
     const val HUD_RECENTER = "__xr_hud_recenter__"
     const val HUD_KEYBOARD = "__xr_hud_keyboard__"
     const val HUD_SETTINGS = "__xr_hud_settings__"
+    const val HUD_PANE_PREV = "__xr_hud_pane_prev__"
+    const val HUD_PANE_NEXT = "__xr_hud_pane_next__"
     const val QS_WIFI = "__xr_qs_wifi__"
     const val QS_BLUETOOTH = "__xr_qs_bluetooth__"
     const val QS_BRIGHTNESS = "__xr_qs_brightness__"
@@ -97,6 +99,8 @@ object GlassesHomeHits {
     const val HUD_RECENTER_LABEL = "Recenter"
     const val HUD_KEYBOARD_LABEL = "Keyboard"
     const val HUD_SETTINGS_LABEL = "Settings"
+    const val HUD_PANE_PREV_LABEL = "Previous panel"
+    const val HUD_PANE_NEXT_LABEL = "Next panel"
     const val QS_WIFI_LABEL = "Wi‑Fi"
     const val QS_BLUETOOTH_LABEL = "Bluetooth"
     const val QS_BRIGHTNESS_LABEL = "Brightness"
@@ -157,6 +161,8 @@ object GlassesHomeHits {
             HUD_RECENTER -> HUD_RECENTER_LABEL
             HUD_KEYBOARD -> HUD_KEYBOARD_LABEL
             HUD_SETTINGS -> HUD_SETTINGS_LABEL
+            HUD_PANE_PREV -> HUD_PANE_PREV_LABEL
+            HUD_PANE_NEXT -> HUD_PANE_NEXT_LABEL
             QS_WIFI -> QS_WIFI_LABEL
             QS_BLUETOOTH -> QS_BLUETOOTH_LABEL
             QS_BRIGHTNESS, QS_BRIGHTNESS_TILE -> QS_BRIGHTNESS_LABEL
@@ -185,6 +191,8 @@ object GlassesHomeHits {
         EDIT_ELEMENT_PLUS,
         EDIT_TOGGLE,
         HUD_SETTINGS,
+        HUD_PANE_PREV,
+        HUD_PANE_NEXT,
         HUD_KEYBOARD,
         HUD_RECENTER,
         HUD_LOOK_MODE,
@@ -228,6 +236,8 @@ object GlassesHomeHits {
         HUD_RECENTER,
         HUD_KEYBOARD,
         HUD_SETTINGS,
+        HUD_PANE_PREV,
+        HUD_PANE_NEXT,
         -> true
         else -> false
     }
