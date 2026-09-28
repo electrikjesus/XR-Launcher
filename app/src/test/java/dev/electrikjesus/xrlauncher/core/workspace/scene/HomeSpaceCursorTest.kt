@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -13,6 +14,12 @@ class HomeSpaceCursorTest {
         HomeSpacePaneSlot("home", 0f),
         HomeSpacePaneSlot("tray", 1f),
     )
+
+    @Before
+    fun resetDeadzones() {
+        HomeSpaceScene.cursorDeadzoneX = 0f
+        HomeSpaceScene.cursorDeadzoneY = 0f
+    }
 
     @Test
     fun viewPoint_roundTripsThroughWorldDirection() {
@@ -92,7 +99,12 @@ class HomeSpaceCursorTest {
     fun mouseLookRight_stillPicksHomeTowardTheRightEdge() {
         val cursorX = 0.72f
         val camera = HomeSpaceScene.camera(0f, cursorX, 0.5f, 1920f, 1080f)
-        assertTrue(camera.yawDeg > 8f)
+        assertTrue(camera.yawDeg > 0f)
+        assertEquals(
+            HomeSpaceScene.cursorEdgeWeight(cursorX) * HomeSpaceScene.CURSOR_YAW_DEGREES,
+            camera.yawDeg,
+            0.01f,
+        )
         val pick = HomeSpaceScene.pickPane(
             cursorX = cursorX,
             cursorY = 0.5f,
@@ -110,7 +122,12 @@ class HomeSpaceCursorTest {
     fun mouseLookDown_stillPicksHome() {
         val cursorY = 0.66f
         val camera = HomeSpaceScene.camera(0f, 0.5f, cursorY, 1920f, 1080f)
-        assertTrue(camera.pitchDeg > 5f)
+        assertTrue(camera.pitchDeg > 0f)
+        assertEquals(
+            HomeSpaceScene.cursorEdgeWeight(cursorY) * HomeSpaceScene.CURSOR_PITCH_DEGREES,
+            camera.pitchDeg,
+            0.01f,
+        )
         val pick = HomeSpaceScene.pickPane(
             cursorX = 0.5f,
             cursorY = cursorY,

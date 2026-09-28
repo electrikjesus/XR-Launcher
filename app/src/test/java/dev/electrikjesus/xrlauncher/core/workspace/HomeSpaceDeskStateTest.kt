@@ -16,7 +16,7 @@ class HomeSpaceDeskStateTest {
     fun reset() {
         HomeSpaceDeskState.clear()
         AllAppsPaginationState.reset()
-        DeskGridOverlay.update(DeskGridOverlay.Config())
+        DeskGridOverlay.update(DeskGridOverlay.Config(snapToGrid = false))
     }
 
     @Test

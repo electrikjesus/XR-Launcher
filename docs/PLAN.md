@@ -905,7 +905,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **Tray QS + notif scroll:** dedupe controls; pointer brightness scrub; grab scroll handle | Parent clickable ate slider; FPS could not scroll notifications |
 | 2026-09-20 | **Recents on Home pane:** world-lock hamburger Recents in GLES capture | Viewport overlay sat on FPS crosshair and stuck to mouse-look |
 | 2026-09-20 | **v0.1.34 release:** tablet screenshots + release notes; tag push | Ship companion multitouch, tray polish, Recents, wallpaper/HDRI |
+| 2026-09-28 | **Verify CI green again:** desk tests opt out of default snap-to-grid; cursor tests assert the 1-cos look curve. Run `testDebugUnitTest` locally before every commit | CI Verify only runs on release pushes, so 63 commits landed with 6 stale unit tests |
 
 ---
 
-*Last updated: 2026-09-20 (v0.1.34 release)*
+*Last updated: 2026-09-28 (Verify CI unit-test fix)*

@@ -14,6 +14,7 @@ class DeskGroupMoveStateTest {
     fun reset() {
         DeskGroupMoveState.clear()
         HomeSpaceDeskState.clear()
+        DeskGridOverlay.update(DeskGridOverlay.Config(snapToGrid = false))
     }
 
     @Test
