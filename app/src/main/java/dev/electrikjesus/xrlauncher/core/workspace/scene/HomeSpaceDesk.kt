@@ -43,15 +43,15 @@ object HomeSpaceDesk {
     /** Open-drawer tiles — same face size as Desktop apps (uniform app class). */
     const val DRAWER_OPEN_ICON_SCALE = 1.0f
     /** Horizontal arc spacing between open-drawer icon centers, in icon widths. */
-    const val DRAWER_OPEN_COL_SPACING = 2.45f
+    const val DRAWER_OPEN_COL_SPACING = 3.0f
     /** Vertical arc spacing between open-drawer icon centers, in icon heights. */
     const val DRAWER_OPEN_ROW_SPACING = 2.55f
     /** Extra pitch gap (in row-spacing units) between bottom icon row and pager. */
-    const val DRAWER_PAGER_GAP = 0.85f
+    const val DRAWER_PAGER_GAP = 0.6f
     /** Padding around grid+pager inside the backing, in icon half-sizes. */
-    const val DRAWER_BACKING_PAD = 0.10f
+    const val DRAWER_BACKING_PAD = 0.5f
     /** Horizontal pad past the icon/chevron outer edge (icon half-sizes). */
-    const val DRAWER_BACKING_WIDTH_PAD = 0.04f
+    const val DRAWER_BACKING_WIDTH_PAD = 0.6f
     const val MAX_PAGE_DOTS = 5
     /**
      * Soft cap on open-drawer angular half-height (degrees) so the pager stays

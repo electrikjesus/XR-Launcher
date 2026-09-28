@@ -623,7 +623,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0a. **AppWidgetHost on desk** — ☑ Partial: picker + place + persist + capture; radial **Resize** with corner handles on grid (Grow/Shrink removed). Still open: touch-through.
 0b. **True Smart Pile objects** — ☑ Partial: Create Pile → **Folder** / **Stack**; Fan Out; **Break Apart** settles with angular spacing + pane clear (no sphere-orbit runaway); leaf / rename still open.
 0c. **Desktop grid** — ☑ Snap to grid + show-grid-on-move + cell scale in Settings / Edit Desktop; GLES overlay while moving/resizing; live landing-cell highlight on drag.
-0c2. **All Apps open drawer plate** — ☑ Frosted backing hugs icon/chevron span; outside-click dismiss matches the visible plate edge (no extra hit slop).
+0c2. **All Apps open drawer plate** — ☑ Frosted backing is roughly square with outside padding around the icon grid and pager (wider columns, shorter pager gap); outside-click dismiss matches the visible plate edge (no extra hit slop).
 0c3. **All Apps tile snap + Home focus** — ☑ Drawer tile snaps on release like icons/piles; Home shortcut looks at the expanded drawer on host (not glasses).
 0c4. **Host + glasses attach** — ☑ Prompt **XR Glasses UI** vs **Android Desktop** (+ companion); USB-only (no DisplayManager secondary) disables XR option with explanation; drop Companion USB chooser duplicate.
 0c5. **Home = desk surface** — ☑ Home pane is chrome only (clock/pills); no Compose app grid; Home face accepts Desktop apps/widgets (drops + physics); Tray/app panes still block. All Apps drawer stays **5×4**.
@@ -909,6 +909,8 @@ Record major choices here as they are made.
 
 | 2026-09-28 | **Host Edit in top HUD:** Edit icon beside Settings (shares `EDIT_TOGGLE`); bottom-end pill only on glasses | Bottom-right pill on tablet was far from the rest of the chrome |
 
+| 2026-09-28 | **All Apps drawer breathing room:** column spacing 3.0, pager gap 0.6, backing pad 0.5 / side pad 0.6 half-sizes; test keeps the plate roughly square | UBook X screenshot showed a tall, snug plate with the top row poking past the edge |
+
 ---
 
-*Last updated: 2026-09-28 (host Edit moved to top HUD)*
+*Last updated: 2026-09-28 (All Apps drawer padding)*

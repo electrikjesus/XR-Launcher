@@ -196,13 +196,19 @@ class HomeSpaceDeskTest {
         val pagerOuter = abs(leftPager.yawDeg - backing.yawDeg) +
             HomeSpaceDesk.angularHalfYaw(leftPager.halfWidth, 1f)
         val backingHalfYaw = HomeSpaceDesk.angularHalfYaw(backing.halfWidth, 1f)
+        val sideMargin = backingHalfYaw - pagerOuter
         assertTrue(
-            "backing hugs pager outer edge (margin=${backingHalfYaw - pagerOuter})",
-            backingHalfYaw - pagerOuter in 0f..1.5f,
+            "backing leaves outside padding past the pager edge (margin=$sideMargin)",
+            sideMargin > 0.3f && sideMargin < 4f,
+        )
+        val backingAspect = backing.halfWidth / backing.halfHeight
+        assertTrue(
+            "open drawer backing is roughly square (aspect=$backingAspect)",
+            backingAspect in 0.85f..1.2f,
         )
         assertTrue(
-            "row spacing should leave room for labels",
-            HomeSpaceDesk.DRAWER_OPEN_ROW_SPACING > HomeSpaceDesk.DRAWER_OPEN_COL_SPACING,
+            "row spacing should leave room for labels between labeled faces",
+            HomeSpaceDesk.DRAWER_OPEN_ROW_SPACING > 2f,
         )
         val topApp = appsOnPage.first()
         val bottomPager = pager.first { it.kind == HomeSpaceDesk.Kind.PAGE_PREV }
