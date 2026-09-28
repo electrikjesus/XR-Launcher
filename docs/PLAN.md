@@ -59,7 +59,7 @@ There is one scene graph. Do not keep a “panel renderer” and a “desktop re
 
 **Do not chase root, signature, or privileged system permissions.** Play-distributed builds stay on the normal launcher / accessibility path (HOME role + user-enabled display pointer). Do not add `MANAGE_EXTERNAL_STORAGE`, `READ_WALLPAPER_INTERNAL`, or other privileged wallpaper/storage APIs — use gradient fallbacks when the system wallpaper is unavailable.
 
-**Large-screen host (planned 2.26–2.28):** On `WindowSizeClass.Expanded` with no glasses, the default HOME surface is this **same GLES Home Space**, not the legacy Compose `SpatialDesktopScreen` Subspace shell. Screen-locked HUD: companion-style icons along the **top** (input / mouse-look / recenter [/ keyboard] + Settings); Edit stays **bottom-end**. Compact phone remains Tier 0c (`PhoneShellScreen` / companion).
+**Large-screen host (planned 2.26–2.28):** On `WindowSizeClass.Expanded` with no glasses, the default HOME surface is this **same GLES Home Space**, not the legacy Compose `SpatialDesktopScreen` Subspace shell. Screen-locked HUD: companion-style icons along the **top** (input / mouse-look / recenter [/ keyboard] + Edit + Settings). Glasses keep the bottom-end Edit pill. Compact phone remains Tier 0c (`PhoneShellScreen` / companion).
 
 **Host input (BumpDesk absolute):** Expanded host Home Space uses **BumpDesk-derived absolute mouse/touch** (`HostBumpDeskInput` + `BumpDeskHostGesture`), not companion FPS center-lock. `HostInputMethod.BUMPDESK` (default) vs `COMPANION_BUS` (`HostPointerBridge`) for A/B. Glasses / phone companion keep `CompanionPointerBus` FPS semantics.
 
@@ -94,7 +94,7 @@ These rules apply to all design and implementation decisions. When in doubt, fol
 
 ### Tier 0 (large-screen spatial launcher)
 
-15. **Same Home Space as glasses, on the host display.** On `WindowSizeClass.Expanded` (tablet, unfolded foldable, DeX, Chromebook), Tier 0 is the **BumpDesk GLES Home Space** (task **2.26**), not a separate Compose `Subspace` / `SpatialDesktopScreen` shell. Navigation uses **mouse**, **touch**, and **keyboard**; companion actions also appear as a **top screen-locked HUD** (**2.27–2.28**). Edit stays bottom-end.
+15. **Same Home Space as glasses, on the host display.** On `WindowSizeClass.Expanded` (tablet, unfolded foldable, DeX, Chromebook), Tier 0 is the **BumpDesk GLES Home Space** (task **2.26**), not a separate Compose `Subspace` / `SpatialDesktopScreen` shell. Navigation uses **mouse**, **touch**, and **keyboard**; companion actions also appear as a **top screen-locked HUD** (**2.27–2.28**), including the Edit icon.
 16. **Compact phone is the launcher shell + companion.** On phones without an external display, show a flat app drawer / search UI for everyday HOME duty. When glasses connect or the user opens “Control workspace,” the phone becomes a **companion controller** (touchpad + motion pointer) — not a scaled-down 3D desktop.
 17. **Activity embedding on large screens.** Tier 0 may embed activities in spatial panels via [activity embedding](https://developer.android.com/develop/ui/views/layout/activity-embedding) or `ActivityPanelEntity` when APIs allow — same opt-in constraints as other tiers.
 
@@ -269,7 +269,7 @@ xrlauncher/
 │   ├── desktop/            # Tier 0 host routing (2.26: default into shared GLES Home Space; legacy SpatialDesktopScreen until retired)
 │   ├── phone/              # Tier 0c compact HOME shell
 │   ├── companion/          # Touchpad + motion controller (actions mirrored on host top HUD)
-│   ├── glasses/            # GLES Home Space + Edit (bottom-end) + planned top HUD on host
+│   ├── glasses/            # GLES Home Space + Edit (bottom-end on glasses, top HUD on host)
 │   ├── glimmer/            # Tier 2 glasses UI
 │   ├── spatial/            # GLES backdrop / shared XR scene helpers; Tier 3 Subspace where needed
 │   └── settings/           # SettingsActivity (companion + host HUD 2.28)
@@ -595,7 +595,7 @@ Desktop Mode on Pixel treats secondary-display activities as resizable freeform 
 | 2.25d | **Launcher surface (Play path).** `FLAG_SHOW_WALLPAPER` on host; tray notifications via `NotificationListenerService`; curated QS panels; launcher-owned recents; `AppWidgetHost` desk items follow-on. | ☑ Partial — wallpaper + tray/QS/recents; AppWidgetHost desk pick/place/persist/capture landed; touch-through still open |
 | 2.26 | **Large screen → XR Home Space default.** When `WindowSizeClass` is Expanded (tablet / unfold / DeX / Chromebook) and no glasses session, open the same BumpDesk GLES Home Space used on glasses (`GlassesSpatialWorkspaceScreen` path), not the older Compose `SpatialDesktopScreen` Subspace shell. Compact phone stays Tier 0c. | ☑ |
 | 2.27 | **Host XR chrome bar (top HUD).** Mirror the companion touchpad top actions as screen-locked HUD icons along the **top** of the XR workspace (same pattern as Edit locked to bottom-end): input mode (touchpad / head), mouse-look toggle, recenter look/home, optional keyboard. Hit-test via `GlassesHomeHits` like Edit. | ☑ |
-| 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Keep the bottom-end Edit control. | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
+| 2.28 | **Settings on host XR chrome.** Add a Settings icon on that top HUD that launches `SettingsActivity` (same destination as the companion “Open settings” button). Host Edit is a top HUD icon beside Settings (glasses keep the bottom-end pill). | ☑ Partial — host opens **in-engine Settings dialog**; phone/companion keep `SettingsActivity` |
 | 2.28a | **Host BumpDesk input path.** Port BumpDesk `LauncherActivity` gesture model (absolute coords, touch-slop, middle-drag look, scroll/pinch zoom) as second host input method; skip companion FPS press/release re-lock while `hostImmersiveSession`. | ☑ Partial — `HostBumpDeskMotionBridge` + Compose `pointerInteropFilter` catcher (AndroidView ate swipes); HUD wrap-content above catcher; eye/mouse force look mode |
 | 2.29 | **Repair Home sprocket SettingsActivity.** The settings screen opened from the Home panel gear (`GlassesWorkspaceTitleBar` / `DisplayLaunchHelper.openSettings`) has broken sections after Home Space / look-mode / desk changes — audit and fix look mode, sensitivity, wallpaper, All Apps grid, and head-tracking controls so they match current runtime behavior. | ☑ Partial — host immersive Settings is Home Space-only (wallpaper / All Apps / look); wallpaper re-uploads on choice; modal clicks own the pointer; phone SettingsActivity still full list |
 
@@ -907,6 +907,8 @@ Record major choices here as they are made.
 | 2026-09-20 | **v0.1.34 release:** tablet screenshots + release notes; tag push | Ship companion multitouch, tray polish, Recents, wallpaper/HDRI |
 | 2026-09-28 | **Verify CI green again:** desk tests opt out of default snap-to-grid; cursor tests assert the 1-cos look curve. Run `testDebugUnitTest` locally before every commit | CI Verify only runs on release pushes, so 63 commits landed with 6 stale unit tests |
 
+| 2026-09-28 | **Host Edit in top HUD:** Edit icon beside Settings (shares `EDIT_TOGGLE`); bottom-end pill only on glasses | Bottom-right pill on tablet was far from the rest of the chrome |
+
 ---
 
-*Last updated: 2026-09-28 (Verify CI unit-test fix)*
+*Last updated: 2026-09-28 (host Edit moved to top HUD)*

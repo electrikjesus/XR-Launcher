@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mouse
@@ -42,6 +43,7 @@ import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.launcher.GlassesHomeHits
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesHomeLook
 import dev.electrikjesus.xrlauncher.core.workspace.GlassesLookMode
+import dev.electrikjesus.xrlauncher.core.workspace.HomeSpaceDialogState
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceAppearance
 import dev.electrikjesus.xrlauncher.core.workspace.WorkspaceRepository
 import dev.electrikjesus.xrlauncher.ui.workspace.WorkspaceScaledLayer
@@ -61,6 +63,7 @@ fun BoxScope.HostXrChromeBar(
 ) {
     val lookMode by GlassesLookMode.preferenceFlow.collectAsState(initial = GlassesLookMode.preference)
     val xrInputMode by GlassesSessionState.xrInputModeFlow.collectAsState()
+    val editing by GlassesSessionState.homeSpaceEditFlow.collectAsState()
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
     val tuned = appearance.clamped()
@@ -166,6 +169,20 @@ fun BoxScope.HostXrChromeBar(
                 onClick = {
                     CompanionPointerBus.setTextEntryActive(true)
                     keyboardController?.show()
+                },
+            )
+            HudIcon(
+                icon = Icons.Default.Edit,
+                boundsKey = GlassesHomeHits.EDIT_TOGGLE,
+                hovered = hoveredLabel == GlassesHomeHits.EDIT_LABEL,
+                selected = editing,
+                contentDescription = stringResource(
+                    if (editing) R.string.xr_edit_space_done else R.string.xr_edit_space,
+                ),
+                onBoundsChanged = onBoundsChanged,
+                onClick = {
+                    HomeSpaceDialogState.close()
+                    GlassesSessionState.toggleHomeSpaceEdit()
                 },
             )
             HudIcon(

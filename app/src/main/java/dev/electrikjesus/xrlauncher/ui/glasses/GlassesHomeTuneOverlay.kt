@@ -229,12 +229,15 @@ fun BoxScope.GlassesHomeTuneOverlay(
                 Box(modifier = cardModifier, content = { cardContent() })
             }
         }
-        EditTogglePill(
-            editing = editing,
-            hoveredLabel = hoveredLabel,
-            onBoundsChanged = onBoundsChanged,
-            onToggleEdit = onToggleEdit,
-        )
+        // Host shows Edit as a top HUD icon (HostXrChromeBar); it shares the EDIT_TOGGLE bounds key.
+        if (!hostModal) {
+            EditTogglePill(
+                editing = editing,
+                hoveredLabel = hoveredLabel,
+                onBoundsChanged = onBoundsChanged,
+                onToggleEdit = onToggleEdit,
+            )
+        }
     }
 }
 
