@@ -917,7 +917,8 @@ Record major choices here as they are made.
 
 | 2026-09-28 | **Host pane arrows:** `HostPaneArrowsStore` toggle in shared Settings; `HomeSpacePaneNav` eases `panNorm` to the neighbor stop; screen-locked `HUD_PANE_PREV/NEXT` keys | Tablet users wanted one-click panel-to-panel navigation instead of dragging the look |
 | 2026-10-05 | **Dwell click:** `DwellClickStore` + progress dial; active only for FPS + `GLASSES_HEAD_TRACKING`; companion toolbar split into look/input + session rows | Cardboard-style hover-to-click for head-tracked mouse-look |
+| 2026-10-05 | **Glasses IMU docs:** README Credits (verncat + research refs); `docs/glasses-imu.md`; `scripts/imu/` list/dump helpers — no new OEM Android drivers | Contributors asked how to pull accel from XReal/Viture like RayNeo |
 
 ---
 
-*Last updated: 2026-10-05 (dwell click)*
+*Last updated: 2026-10-05 (dwell click + glasses IMU docs)*

@@ -93,6 +93,7 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 | [docs/DEVELOPER.md](docs/DEVELOPER.md) | Architecture, input system, debugging, key files |
 | [docs/PLAN.md](docs/PLAN.md) | Phases, tasks, rules, git workflow |
 | [docs/device-matrix.md](docs/device-matrix.md) | Hardware test results and quirks |
+| [docs/glasses-imu.md](docs/glasses-imu.md) | RayNeo / XReal / Viture IMU protocols + probe scripts |
 | [docs/releases/v0.1.34.md](docs/releases/v0.1.34.md) | Latest release notes |
 
 ## Development workflow
@@ -121,3 +122,8 @@ Install debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 - [Android xr-codelabs](https://github.com/android/xr-codelabs)
 - [Android xr-samples](https://github.com/android/xr-samples)
+
+### Credits
+
+- **RayNeo USB IMU HID protocol** used for glasses head tracking is aligned with the community desktop SDK [verncat/RayNeo-Air-3S-Pro-OpenVR](https://github.com/verncat/RayNeo-Air-3S-Pro-OpenVR) (`0x66`/`0x99` frames, IMU on/off).
+- **Other glasses IMU research** (docs/scripts only — not shipped in-app yet): [wheaney/XRLinuxDriver](https://github.com/wheaney/XRLinuxDriver) / [nrealAirLinuxDriver](https://gitlab.com/wheaney/nrealAirLinuxDriver), [badicsalex/ar-drivers-rs](https://github.com/badicsalex/ar-drivers-rs), [Viture Glasses SDK](https://www.viture.com/developer/glasses-sdk/glasses). See [docs/glasses-imu.md](docs/glasses-imu.md) and [scripts/imu/](scripts/imu/).

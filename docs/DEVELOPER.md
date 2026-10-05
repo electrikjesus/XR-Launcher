@@ -211,11 +211,27 @@ Bounds are collected via `onGloballyPositioned` → `boundsInRoot()` into shared
 
 ### Head tracking (RayNeo USB)
 
-Optional path when glasses IMU is available over USB:
+Optional path when glasses IMU is available over USB. Protocol is aligned with
+[verncat/RayNeo-Air-3S-Pro-OpenVR](https://github.com/verncat/RayNeo-Air-3S-Pro-OpenVR).
 
-- `RayNeoHeadTrackingController` reads HID reports.
-- `CompanionPointerBus.applyGlassesImuSample` moves cursor (not scene rotation) on launcher.
-- Calibration stores in `HeadTrackingCalibrationStore`; UI in Settings + companion tab.
+| Item | Value |
+|------|--------|
+| VID:PID | `7099:44880` (`RayNeoUsbConstants`) |
+| Frame size | 64 bytes |
+| Outbound magic | `0x66` — cmds `CMD_IMU_ON` (1) / `CMD_IMU_OFF` (2) |
+| Inbound magic | `0x99` — sample type `ACK_IMU_DATA` (`0x65`) |
+| Kotlin | `RayNeoUsbConstants`, `RayNeoImuProtocol`, `RayNeoHeadTrackingController` |
+
+Runtime wiring:
+
+- `RayNeoHeadTrackingController` claims the HID interface and streams samples.
+- `CompanionPointerBus.applyGlassesImuSample` drives FPS mouse-look when
+  `GlassesXrInputMode.GLASSES_HEAD_TRACKING` is selected.
+- Calibration: `HeadTrackingCalibrationStore` + companion Input tab / Settings.
+- Optional **dwell click** (Cardboard dial): `DwellClickStore` — only while FPS + IMU.
+
+For XReal / Viture probe scripts and vendor tables, see [glasses-imu.md](glasses-imu.md)
+and [`scripts/imu/`](../scripts/imu/).
 
 ---
 
