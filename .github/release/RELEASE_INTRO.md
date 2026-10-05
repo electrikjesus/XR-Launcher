@@ -1,6 +1,6 @@
 Spatial workspace launcher for Android XR glasses, headsets, and **3D desktop** on large screens (Android 14+). Your phone doubles as a **touchpad + motion controller** for the workspace.
 
-**0.1.34** — Companion multitouch (scroll / pinch-zoom / look), tray brightness + notification scroll handle, world-locked Recents, wallpaper / HDRI surrounds, host HUD look modes.
+**0.1.35** — Host Edit in top HUD, All Apps drawer padding, optional pane arrows, Cardboard dwell click (FPS + IMU), multi-vendor IMU docs/scripts.
 
 ### Highlights
 
