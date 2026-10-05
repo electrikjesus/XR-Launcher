@@ -642,6 +642,7 @@ Landed **host BumpDesk input slice:** absolute mouse/touch via `HostBumpDeskInpu
 0c18. **Host Edit in top HUD** — ☑ Edit icon beside Settings; bottom-end pill stays on glasses only.
 0c19. **All Apps drawer padding** — ☑ Roughly square frosted plate with outside padding around the grid and pager.
 0c20. **Host pane navigation arrows** — ☑ Settings toggle (off by default) shows left/right edge arrows on the large-screen Home Space; a click eases the look ~0.4 s to center the previous / next stop (Desktop · Home · app planes · Tray), full-circle aware.
+0c21. **Cardboard dwell click** — ☑ Companion Timelapse toggle (FPS + glasses IMU only); dial on glasses cursor; two-row companion toolbar.
 
 **Pointer / mouse-look:**
 0d. **2.25c — Mouse-look + motion drag** — ☐ make FPS grab/drag work with phone motion the same way as touchpad.
@@ -915,7 +916,8 @@ Record major choices here as they are made.
 | 2026-09-28 | **All Apps drawer breathing room:** column spacing 3.0, pager gap 0.6, backing pad 0.5 / side pad 0.6 half-sizes; test keeps the plate roughly square | UBook X screenshot showed a tall, snug plate with the top row poking past the edge |
 
 | 2026-09-28 | **Host pane arrows:** `HostPaneArrowsStore` toggle in shared Settings; `HomeSpacePaneNav` eases `panNorm` to the neighbor stop; screen-locked `HUD_PANE_PREV/NEXT` keys | Tablet users wanted one-click panel-to-panel navigation instead of dragging the look |
+| 2026-10-05 | **Dwell click:** `DwellClickStore` + progress dial; active only for FPS + `GLASSES_HEAD_TRACKING`; companion toolbar split into look/input + session rows | Cardboard-style hover-to-click for head-tracked mouse-look |
 
 ---
 
-*Last updated: 2026-09-28 (host pane navigation arrows)*
+*Last updated: 2026-10-05 (dwell click)*

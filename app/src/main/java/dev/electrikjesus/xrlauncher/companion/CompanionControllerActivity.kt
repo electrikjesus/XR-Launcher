@@ -18,6 +18,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.core.input.DwellClickStore
 import dev.electrikjesus.xrlauncher.core.input.MotionPointerController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.HeadTrackingCalibrationStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
@@ -40,6 +41,7 @@ class CompanionControllerActivity : ComponentActivity() {
         enableEdgeToEdge()
         HeadTrackingCalibrationStore.init(this)
         AllAppsGridConfigStore.init(this)
+        DwellClickStore.init(this)
         CompanionPointerBus.initHeadTrackingControls(this)
 
         motionController = MotionPointerController(this) { deltaX, deltaY ->

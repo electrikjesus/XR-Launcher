@@ -14,8 +14,12 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesHomeOverlay
 import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
+import dev.electrikjesus.xrlauncher.core.input.DwellClickController
+import dev.electrikjesus.xrlauncher.core.input.DwellClickStore
 import dev.electrikjesus.xrlauncher.core.input.HostInputMethod
 import dev.electrikjesus.xrlauncher.core.input.PointerButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import dev.electrikjesus.xrlauncher.core.input.bumpdesk.BumpDeskHostGesture
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsOverlayHits
 import dev.electrikjesus.xrlauncher.core.launcher.AllAppsPaginationState
@@ -198,9 +202,9 @@ fun LauncherWorkspacePointerEffects(
         val pick = homeSpacePick(cursor.x, cursor.y, rootWidthPx, rootHeightPx, panelScale, sphereScale)
         val panePoint = overlayPoint(pick, itemBounds) ?: screenPoint
         val paneBounds = paneItemBounds(itemBounds, pick?.slot?.panelId)
-        val homeHover = homeHitKey(screenPoint, screenSpaceBounds(itemBounds))?.let {
-            GlassesHomeHits.hoverLabel(it)
-        } ?: homeHitKey(panePoint, paneBounds)?.let { GlassesHomeHits.hoverLabel(it) }
+        val homeHit = homeHitKey(screenPoint, screenSpaceBounds(itemBounds))
+            ?: homeHitKey(panePoint, paneBounds)
+        val homeHover = homeHit?.let { GlassesHomeHits.hoverLabel(it) }
         scrubTrayControls(
             pressed = cursor.isPressed,
             point = panePoint,
@@ -264,6 +268,31 @@ fun LauncherWorkspacePointerEffects(
             lastLoggedHoverLabel = hoverLabel
         }
         CompanionPointerBus.setHoveredLabel(hoverLabel)
+        val dwellTarget = when {
+            LauncherContextMenuState.isOpen -> null
+            deskIcon != null -> "desk:${deskIcon.componentKey}"
+            homeHit != null -> "hit:$homeHit"
+            allAppsOverlayVisible &&
+                itemBounds[AllAppsOverlayHits.CLOSE_BOUNDS_KEY]?.containsWithSlop(screenPoint) == true ->
+                "hit:${AllAppsOverlayHits.CLOSE_BOUNDS_KEY}"
+            findAppAt(panePoint, paneBounds, apps) != null ->
+                "app:${findAppAt(panePoint, paneBounds, apps)!!.componentKey()}"
+            findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps) != null ->
+                "app:${findAppAt(screenPoint, screenSpaceBounds(itemBounds), apps)!!.componentKey()}"
+            hoverLabel != null && hoverLabel != HomeSpaceDesk.HOVER_LABEL -> "label:$hoverLabel"
+            else -> null
+        }
+        DwellClickController.onTarget(dwellTarget, cursor.isPressed)
+    }
+
+    // Cardboard dwell dial: tick while FPS + glasses IMU + user preference are active.
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            if (DwellClickStore.isActive()) {
+                DwellClickController.tick()
+            }
+            delay(16L)
+        }
     }
 }
 

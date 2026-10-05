@@ -313,6 +313,8 @@
     <string name="companion_cursor_head">Head tracking cursor</string>
     <string name="companion_gesture_look">Gesture look</string>
     <string name="companion_mouselook">Mouse look</string>
+    <string name="companion_dwell_click">Dwell click</string>
+    <string name="companion_dwell_click_hint">Hover until the dial fills to click — needs mouse look + head tracking</string>
     <string name="companion_mouselook_on">Mouse look on — drag to look · long-press then drag to grab</string>
     <string name="companion_mouselook_off">Mouse look off — free cursor on the glasses</string>
     <string name="launch_target_title">Launch %1$s</string>

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.SettingsInputComponent
+import androidx.compose.material.icons.filled.Timelapse
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,6 +63,7 @@ import dev.electrikjesus.xrlauncher.core.display.GlassesSessionState
 import dev.electrikjesus.xrlauncher.core.display.GlassesXrInputMode
 import dev.electrikjesus.xrlauncher.core.input.CompanionPointerBus
 import dev.electrikjesus.xrlauncher.core.input.DisplayPointerInjector
+import dev.electrikjesus.xrlauncher.core.input.DwellClickStore
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingController
 import dev.electrikjesus.xrlauncher.core.input.rayneo.RayNeoHeadTrackingState
 import dev.electrikjesus.xrlauncher.core.launcher.AppLaunchTarget
@@ -107,6 +109,8 @@ fun CompanionTouchpadScreen(
     val desktopPointerReady = DisplayPointerInjector.isAvailable
     val allAppsOverlayVisible by GlassesSessionState.allAppsOverlayVisibleFlow.collectAsState()
     val lookMode by GlassesLookMode.preferenceFlow.collectAsState()
+    val dwellWanted by DwellClickStore.enabledWanted.collectAsState()
+    val dwellAllowed = DwellClickStore.isAllowed()
     var selectedTab by remember { mutableIntStateOf(CompanionTab.Display.ordinal) }
     var showControls by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -133,17 +137,12 @@ fun CompanionTouchpadScreen(
     ) {
         val toolbarIconTint = MaterialTheme.colorScheme.onBackground
         val toolbarIconSelectedTint = MaterialTheme.colorScheme.secondary
+        // Row 1 — look / input (includes Cardboard dwell, gated to FPS + IMU).
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            IconButton(onClick = { showControls = true }) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = stringResource(R.string.companion_show_controls),
-                    tint = toolbarIconTint,
-                )
-            }
             IconButton(
                 onClick = {
                     GlassesSessionState.xrInputMode = GlassesXrInputMode.COMPANION
@@ -208,6 +207,23 @@ fun CompanionTouchpadScreen(
             }
             IconButton(
                 onClick = {
+                    if (!dwellAllowed) return@IconButton
+                    DwellClickStore.setEnabledWanted(context, !dwellWanted)
+                },
+                enabled = dwellAllowed,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timelapse,
+                    contentDescription = stringResource(R.string.companion_dwell_click),
+                    tint = when {
+                        !dwellAllowed -> toolbarIconTint.copy(alpha = 0.38f)
+                        dwellWanted -> toolbarIconSelectedTint
+                        else -> toolbarIconTint
+                    },
+                )
+            }
+            IconButton(
+                onClick = {
                     CompanionPointerBus.recenterCursor()
                     GlassesHomeLook.lookHome()
                 },
@@ -215,6 +231,19 @@ fun CompanionTouchpadScreen(
                 Icon(
                     imageVector = Icons.Default.FilterCenterFocus,
                     contentDescription = stringResource(R.string.recenter),
+                    tint = toolbarIconTint,
+                )
+            }
+        }
+        // Row 2 — session chrome.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { showControls = true }) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = stringResource(R.string.companion_show_controls),
                     tint = toolbarIconTint,
                 )
             }
